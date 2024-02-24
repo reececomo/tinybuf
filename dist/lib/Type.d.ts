@@ -20,11 +20,11 @@ export declare const enum Type {
      *  - For values -Number.MAX_SAFE_INTEGER -> Number.MAX_SAFE_INTEGER uses 8 bytes (if outside of the 4 byte range).
      */
     Int = "int",
-    /** Signed 8-byte integer (between 0 and 128). */
+    /** Signed 1 byte integer (between 0 and 128). */
     Int8 = "int8",
-    /** Signed 16-byte integer (between 0 and 32,767). */
+    /** Signed 2 byte integer (between 0 and 32,767). */
     Int16 = "int16",
-    /** Signed 32-byte integer (between 0 and 2,147,483,647). */
+    /** Signed 4 byte integer (between 0 and 2,147,483,647). */
     Int32 = "int32",
     /**
      * Unsigned integer.
@@ -36,11 +36,11 @@ export declare const enum Type {
      *  - For values 536,870,912 -> Number.MAX_SAFE_INTEGER uses 8 bytes.
      */
     UInt = "uint",
-    /** Unsigned 8-byte integer (between 0 and 255). */
+    /** Unsigned 1 byte integer (between 0 and 255). */
     UInt8 = "uint8",
-    /** Unsigned 16-byte integer (between 0 and 65,535). */
+    /** Unsigned 2 byte integer (between 0 and 65,535). */
     UInt16 = "uint16",
-    /** Unsigned 32-byte integer (between 0 and 4,294,967,295). */
+    /** Unsigned 4 byte integer (between 0 and 4,294,967,295). */
     UInt32 = "uint32",
     /**
      * A JavaScript buffer object.
