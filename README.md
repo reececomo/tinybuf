@@ -88,8 +88,9 @@ const myUser: MyUserInterface = UserBinaryCodec.decode(myUserBinary);
 * `Type.UInt`: unsigned integer (between 0 and `Number.MAX_SAFE_INTEGER`),
 * `Type.Int8`, `Type.Int16`, `Type.Int32`: signed integers (1, 2 or 4 bytes).
 * `Type.UInt8`, `Type.UInt16`, `Type.UInt32`: unsigned integers (1, 2 or 4 bytes).
-* `Type.Float`: a 32-bit precision floating-point number.
-* `Type.Double`: a 64-bit precision floating-point number (this is default for JavaScript's `number` type).
+* `Type.Double`: an 8 byte / 64-bit precision floating-point number (this is default for JavaScript's `number` type).
+* `Type.Float`: a 4 byte / 32-bit precision floating-point number.
+* `Type.Half`: a 2 byte / 16-bit precision floating-point number.
 * `Type.String`: a UTF-8 encoded string.
 * `Type.Boolean`: a boolean.
 

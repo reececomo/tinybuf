@@ -6,6 +6,8 @@ export declare const enum Type {
     Boolean = "bool",
     /** A string. */
     String = "str",
+    /** Floating-point number (16-bit, half precision). */
+    Half = "half",
     /** Floating-point number (32-bit, single precision). */
     Float = "float",
     /** Floating-point number (64-bit, double precision). Default JavaScript `number` type. */

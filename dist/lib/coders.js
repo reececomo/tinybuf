@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.BufferCoder = exports.stringCoder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
+exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.BufferCoder = exports.stringCoder = exports.float16Coder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
+const HalfFloat_1 = require("./HalfFloat");
 /* ---------------------------
  Binary Coder Implementations
  --------------------------- */
@@ -188,6 +189,20 @@ exports.float32Coder = {
     },
     read: function (state) {
         return state.readFloat();
+    }
+};
+/**
+ * 16-bit half precision float
+ */
+exports.float16Coder = {
+    write: function (f, data, path) {
+        if (typeof f !== 'number') {
+            throw new TypeError('Expected a number at ' + path + ', got ' + f);
+        }
+        data.writeUInt16((0, HalfFloat_1.toHalf)(f));
+    },
+    read: function (state) {
+        return (0, HalfFloat_1.fromHalf)(state.readUInt16());
     }
 };
 /**
@@ -404,6 +419,7 @@ function getCoder(type) {
         case "bool" /* Type.Boolean */: return exports.booleanCoder;
         case "buffer" /* Type.Buffer */: return exports.BufferCoder;
         case "date" /* Type.Date */: return exports.dateCoder;
+        case "half" /* Type.Half */: return exports.float16Coder;
         case "float" /* Type.Float */: return exports.float32Coder;
         case "double" /* Type.Double */: return exports.float64Coder;
         case "int" /* Type.Int */: return exports.intCoder;

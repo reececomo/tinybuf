@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.coders = exports.BinaryCodec = exports.ReadState = exports.Field = exports.MutableBuffer = void 0;
+exports.coders = exports.quantizeAsHalfFloat = exports.BinaryCodec = exports.ReadState = exports.Field = exports.MutableBuffer = void 0;
 var MutableBuffer_1 = require("./lib/MutableBuffer");
 Object.defineProperty(exports, "MutableBuffer", { enumerable: true, get: function () { return MutableBuffer_1.MutableBuffer; } });
 var Field_1 = require("./lib/Field");
@@ -32,5 +32,7 @@ var ReadState_1 = require("./lib/ReadState");
 Object.defineProperty(exports, "ReadState", { enumerable: true, get: function () { return ReadState_1.ReadState; } });
 var BinaryCodec_1 = require("./lib/BinaryCodec");
 Object.defineProperty(exports, "BinaryCodec", { enumerable: true, get: function () { return BinaryCodec_1.BinaryCodec; } });
+var HalfFloat_1 = require("./lib/HalfFloat");
+Object.defineProperty(exports, "quantizeAsHalfFloat", { enumerable: true, get: function () { return HalfFloat_1.quantizeAsHalfFloat; } });
 exports.coders = __importStar(require("./lib/coders"));
 //# sourceMappingURL=index.js.map

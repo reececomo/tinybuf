@@ -12,6 +12,9 @@ export const enum Type {
   /** A string. */
   String = 'str',
 
+  /** Floating-point number (16-bit, half precision). */
+  Half = 'half',
+
   /** Floating-point number (32-bit, single precision). */
   Float = 'float',
 

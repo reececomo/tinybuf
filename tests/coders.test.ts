@@ -119,13 +119,32 @@ describe('types', function () {
 
   it('should be sound for single precision floats', function () {
     check(coders.float32Coder, 0)
+    check(coders.float32Coder, -0.5)
     check(coders.float32Coder, 0.5)
     check(coders.float32Coder, 1)
+    check(coders.float32Coder, -1)
+    check(coders.float32Coder, 3.1419, 3.141900062561035)
+    check(coders.float32Coder, -3.1419, -3.141900062561035)
     check(coders.float32Coder, Infinity)
     check(coders.float32Coder, -Infinity)
     check(coders.float32Coder, 1 / Infinity)
     check(coders.float32Coder, -1 / Infinity)
     check(coders.float32Coder, NaN)
+  })
+
+  it('should be sound for half precision floats', function () {
+    check(coders.float16Coder, 0)
+    check(coders.float16Coder, -0.5)
+    check(coders.float16Coder, 0.5)
+    check(coders.float16Coder, 1)
+    check(coders.float16Coder, -1)
+    check(coders.float16Coder, 3.1419, 3.142578125)
+    check(coders.float16Coder, -3.1419, -3.142578125)
+    check(coders.float16Coder, Infinity)
+    check(coders.float16Coder, -Infinity)
+    check(coders.float16Coder, 1 / Infinity)
+    check(coders.float16Coder, -1 / Infinity)
+    check(coders.float16Coder, NaN)
   })
 
   it('should be sound for string', function () {
@@ -208,6 +227,6 @@ function read(hexStr, type) {
  * @param {Object} type
  * @param {*} value
  */
-function check(type, value) {
-  expect(read(write(type, value), type)).toEqual(value);
+function check(type, value: any, afterValue?: any) {
+  expect(read(write(type, value), type)).toEqual(afterValue ?? value);
 }

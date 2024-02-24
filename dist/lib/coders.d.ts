@@ -33,6 +33,10 @@ export declare const float64Coder: BinaryCoder<number>;
  */
 export declare const float32Coder: BinaryCoder<number>;
 /**
+ * 16-bit half precision float
+ */
+export declare const float16Coder: BinaryCoder<number>;
+/**
  * <uint_length> <buffer_data>
  */
 export declare const stringCoder: BinaryCoder<string>;

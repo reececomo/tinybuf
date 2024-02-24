@@ -1,3 +1,4 @@
+import { fromHalf, toHalf } from './HalfFloat';
 import { MutableBuffer } from './MutableBuffer';
 import { ReadState } from './ReadState';
 import { Type } from './Type';
@@ -211,6 +212,21 @@ export const float32Coder: BinaryCoder<number> = {
   },
   read: function (state) {
     return state.readFloat()
+  }
+}
+
+/**
+ * 16-bit half precision float
+ */
+export const float16Coder: BinaryCoder<number> = {
+  write: function (f, data, path) {
+    if (typeof f !== 'number') {
+      throw new TypeError('Expected a number at ' + path + ', got ' + f)
+    }
+    data.writeUInt16(toHalf(f))
+  },
+  read: function (state) {
+    return fromHalf(state.readUInt16());
   }
 }
 
@@ -455,6 +471,7 @@ export function getCoder(type: Type): BinaryCoder<any> {
     case Type.Boolean: return booleanCoder;
     case Type.Buffer: return BufferCoder;
     case Type.Date: return dateCoder;
+    case Type.Half: return float16Coder;
     case Type.Float: return float32Coder;
     case Type.Double: return float64Coder;
     case Type.Int: return intCoder;
@@ -475,7 +492,7 @@ export function getCoder(type: Type): BinaryCoder<any> {
     case Type.Bitmask32: return bitmask32Coder;
     
     case Type.Array,
-      Type.Object:
+         Type.Object:
       // This should not be possible!
       throw new Error(`Unexpected raw data structure type: "${type}". Please use array or object syntax instead.`);
     
