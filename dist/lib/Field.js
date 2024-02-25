@@ -2,16 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Field = void 0;
 const BinaryCodec_1 = require("./BinaryCodec");
+const Type_1 = require("./Type");
 /**
  * Parse and represent an object field. See example in Type.js
  */
 class Field {
-    constructor(name, type) {
-        this.isOptional = false;
-        if (name[name.length - 1] === '?') {
-            this.isOptional = true;
-            name = name.substr(0, name.length - 1);
-        }
+    constructor(name, rawType) {
+        this.isOptional = rawType instanceof Type_1.OptionalType;
+        let type = rawType instanceof Type_1.OptionalType ? rawType.type : rawType;
         this.name = name;
         if (Array.isArray(type)) {
             if (type.length !== 1) {

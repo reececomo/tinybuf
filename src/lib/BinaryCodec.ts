@@ -2,7 +2,7 @@ import * as coders from './coders';
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Type, TypeDefinition } from './Type';
+import { Optional, Type, TypeDefinition } from './Type';
 
 /**
  * A binary buffer encoder/decoder.
@@ -20,6 +20,9 @@ export class BinaryCodec<T = any> {
       
       this.type = Type.Array;
       this.subBinaryCodec = new BinaryCodec(type[0]);
+    }
+    else if (type instanceof Optional) {
+      throw new Error("Invalid type given. Root object must not be an Optional.")
     }
     else if (typeof type === 'object') {
       this.type = Type.Object

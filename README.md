@@ -22,7 +22,7 @@ Note that, since it's a binary format, it is not meant to be easily viewed/edite
 
 ## Usage
 ```js
-import { BinaryCodec, Type } from 'typescript-binary';
+import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
 // Define:
 const UserEncoder = new BinaryCodec<MyUserModel>({
@@ -31,7 +31,7 @@ const UserEncoder = new BinaryCodec<MyUserModel>({
     last: Type.String
   },
   pass: Type.Binary,
-  'dateOfBirth?': Type.Date, // optional field
+  dateOfBirth: Optional(Type.Date), // optional field
   creationDate: Type.Date,
   active: Type.Boolean,
   achievements: [Type.UInt], // array of unsigned integers
@@ -102,14 +102,14 @@ profiles: [{
 ```
 
 ### Optionals
-Define the names of properties with a `'?'` on the end to mark a field as optional.
+Define optional values with `Optional(...)`.
 
 Example:
 
 ```ts
 {
   a: Type.String,
-  'b?': [{ 'c?': Type.Int }],
+  b: Optional([{ 'c?': Type.Int }]),
 }
 ```
 

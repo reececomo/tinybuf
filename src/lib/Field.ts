@@ -1,5 +1,5 @@
 import { BinaryCodec } from './BinaryCodec';
-import { TypeDefinition } from './Type';
+import { OptionalType, TypeDefinition } from './Type';
 
 /**
  * Parse and represent an object field. See example in Type.js
@@ -10,13 +10,10 @@ export class Field {
   readonly isOptional: boolean;
   readonly isArray: boolean;
 
-  constructor(name: string, type: TypeDefinition) {
-    this.isOptional = false
+  constructor(name: string, rawType: TypeDefinition) {
+    this.isOptional = rawType instanceof OptionalType
+    let type = rawType instanceof OptionalType ? rawType.type : rawType;
 
-    if (name[name.length - 1] === '?') {
-      this.isOptional = true
-      name = name.substr(0, name.length - 1)
-    }
     this.name = name
 
     if (Array.isArray(type)) {

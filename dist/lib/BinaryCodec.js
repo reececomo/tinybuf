@@ -28,6 +28,7 @@ const coders = __importStar(require("./coders"));
 const Field_1 = require("./Field");
 const MutableArrayBuffer_1 = require("./MutableArrayBuffer");
 const ReadState_1 = require("./ReadState");
+const Type_1 = require("./Type");
 /**
  * A binary buffer encoder/decoder.
  */
@@ -39,6 +40,9 @@ class BinaryCodec {
             }
             this.type = "[array]" /* Type.Array */;
             this.subBinaryCodec = new BinaryCodec(type[0]);
+        }
+        else if (type instanceof Type_1.Optional) {
+            throw new Error("Invalid type given. Root object must not be an Optional.");
         }
         else if (typeof type === 'object') {
             this.type = "{object}" /* Type.Object */;

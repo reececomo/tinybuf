@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.coders = exports.quantizeAsHalfFloat = exports.BinaryCodec = exports.ReadState = exports.Field = exports.MutableArrayBuffer = void 0;
+exports.coders = exports.quantizeAsHalfFloat = exports.Optional = exports.BinaryCodec = exports.ReadState = exports.Field = exports.MutableArrayBuffer = void 0;
 var MutableArrayBuffer_1 = require("./lib/MutableArrayBuffer");
 Object.defineProperty(exports, "MutableArrayBuffer", { enumerable: true, get: function () { return MutableArrayBuffer_1.MutableArrayBuffer; } });
 var Field_1 = require("./lib/Field");
@@ -32,6 +32,8 @@ var ReadState_1 = require("./lib/ReadState");
 Object.defineProperty(exports, "ReadState", { enumerable: true, get: function () { return ReadState_1.ReadState; } });
 var BinaryCodec_1 = require("./lib/BinaryCodec");
 Object.defineProperty(exports, "BinaryCodec", { enumerable: true, get: function () { return BinaryCodec_1.BinaryCodec; } });
+var Type_1 = require("./lib/Type");
+Object.defineProperty(exports, "Optional", { enumerable: true, get: function () { return Type_1.Optional; } });
 var HalfFloat_1 = require("./lib/HalfFloat");
 Object.defineProperty(exports, "quantizeAsHalfFloat", { enumerable: true, get: function () { return HalfFloat_1.quantizeToHalfFloat16; } });
 exports.coders = __importStar(require("./lib/coders"));

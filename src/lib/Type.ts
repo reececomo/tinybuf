@@ -2,9 +2,20 @@
 type ValueType = Exclude<Type, Type.Array | Type.Object>;
 
 /** Type definition, including nested/object syntax. */
-export type TypeDefinition = ValueType | [ValueType]
+export type TypeDefinition =
+  | ValueType
+  | [ValueType]
+  | OptionalType<TypeDefinition>
   | { [property: string]: TypeDefinition } // Type.Object syntax
   | [{ [property: string]: TypeDefinition }]; // Type.Array syntax
+
+export class OptionalType<T> {
+  public constructor(public type: T) {}
+}
+
+export function Optional<T>(t: T): OptionalType<T> {
+  return new OptionalType(t);
+}
 
 /**
  * Binary coder types.

@@ -1,11 +1,16 @@
 /** All Type values, except the special Type.Array and Type.Object data structures. */
 type ValueType = Exclude<Type, Type.Array | Type.Object>;
 /** Type definition, including nested/object syntax. */
-export type TypeDefinition = ValueType | [ValueType] | {
+export type TypeDefinition = ValueType | [ValueType] | OptionalType<TypeDefinition> | {
     [property: string]: TypeDefinition;
 } | [{
     [property: string]: TypeDefinition;
 }];
+export declare class OptionalType<T> {
+    type: T;
+    constructor(type: T);
+}
+export declare function Optional<T>(t: T): OptionalType<T>;
 /**
  * Binary coder types.
  */

@@ -1,6 +1,7 @@
 import {
   BinaryCodec,
   Type,
+  Optional,
 } from '../src/index';
 
 describe('BinaryCodec', function () {
@@ -8,7 +9,7 @@ describe('BinaryCodec', function () {
     a: Type.Int,
     b: [Type.Int],
     c: [{
-      'd?': Type.String
+      d: Optional(Type.String)
     }]
   });
 

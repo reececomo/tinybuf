@@ -8,7 +8,7 @@ export declare class Field {
     readonly type: BinaryCodec;
     readonly isOptional: boolean;
     readonly isArray: boolean;
-    constructor(name: string, type: TypeDefinition);
+    constructor(name: string, rawType: TypeDefinition);
 }
 export default Field;
 //# sourceMappingURL=Field.d.ts.map
