@@ -1,12 +1,12 @@
 {
   "name": "typescript-binary",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Reece Como <reece.como@gmail.com>",
   "authors": [
     "Reece Como <reece.como@gmail.com>",
     "Sitegui <sitegui@sitegui.com.br>"
   ],
-  "description": "Custom static-typed binary encoding/decoding in TypeScript, based on sitegui/js-binary.",
+  "description": "Encode/decode powerful binary buffers in TypeScript, based on sitegui/js-binary.",
   "main": "./dist/index.js",
   "repository": {
     "type": "git",
