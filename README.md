@@ -31,10 +31,10 @@ const UserEncoder = new BinaryCodec<MyUserModel>({
     last: Type.String
   },
   pass: Type.Binary,
-  dateOfBirth: Optional(Type.Date), // optional field
+  dateOfBirth: Optional(Type.Date),
   creationDate: Type.Date,
   active: Type.Boolean,
-  achievements: [Type.UInt], // array of unsigned integers
+  achievements: [Type.UInt],
 });
 
 // Encode
@@ -50,7 +50,7 @@ const binary = UserEncoder.encode({
 });
 
 // Decode:
-const myUser = UserEncoder.decode(myUserBinary);
+const myUser: MyUserModel = UserEncoder.decode(myUserBinary);
 ```
 
 ## Types

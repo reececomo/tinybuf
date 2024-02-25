@@ -9,6 +9,14 @@ export type TypeDefinition =
   | { [property: string]: TypeDefinition } // Type.Object syntax
   | [{ [property: string]: TypeDefinition }]; // Type.Array syntax
 
+
+export type TypedTypeDefinition<T = any> =
+  | ValueType
+  | [ValueType]
+  | OptionalType<TypedTypeDefinition<T>>
+  | { [property in keyof T]: TypedTypeDefinition<T[property]> } // Type.Object syntax
+  | [{ [property in keyof T]: TypedTypeDefinition<T[property]> }] // Type.Array syntax
+
 export class OptionalType<T> {
   public constructor(public type: T) {}
 }

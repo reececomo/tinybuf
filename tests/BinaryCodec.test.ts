@@ -5,7 +5,7 @@ import {
 } from '../src/index';
 
 describe('BinaryCodec', function () {
-  const MyBinaryCodec = new BinaryCodec({
+  const MyBinaryCodec = new BinaryCodec<{ a, b, c: { d? }[]}>({
     a: Type.Int,
     b: [Type.Int],
     c: [{
@@ -72,7 +72,7 @@ describe('BinaryCodec', function () {
 
   it('should not encode a non conforming object', function () {
     expect(() => {
-      MyBinaryCodec.encode(12)
+      (MyBinaryCodec as any).encode(12)
     }).toThrow();
 
     expect(() => {
@@ -94,12 +94,12 @@ describe('BinaryCodec', function () {
   })
   
   it('should encode an array', function () {
-    const intArray = new BinaryCodec([Type.Int])
+    const intArray = new BinaryCodec<number[]>([Type.Int])
     expect(intArray.decode(intArray.encode([]))).toEqual([])
     expect(intArray.decode(intArray.encode([3]))).toEqual([3])
     expect(intArray.decode(intArray.encode([3, 14, 15]))).toEqual([3, 14, 15])
     
-    const objArray = new BinaryCodec([{
+    const objArray = new BinaryCodec<object[]>([{
       v: Type.Int,
       f: Type.String
     }])
@@ -117,7 +117,7 @@ describe('BinaryCodec', function () {
 
 
 describe('BOOLEAN_ARRAY', () => {
-  const MyCoder = new BinaryCodec({
+  const MyCoder = new BinaryCodec<{ name, coolBools }>({
     name: Type.String,
     coolBools: Type.BooleanTuple,
   });
@@ -171,7 +171,7 @@ describe('BOOLEAN_ARRAY', () => {
 });
 
 describe('BITMASK_8', () => {
-  const MyCoder = new BinaryCodec({
+  const MyCoder = new BinaryCodec<{ name, coolBools }>({
     name: Type.String,
     coolBools: Type.Bitmask8,
   });
@@ -213,10 +213,10 @@ describe('BITMASK_8', () => {
 });
 
 describe('BITMASK_32', () => {
-  const MyCoder = new BinaryCodec({
+  const MyCoder = new BinaryCodec<any>({
     name: Type.String,
     coolBools: Type.Bitmask32,
-    other: Type.String,
+    other: Optional(Type.String),
   });
 
   it('should encode all booleans below the minimum allowed', () => {

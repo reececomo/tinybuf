@@ -6,6 +6,11 @@ export type TypeDefinition = ValueType | [ValueType] | OptionalType<TypeDefiniti
 } | [{
     [property: string]: TypeDefinition;
 }];
+export type TypedTypeDefinition<T = any> = ValueType | [ValueType] | OptionalType<TypedTypeDefinition<T>> | {
+    [property in keyof T]: TypedTypeDefinition<T[property]>;
+} | [{
+    [property in keyof T]: TypedTypeDefinition<T[property]>;
+}];
 export declare class OptionalType<T> {
     type: T;
     constructor(type: T);

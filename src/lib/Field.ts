@@ -12,6 +12,7 @@ export class Field {
 
   constructor(name: string, rawType: TypeDefinition) {
     this.isOptional = rawType instanceof OptionalType
+
     let type = rawType instanceof OptionalType ? rawType.type : rawType;
 
     this.name = name
@@ -26,7 +27,7 @@ export class Field {
       this.isArray = false;
     }
 
-    this.type = new BinaryCodec(type)
+    this.type = new BinaryCodec<any>(type)
   }
 }
 

@@ -2,7 +2,7 @@ import * as coders from './coders';
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Optional, Type, TypeDefinition } from './Type';
+import { Optional, Type, TypedTypeDefinition } from './Type';
 
 /**
  * A binary buffer encoder/decoder.
@@ -12,14 +12,14 @@ export class BinaryCodec<T = any> {
   readonly fields: Field[]
   readonly subBinaryCodec?: BinaryCodec<T>;
   
-  constructor(type: TypeDefinition) {
+  constructor(type: TypedTypeDefinition<T>) {
     if (Array.isArray(type)) {
       if (type.length !== 1) {
         throw new TypeError('Invalid array definition, it must contain exactly one element')
       }
       
       this.type = Type.Array;
-      this.subBinaryCodec = new BinaryCodec(type[0]);
+      this.subBinaryCodec = new BinaryCodec<any>(type[0]);
     }
     else if (type instanceof Optional) {
       throw new Error("Invalid type given. Root object must not be an Optional.")
