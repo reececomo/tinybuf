@@ -1,6 +1,6 @@
 # TypeScript Binary
 
-Encode/decode custom binary formats from JavaScript, and much smaller and faster than JSON (or BSON).
+Encode/decode powerful binary buffers in TypeScript, and much smaller and faster than JSON (or BSON).
 
 This project is forked from the fantastic [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui). It works similarly to [Google's Protocol Buffers](https://protobuf.dev/), but with flexible support.
 
@@ -11,38 +11,10 @@ Compatible with [geckos.io](https://github.com/geckosio/geckos.io) (which is lik
 
 `yarn add typescript-binary`
 
-<details>
-<summary><h3>Enable browser support (polyfill required)</h3></summary>
-
-You may also need to polyfill `Buffer`, if using in the browser.
-
-`npm install buffer --save-dev`
-
-For example, in Webpack:
-
-```js
-// webpack.config.js
-
-  /* ... */
-  resolve: {
-    fallback: {
-      buffer: require.resolve('buffer/'),
-    },
-    // ...
-  },
-  plugins: [
-    // Make sure 'buffer' is available.
-    new webpack.ProvidePlugin({ Buffer: ['buffer', 'Buffer'] }),
-    // ...
-  ],
-  /* ... */
-```
-
-</details>
 
 ## Goal
 
-This module encodes and decodes data to your own custom binary formats (using Buffers), and is analogous to `JSON.stringify(...)` and `JSON.parse(...)`. The format was designed to be very compact and give support for complex types (including `Array`, `Date` and `Buffer`).
+This module encodes and decodes data to your own custom binary formats (using ArrayBuffers), and is analogous to `JSON.stringify(...)` and `JSON.parse(...)`. The format was designed to be very compact and give support for complex types (including `Array`, `Date` and `Buffer`).
 
 To reduce overhead in the format, it carries no information about types. This implies that you must use a shared data schema to encode/decode properly. Huge plus: this automatically validates the data against the given schema (*input sanitization for free!*). This binary format is well suited for very well-defined data, such as data packets for an online game.
 
@@ -53,32 +25,31 @@ Note that, since it's a binary format, it is not meant to be easily viewed/edite
 import { BinaryCodec, Type } from 'typescript-binary';
 
 // Define:
-const UserCodec = new BinaryCodec<MyUserInterface>({
+const UserEncoder = new BinaryCodec<MyUserModel>({
   name: {
     first: Type.String,
     last: Type.String
   },
   pass: Type.Buffer,
+  'dateOfBirth?': Type.Date,
   creationDate: Type.Date,
   active: Type.Boolean,
   achievements: [Type.UInt], // array of unsigned integers
-  'optionalField?': Type.Int
 });
 
-// Encode:
-const myUserBinary: Buffer = UserBinaryCodec.encode({
+// Encode
+const binary = UserEncoder.encode({
   name: {
     first: 'Guilherme',
     last: 'Souza'
   },
-  pass: Buffer.from('042697a30b2dafbdf91bf66bdacdcba8', 'hex'),
-  creationDate: new Date('2014-04-11T21:22:32.504Z'),
+  creationDate: new Date(),
   active: true,
   achievements: [3, 14, 15, 92, 65, 35],
 });
 
 // Decode:
-const myUser: MyUserInterface = UserBinaryCodec.decode(myUserBinary);
+const myUser = UserEncoder.decode(myUserBinary);
 ```
 
 ## Types

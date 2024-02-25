@@ -1,11 +1,10 @@
-/// <reference types="node" />
 /**
  * Wraps a buffer with a read head pointer.
  */
 export declare class ReadState {
-    private _buffer;
+    private _dataView;
     private _offset;
-    constructor(buffer: Buffer);
+    constructor(arrayBuffer: ArrayBuffer);
     /** Used to skip bytes for reading headers. */
     incrementOffset(): void;
     peekUInt8(): number;
@@ -17,7 +16,7 @@ export declare class ReadState {
     readInt32(): number;
     readFloat(): number;
     readDouble(): number;
-    readBuffer(length: number): Buffer;
+    readBuffer(length: number): ArrayBuffer;
     hasEnded(): boolean;
 }
 export default ReadState;

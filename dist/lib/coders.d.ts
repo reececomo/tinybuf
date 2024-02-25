@@ -1,9 +1,8 @@
-/// <reference types="node" />
-import { MutableBuffer } from './MutableBuffer';
+import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import { Type } from './Type';
 export interface BinaryCoder<T> {
-    write(u: T, data: MutableBuffer, path?: string): void;
+    write(u: T, data: MutableArrayBuffer, path?: string): void;
     read(state: ReadState): T;
 }
 /**
@@ -43,7 +42,7 @@ export declare const stringCoder: BinaryCoder<string>;
 /**
  * <uint_length> <buffer_data>
  */
-export declare const bufferCoder: BinaryCoder<Buffer>;
+export declare const arrayBufferLikeCoder: BinaryCoder<ArrayBufferLike>;
 /**
  * either 0x00 or 0x01
  */

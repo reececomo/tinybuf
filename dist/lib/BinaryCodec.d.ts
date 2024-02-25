@@ -1,6 +1,5 @@
-/// <reference types="node" />
 import { Field } from './Field';
-import { MutableBuffer } from './MutableBuffer';
+import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import { Type } from './Type';
 /** Types used in definitions */
@@ -18,25 +17,25 @@ export declare class BinaryCodec<T = any> {
      *
      * @throws if the value is invalid
      */
-    encode(value: T): Buffer;
+    encode(value: T): ArrayBuffer;
     /**
      * Decode data.
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
-    decode(buffer: Buffer): T;
+    decode(arrayBuffer: ArrayBuffer): T;
     /**
     * @param {*} value
-    * @param {MutableBuffer} data
+    * @param {MutableArrayBuffer} data
     * @param {string} path
     * @throws if the value is invalid
     */
     write(value: {
         [x: string]: any;
-    }, data: MutableBuffer, path: string): void;
+    }, data: MutableArrayBuffer, path: string): void;
     /**
     * @param {*} value
-    * @param {MutableBuffer} data
+    * @param {MutableArrayBuffer} data
     * @param {string} path
     * @param {BinaryCodec} type
     * @throws if the value is invalid
@@ -53,9 +52,8 @@ export declare class BinaryCodec<T = any> {
     read(state: ReadState): any;
     /**
     * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
-    * @return {Buffer}
     */
-    getHash(): Buffer;
+    getHash(): ArrayBuffer;
     _readOptional(state: ReadState): boolean;
     /**
     * Compile the decode method for this object

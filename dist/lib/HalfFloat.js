@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.quantizeAsHalfFloat = exports.fromHalf = exports.toHalf = void 0;
+exports.quantizeToHalfFloat16 = exports.fromHalf = exports.toHalf = void 0;
 /**
  * @param val 64-bit float
  * @returns uint16 bitmask representing a 16-bit float
@@ -85,11 +85,12 @@ function fromHalf(halfPrecisionBits) {
 exports.fromHalf = fromHalf;
 /**
  * Quantize a double to a half.
+ *
  * @param value A double value (64-bit floating point number).
  * @returns A quantized double value (after being converted to a half and back).
  */
-function quantizeAsHalfFloat(value) {
+function quantizeToHalfFloat16(value) {
     return fromHalf((0, exports.toHalf)(value));
 }
-exports.quantizeAsHalfFloat = quantizeAsHalfFloat;
+exports.quantizeToHalfFloat16 = quantizeToHalfFloat16;
 //# sourceMappingURL=HalfFloat.js.map

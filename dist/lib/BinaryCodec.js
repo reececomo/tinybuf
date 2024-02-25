@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BinaryCodec = void 0;
 const coders = __importStar(require("./coders"));
 const Field_1 = require("./Field");
-const MutableBuffer_1 = require("./MutableBuffer");
+const MutableArrayBuffer_1 = require("./MutableArrayBuffer");
 const ReadState_1 = require("./ReadState");
 /**
  * A binary buffer encoder/decoder.
@@ -59,21 +59,21 @@ class BinaryCodec {
      * @throws if the value is invalid
      */
     encode(value) {
-        var data = new MutableBuffer_1.MutableBuffer();
+        var data = new MutableArrayBuffer_1.MutableArrayBuffer();
         this.write(value, data, '');
-        return data.toBuffer();
+        return data.toArrayBuffer();
     }
     /**
      * Decode data.
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
-    decode(buffer) {
-        return this.read(new ReadState_1.ReadState(buffer));
+    decode(arrayBuffer) {
+        return this.read(new ReadState_1.ReadState(arrayBuffer));
     }
     /**
     * @param {*} value
-    * @param {MutableBuffer} data
+    * @param {MutableArrayBuffer} data
     * @param {string} path
     * @throws if the value is invalid
     */
@@ -117,7 +117,7 @@ class BinaryCodec {
     }
     /**
     * @param {*} value
-    * @param {MutableBuffer} data
+    * @param {MutableArrayBuffer} data
     * @param {string} path
     * @param {BinaryCodec} type
     * @throws if the value is invalid
@@ -147,12 +147,11 @@ class BinaryCodec {
     }
     /**
     * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
-    * @return {Buffer}
     */
     getHash() {
-        var hash = new MutableBuffer_1.MutableBuffer;
+        var hash = new MutableArrayBuffer_1.MutableArrayBuffer;
         hashType(this, false, false);
-        return hash.toBuffer();
+        return hash.toArrayBuffer();
         /**
         * @param {BinaryCodec} type
         * @param {boolean} array

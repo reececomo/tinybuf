@@ -91,9 +91,10 @@ export function fromHalf(halfPrecisionBits: number): number {
 
 /**
  * Quantize a double to a half.
+ *
  * @param value A double value (64-bit floating point number).
  * @returns A quantized double value (after being converted to a half and back).
  */
-export function quantizeAsHalfFloat(value: number): number {
+export function quantizeToHalfFloat16(value: number): number {
   return fromHalf(toHalf(value));
 }

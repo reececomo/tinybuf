@@ -1,5 +1,5 @@
 import { fromHalf, toHalf } from './HalfFloat';
-import { MutableBuffer } from './MutableBuffer';
+import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import { Type } from './Type';
 
@@ -23,7 +23,7 @@ const MAX_AUTO_UINT8 = 128,
   POW_32 = 4_294_967_296;
 
 export interface BinaryCoder<T> {
-  write(u: T, data: MutableBuffer, path?: string): void;
+  write(u: T, data: MutableArrayBuffer, path?: string): void;
   read(state: ReadState): T;
 }
 
@@ -234,31 +234,38 @@ export const float16Coder: BinaryCoder<number> = {
  * <uint_length> <buffer_data>
  */
 export const stringCoder: BinaryCoder<string> = {
-  write: function (s, data, path) {
-    if (typeof s !== 'string') {
-      throw new TypeError('Expected a string at ' + path + ', got ' + s)
+  write: function (value, data, path) {
+    if (typeof value !== 'string') {
+      throw new TypeError('Expected a string at ' + path + ', got ' + value)
     }
-    
-    bufferCoder.write(Buffer.from(s), data, path)
+
+    const arrayBuffer = new TextEncoder().encode(value).buffer;
+    arrayBufferLikeCoder.write(arrayBuffer, data, path)
   },
   read: function (state) {
-    return bufferCoder.read(state).toString()
+    const arrayBuffer = arrayBufferLikeCoder.read(state);
+
+    const decoder = new TextDecoder('utf-8');
+    return decoder.decode(arrayBuffer);
   }
 }
 
 /**
  * <uint_length> <buffer_data>
  */
-export const bufferCoder: BinaryCoder<Buffer> = {
-  write: function (B, data, path) {
-    if (!Buffer.isBuffer(B)) {
-      throw new TypeError('Expected a Buffer at ' + path + ', got ' + B)
+export const arrayBufferLikeCoder: BinaryCoder<ArrayBufferLike> = {
+  write: function (v: ArrayBufferLike | { buffer: ArrayBufferLike }, data, path) {
+    let arrayBuffer: ArrayBufferLike = ('buffer' in v) ? v.buffer : v;
+
+    if (arrayBuffer.byteLength === undefined) {
+      throw new TypeError('Expected an ArrayBufferLike or Object with an \'buffer: ArrayBufferLike\' property at ' + path + ', got ' + v)
     }
-    uintCoder.write(B.length, data, path)
-    data.appendBuffer(B)
+
+    uintCoder.write(arrayBuffer.byteLength, data, path)
+    data.appendBuffer(arrayBuffer);
   },
-  read: function (state) {
-    var length = uintCoder.read(state)
+  read: function (state): ArrayBuffer {
+    const length = uintCoder.read(state)
     return state.readBuffer(length)
   }
 }
@@ -472,7 +479,7 @@ function integerToBooleanArray(int: number): boolean[] {
 export function getCoder(type: Type): BinaryCoder<any> {
   switch (type) {
     case Type.Boolean: return booleanCoder;
-    case Type.Buffer: return bufferCoder;
+    case Type.Binary: return arrayBufferLikeCoder;
     case Type.Date: return dateCoder;
     case Type.Half: return float16Coder;
     case Type.Float: return float32Coder;

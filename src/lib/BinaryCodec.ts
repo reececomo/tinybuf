@@ -1,6 +1,6 @@
 import * as coders from './coders';
 import { Field } from './Field';
-import { MutableBuffer } from './MutableBuffer';
+import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import { Type } from './Type';
 
@@ -40,10 +40,10 @@ export class BinaryCodec<T = any> {
    *
    * @throws if the value is invalid
    */
-  public encode(value: T): Buffer {
-    var data = new MutableBuffer();
+  public encode(value: T): ArrayBuffer {
+    var data = new MutableArrayBuffer();
     this.write(value, data, '')
-    return data.toBuffer()
+    return data.toArrayBuffer();
   }
   
   /**
@@ -51,17 +51,17 @@ export class BinaryCodec<T = any> {
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
-  public decode(buffer: Buffer): T {
-    return this.read(new ReadState(buffer))
+  public decode(arrayBuffer: ArrayBuffer): T {
+    return this.read(new ReadState(arrayBuffer))
   }
   
   /**
   * @param {*} value
-  * @param {MutableBuffer} data
+  * @param {MutableArrayBuffer} data
   * @param {string} path
   * @throws if the value is invalid
   */
-  public write(value: { [x: string]: any; }, data: MutableBuffer, path: string) {
+  public write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string) {
     var i: number, field: Field, subpath: any, subValue: any, len: number
     
     if (this.type === Type.Array) {
@@ -106,7 +106,7 @@ export class BinaryCodec<T = any> {
   
   /**
   * @param {*} value
-  * @param {MutableBuffer} data
+  * @param {MutableArrayBuffer} data
   * @param {string} path
   * @param {BinaryCodec} type
   * @throws if the value is invalid
@@ -138,12 +138,11 @@ export class BinaryCodec<T = any> {
   
   /**
   * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
-  * @return {Buffer}
   */
   public getHash() {
-    var hash = new MutableBuffer
+    var hash = new MutableArrayBuffer
     hashType(this, false, false)
-    return hash.toBuffer()
+    return hash.toArrayBuffer()
     
     /**
     * @param {BinaryCodec} type

@@ -70,10 +70,11 @@ export const enum Type {
   //
 
   /**
-   * A JavaScript buffer object.
-   * @see {Buffer}
+   * Any JavaScript ArrayBufferLike representation.
+   *
+   * @see {ArrayBufferLike}
    */
-  Buffer = 'buffer',
+  Binary = 'binary',
 
   /**
    * A JavaScript date object.

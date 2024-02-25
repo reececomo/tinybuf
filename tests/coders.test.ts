@@ -1,5 +1,5 @@
 import {
-  MutableBuffer,
+  MutableArrayBuffer,
   ReadState,
   coders
 } from '../src/index';
@@ -14,12 +14,12 @@ describe('types', function () {
     Object.keys(uintValues).forEach(function (rawValue) {
       const value = Number(rawValue)
 
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       const expected = uintValues[value];
-      expect(encoded.toString('hex')).toEqual(expected.hex);
+      expect(arrayBufferToHexString(encoded)).toEqual(expected.hex);
       expect(`${value}: ${encoded.byteLength}`).toEqual(`${value}: ${expected.bytes}`);
 
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -30,12 +30,12 @@ describe('types', function () {
     Object.keys(intValues).forEach(function (rawValue) {
       const value = Number(rawValue)
 
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       const expected = intValues[value];
-      expect(encoded.toString('hex')).toEqual(expected.hex);
+      expect(arrayBufferToHexString(encoded)).toEqual(expected.hex);
       expect(`${value}: ${encoded.byteLength}`).toEqual(`${value}: ${expected.bytes}`);
 
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -44,9 +44,9 @@ describe('types', function () {
     const coder = coders.int8Coder;
     
     [0, 1, 2, 100, 127, -1, -2, -100, -127].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(1);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -55,9 +55,9 @@ describe('types', function () {
     const coder = coders.int16Coder;
     
     [0, 1, -1, 128, -128, 32_767, -32_767].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(2);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -66,9 +66,9 @@ describe('types', function () {
     const coder = coders.int32Coder;
     
     [0, 1, -1, 32_767, -32_767, 32_768, -2_147_483_647, 2_147_483_647].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(4);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -77,9 +77,9 @@ describe('types', function () {
     const coder = coders.uint8Coder;
     
     [0, 1, 2, 100, 127, 254, 255].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(1);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -88,9 +88,9 @@ describe('types', function () {
     const coder = coders.uint16Coder;
     
     [0, 256, 65_535].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(2);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -99,9 +99,9 @@ describe('types', function () {
     const coder = coders.uint32Coder;
     
     [0, 255, 65_536, 4_294_967_295].forEach((value: number): void => {
-      const encoded = writeBuffer(coder, value);
+      const encoded = _writeArrayBuffer(coder, value);
       expect(encoded.byteLength).toBe(4);
-      const decoded: number = readBuffer(coder, encoded);
+      const decoded: number = _readArrayBuffer(coder, encoded);
       expect(decoded).toEqual(value);
     });
   })
@@ -153,9 +153,16 @@ describe('types', function () {
     check(coders.stringCoder, '\u0000 Ūnĭcōde \uD83D\uDC04')
   })
 
-  it('should be sound for Buffer', function () {
-    check(coders.bufferCoder, Buffer.from([]))
-    check(coders.bufferCoder, Buffer.from([3, 14, 15, 92, 65, 35]))
+  it('should be sound for binary-like', function () {
+    const exampleArrayBuffer = new ArrayBuffer(6);
+    const exampleDataView = new DataView(exampleArrayBuffer);
+    for (const [i, value] of [3, 14, 15, 92, 65, 35].entries()) {
+      exampleDataView.setUint8(i, value);
+    }
+
+    check(coders.arrayBufferLikeCoder, exampleArrayBuffer)
+    check(coders.arrayBufferLikeCoder, new Uint8Array([3, 14, 15, 92, 65, 35]), exampleArrayBuffer)
+    check(coders.arrayBufferLikeCoder, exampleDataView, exampleArrayBuffer)
   })
 
   it('should be sound for boolean', function () {
@@ -191,17 +198,17 @@ describe('types', function () {
 // ----- Helpers: -----
 //
 
-function writeBuffer<T>(coder: any, value: T): Buffer {
-  var data = new MutableBuffer();
+function _writeArrayBuffer<T>(coder: any, value: T): ArrayBuffer {
+  var data = new MutableArrayBuffer();
   coder.write(value, data, '')
-  return data.toBuffer()
+  return data.toArrayBuffer()
 }
 
-function readBuffer<T>(coder: any, buffer: Buffer): T {
-  var state = new ReadState(buffer),
-    r = coder.read(state)
+function _readArrayBuffer<T>(coder: any, arrayBuffer: ArrayBuffer): T {
+  const state = new ReadState(arrayBuffer);
+  const r = coder.read(state);
   expect(state.hasEnded()).toBe(true);
-  return r
+  return r;
 }
 
 /**
@@ -209,10 +216,10 @@ function readBuffer<T>(coder: any, buffer: Buffer): T {
  * @param {*} value
  * @return {string} - hex string
  */
-function write(type, value) {
-  var data = new MutableBuffer();
+function _write(type, value) {
+  var data = new MutableArrayBuffer();
   type.write(value, data, '')
-  return data.toBuffer().toString('hex')
+  return arrayBufferToHexString(data.toArrayBuffer());
 }
 
 /**
@@ -220,8 +227,9 @@ function write(type, value) {
  * @param {Object} type
  * @return {*}
  */
-function read(hexStr, type) {
-  var state = new ReadState(Buffer.from(hexStr, 'hex')),
+function _readHex(hexStr, type) {
+  const arrayBuffer = hexStringToArrayBuffer(hexStr);
+  var state = new ReadState(arrayBuffer),
     r = type.read(state)
   expect(state.hasEnded()).toBe(true);
   return r
@@ -232,5 +240,23 @@ function read(hexStr, type) {
  * @param {*} value
  */
 function check(type, value: any, afterValue?: any) {
-  expect(read(write(type, value), type)).toEqual(afterValue ?? value);
+  expect(_readHex(_write(type, value), type)).toEqual(afterValue ?? value);
+}
+
+function arrayBufferToHexString(arrayBuffer: ArrayBuffer) {
+  const uint8Array = new Uint8Array(arrayBuffer);
+  return Array.from(uint8Array)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hexStringToArrayBuffer(hexString) {
+  // Remove the '0x' prefix if present
+  hexString = hexString.replace(/^0x/, '');
+
+  // Convert the hex string to bytes (Uint8Array)
+  const bytes = new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+  // Convert bytes to ArrayBuffer
+  return bytes.buffer;
 }

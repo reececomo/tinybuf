@@ -12,8 +12,9 @@ export declare const toHalf: (val: number) => number;
 export declare function fromHalf(halfPrecisionBits: number): number;
 /**
  * Quantize a double to a half.
+ *
  * @param value A double value (64-bit floating point number).
  * @returns A quantized double value (after being converted to a half and back).
  */
-export declare function quantizeAsHalfFloat(value: number): number;
+export declare function quantizeToHalfFloat16(value: number): number;
 //# sourceMappingURL=HalfFloat.d.ts.map
