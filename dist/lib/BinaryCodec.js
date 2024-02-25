@@ -35,7 +35,7 @@ class BinaryCodec {
     constructor(type) {
         if (Array.isArray(type)) {
             if (type.length !== 1) {
-                throw new TypeError('Invalid array type, it must have exactly one element');
+                throw new TypeError('Invalid array definition, it must contain exactly one element');
             }
             this.type = "[array]" /* Type.Array */;
             this.subBinaryCodec = new BinaryCodec(type[0]);

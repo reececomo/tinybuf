@@ -5,10 +5,10 @@ import {
 
 describe('BinaryCodec', function () {
   const MyBinaryCodec = new BinaryCodec({
-    a: 'int',
-    b: ['int'],
+    a: Type.Int,
+    b: [Type.Int],
     c: [{
-      'd?': 'str'
+      'd?': Type.String
     }]
   });
 
@@ -93,14 +93,14 @@ describe('BinaryCodec', function () {
   })
   
   it('should encode an array', function () {
-    const intArray = new BinaryCodec(['int'])
+    const intArray = new BinaryCodec([Type.Int])
     expect(intArray.decode(intArray.encode([]))).toEqual([])
     expect(intArray.decode(intArray.encode([3]))).toEqual([3])
     expect(intArray.decode(intArray.encode([3, 14, 15]))).toEqual([3, 14, 15])
     
     const objArray = new BinaryCodec([{
-      v: 'int',
-      f: 'str'
+      v: Type.Int,
+      f: Type.String
     }])
     expect(objArray.decode(objArray.encode([]))).toEqual([])
     const data = [{
@@ -118,7 +118,7 @@ describe('BinaryCodec', function () {
 describe('BOOLEAN_ARRAY', () => {
   const MyCoder = new BinaryCodec({
     name: Type.String,
-    coolBools: Type.BooleanArray,
+    coolBools: Type.BooleanTuple,
   });
 
   it('should encode less than 8', () => {

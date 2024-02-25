@@ -1,3 +1,11 @@
+/** All Type values, except the special Type.Array and Type.Object data structures. */
+type ValueType = Exclude<Type, Type.Array | Type.Object>;
+/** Type definition, including nested/object syntax. */
+export type TypeDefinition = ValueType | [ValueType] | {
+    [property: string]: TypeDefinition;
+} | [{
+    [property: string]: TypeDefinition;
+}];
 /**
  * Binary coder types.
  */
@@ -5,7 +13,7 @@ export declare const enum Type {
     /**
      * A single boolean, encoded as 1 byte.
      *
-     * @see {Type.BooleanArray} @see {Type.Bitmask8} to pack multiple booleans into 1 byte.
+     * @see {Type.BooleanTuple} @see {Type.Bitmask8} to pack multiple booleans into 1 byte.
      */
     Boolean = "bool",
     /** A string. */
@@ -74,14 +82,14 @@ export declare const enum Type {
      */
     JSON = "json",
     /**
-     * An array of booleans.
+     * A tuple/array of booleans.
      *
-     * Automatically packs into the minimal amount of bytes:
+     * Automatically packs into the minimal amount of bytes (with a 2-bit header):
      *  - For arrays with 0 -> 6 values uses 1 bytes.
      *  - For arrays with 7 -> 12 values uses 2 bytes.
      *  - And so forth...
      */
-    BooleanArray = "boolarray",
+    BooleanTuple = "booltuple",
     /** An array containing up to 8 booleans, encoded as a single UInt8. */
     Bitmask8 = "bitmask8",
     /** An array containing up to 16 booleans, encoded as a single UInt16. */
@@ -102,4 +110,5 @@ export declare const enum Type {
      */
     Object = "{object}"
 }
+export {};
 //# sourceMappingURL=Type.d.ts.map

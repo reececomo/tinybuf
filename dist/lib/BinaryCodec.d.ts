@@ -1,9 +1,7 @@
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Type } from './Type';
-/** Types used in definitions */
-export type BinaryCodecDefinition = Type | [Type] | Object | Object[];
+import { Type, TypeDefinition } from './Type';
 /**
  * A binary buffer encoder/decoder.
  */
@@ -11,7 +9,7 @@ export declare class BinaryCodec<T = any> {
     readonly type: Type;
     readonly fields: Field[];
     readonly subBinaryCodec?: BinaryCodec<T>;
-    constructor(type: BinaryCodecDefinition);
+    constructor(type: TypeDefinition);
     /**
      * Encode data to binary.
      *

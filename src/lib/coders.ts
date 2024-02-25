@@ -496,7 +496,7 @@ export function getCoder(type: Type): BinaryCoder<any> {
     case Type.UInt32: return uint32Coder;
 
     case Type.JSON: return jsonCoder;
-    case Type.BooleanArray: return booleanArrayCoder;
+    case Type.BooleanTuple: return booleanArrayCoder;
     case Type.Bitmask8: return bitmask8Coder;
     case Type.Bitmask16: return bitmask16Coder;
     case Type.Bitmask32: return bitmask32Coder;

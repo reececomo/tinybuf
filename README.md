@@ -69,7 +69,7 @@ const myUser = UserEncoder.decode(myUserBinary);
 > `Type.UInt` and `Type.Int` will dynamically encode values as 1, 2, 4, or 8 bytes. See [Type.Int](https://github.com/reececomo/typescript-binary/blob/main/src/lib/Type.ts) for limits.
 
 ### Advanced
-* `Type.BooleanArray`: A packed array of booleans (any length), encoded together (you can pack many booleans into one byte).
+* `Type.BooleanTuple`: A tuple of booleans (any length), encoded together (you can pack many booleans into one byte).
 * `Type.Binary`: Any `ArrayBuffer` or `ArrayBufferView` instance (.e.g `UInt8Array`).
 * `Type.RegExp`: Any JavaScript `RegExp` object.
 * `Type.Date`: Any JavaScript `Date` object.

@@ -2,10 +2,7 @@ import * as coders from './coders';
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Type } from './Type';
-
-/** Types used in definitions */
-export type BinaryCodecDefinition = Type | [Type] | Object | Object[];
+import { Type, TypeDefinition } from './Type';
 
 /**
  * A binary buffer encoder/decoder.
@@ -15,15 +12,16 @@ export class BinaryCodec<T = any> {
   readonly fields: Field[]
   readonly subBinaryCodec?: BinaryCodec<T>;
   
-  constructor(type: BinaryCodecDefinition) {
+  constructor(type: TypeDefinition) {
     if (Array.isArray(type)) {
       if (type.length !== 1) {
-        throw new TypeError('Invalid array type, it must have exactly one element')
+        throw new TypeError('Invalid array definition, it must contain exactly one element')
       }
       
       this.type = Type.Array;
       this.subBinaryCodec = new BinaryCodec(type[0]);
-    } else if (typeof type === 'object') {
+    }
+    else if (typeof type === 'object') {
       this.type = Type.Object
       this.fields = Object.keys(type).map(function (name) {
         return new Field(name, type[name])

@@ -440,7 +440,7 @@ function getCoder(type) {
         case "uint16" /* Type.UInt16 */: return exports.uint16Coder;
         case "uint32" /* Type.UInt32 */: return exports.uint32Coder;
         case "json" /* Type.JSON */: return exports.jsonCoder;
-        case "boolarray" /* Type.BooleanArray */: return exports.booleanArrayCoder;
+        case "booltuple" /* Type.BooleanTuple */: return exports.booleanArrayCoder;
         case "bitmask8" /* Type.Bitmask8 */: return exports.bitmask8Coder;
         case "bitmask16" /* Type.Bitmask16 */: return exports.bitmask16Coder;
         case "bitmask32" /* Type.Bitmask32 */: return exports.bitmask32Coder;
