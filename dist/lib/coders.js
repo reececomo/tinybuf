@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.arrayBufferLikeCoder = exports.stringCoder = exports.float16Coder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
+exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.arrayBufferCoder = exports.stringCoder = exports.float16Coder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
 const HalfFloat_1 = require("./HalfFloat");
 /* ---------------------------
  Binary Coder Implementations
@@ -214,10 +214,10 @@ exports.stringCoder = {
             throw new TypeError('Expected a string at ' + path + ', got ' + value);
         }
         const arrayBuffer = new TextEncoder().encode(value).buffer;
-        exports.arrayBufferLikeCoder.write(arrayBuffer, data, path);
+        exports.arrayBufferCoder.write(arrayBuffer, data, path);
     },
     read: function (state) {
-        const arrayBuffer = exports.arrayBufferLikeCoder.read(state);
+        const arrayBuffer = exports.arrayBufferCoder.read(state);
         const decoder = new TextDecoder('utf-8');
         return decoder.decode(arrayBuffer);
     }
@@ -225,11 +225,11 @@ exports.stringCoder = {
 /**
  * <uint_length> <buffer_data>
  */
-exports.arrayBufferLikeCoder = {
+exports.arrayBufferCoder = {
     write: function (v, data, path) {
-        let arrayBuffer = ('buffer' in v) ? v.buffer : v;
+        let arrayBuffer = v instanceof ArrayBuffer ? v : v.buffer;
         if (arrayBuffer.byteLength === undefined) {
-            throw new TypeError('Expected an ArrayBufferLike or Object with an \'buffer: ArrayBufferLike\' property at ' + path + ', got ' + v);
+            throw new TypeError('Expected an ArrayBuffer or ArrayBufferView at ' + path + ', got ' + v);
         }
         exports.uintCoder.write(arrayBuffer.byteLength, data, path);
         data.appendBuffer(arrayBuffer);
@@ -424,7 +424,7 @@ function integerToBooleanArray(int) {
 function getCoder(type) {
     switch (type) {
         case "bool" /* Type.Boolean */: return exports.booleanCoder;
-        case "binary" /* Type.Binary */: return exports.arrayBufferLikeCoder;
+        case "binary" /* Type.Binary */: return exports.arrayBufferCoder;
         case "date" /* Type.Date */: return exports.dateCoder;
         case "half" /* Type.Half */: return exports.float16Coder;
         case "float" /* Type.Float */: return exports.float32Coder;

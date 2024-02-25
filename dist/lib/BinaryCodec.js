@@ -69,7 +69,7 @@ class BinaryCodec {
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
     decode(arrayBuffer) {
-        return this.read(new ReadState_1.ReadState(arrayBuffer));
+        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer));
     }
     /**
     * @param {*} value

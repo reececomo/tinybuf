@@ -23,7 +23,7 @@ export declare class BinaryCodec<T = any> {
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
-    decode(arrayBuffer: ArrayBuffer): T;
+    decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T;
     /**
     * @param {*} value
     * @param {MutableArrayBuffer} data

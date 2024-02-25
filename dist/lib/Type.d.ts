@@ -49,9 +49,10 @@ export declare const enum Type {
     /** Unsigned 4 byte integer (between 0 and 4,294,967,295). */
     UInt32 = "uint32",
     /**
-     * Any JavaScript ArrayBufferLike representation.
+     * Any JavaScript ArrayBuffer or ArrayBufferView (e.g. UInt8Array).
      *
-     * @see {ArrayBufferLike}
+     * @see {ArrayBuffer}
+     * @see {ArrayBufferView}
      */
     Binary = "binary",
     /**

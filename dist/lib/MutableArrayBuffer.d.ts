@@ -12,7 +12,7 @@ export declare class MutableArrayBuffer {
     get byteLength(): number;
     /** The amount of bytes currently available to the underlying memory. */
     get currentAllocatedBytes(): number;
-    appendBuffer: (data: ArrayBufferLike) => void;
+    appendBuffer: (data: ArrayBuffer | ArrayBufferView) => void;
     writeInt8(value: number): void;
     writeInt16(value: number): void;
     writeInt32(value: number): void;

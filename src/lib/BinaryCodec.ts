@@ -51,8 +51,8 @@ export class BinaryCodec<T = any> {
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
-  public decode(arrayBuffer: ArrayBuffer): T {
-    return this.read(new ReadState(arrayBuffer))
+  public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T {
+    return this.read(new ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer))
   }
   
   /**

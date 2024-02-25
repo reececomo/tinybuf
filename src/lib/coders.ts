@@ -240,10 +240,10 @@ export const stringCoder: BinaryCoder<string> = {
     }
 
     const arrayBuffer = new TextEncoder().encode(value).buffer;
-    arrayBufferLikeCoder.write(arrayBuffer, data, path)
+    arrayBufferCoder.write(arrayBuffer, data, path)
   },
   read: function (state) {
-    const arrayBuffer = arrayBufferLikeCoder.read(state);
+    const arrayBuffer = arrayBufferCoder.read(state);
 
     const decoder = new TextDecoder('utf-8');
     return decoder.decode(arrayBuffer);
@@ -253,12 +253,12 @@ export const stringCoder: BinaryCoder<string> = {
 /**
  * <uint_length> <buffer_data>
  */
-export const arrayBufferLikeCoder: BinaryCoder<ArrayBufferLike> = {
-  write: function (v: ArrayBufferLike | { buffer: ArrayBufferLike }, data, path) {
-    let arrayBuffer: ArrayBufferLike = ('buffer' in v) ? v.buffer : v;
+export const arrayBufferCoder: BinaryCoder<ArrayBuffer> = {
+  write: function (v: ArrayBuffer | ArrayBufferView, data, path) {
+    let arrayBuffer: ArrayBuffer = v instanceof ArrayBuffer ? v : v.buffer;
 
     if (arrayBuffer.byteLength === undefined) {
-      throw new TypeError('Expected an ArrayBufferLike or Object with an \'buffer: ArrayBufferLike\' property at ' + path + ', got ' + v)
+      throw new TypeError('Expected an ArrayBuffer or ArrayBufferView at ' + path + ', got ' + v)
     }
 
     uintCoder.write(arrayBuffer.byteLength, data, path)
@@ -479,7 +479,7 @@ function integerToBooleanArray(int: number): boolean[] {
 export function getCoder(type: Type): BinaryCoder<any> {
   switch (type) {
     case Type.Boolean: return booleanCoder;
-    case Type.Binary: return arrayBufferLikeCoder;
+    case Type.Binary: return arrayBufferCoder;
     case Type.Date: return dateCoder;
     case Type.Half: return float16Coder;
     case Type.Float: return float32Coder;

@@ -153,16 +153,16 @@ describe('types', function () {
     check(coders.stringCoder, '\u0000 Ūnĭcōde \uD83D\uDC04')
   })
 
-  it('should be sound for binary-like', function () {
+  it('should be sound for arraybuffer and arraybufferview types', function () {
     const exampleArrayBuffer = new ArrayBuffer(6);
     const exampleDataView = new DataView(exampleArrayBuffer);
     for (const [i, value] of [3, 14, 15, 92, 65, 35].entries()) {
       exampleDataView.setUint8(i, value);
     }
 
-    check(coders.arrayBufferLikeCoder, exampleArrayBuffer)
-    check(coders.arrayBufferLikeCoder, new Uint8Array([3, 14, 15, 92, 65, 35]), exampleArrayBuffer)
-    check(coders.arrayBufferLikeCoder, exampleDataView, exampleArrayBuffer)
+    check(coders.arrayBufferCoder, exampleArrayBuffer)
+    check(coders.arrayBufferCoder, new Uint8Array([3, 14, 15, 92, 65, 35]), exampleArrayBuffer)
+    check(coders.arrayBufferCoder, exampleDataView, exampleArrayBuffer)
   })
 
   it('should be sound for boolean', function () {

@@ -22,10 +22,10 @@ export class MutableArrayBuffer {
     return this._dataView.byteLength;
   }
 	
-	public appendBuffer = function (data: ArrayBufferLike): void {
+	public appendBuffer = function (data: ArrayBuffer | ArrayBufferView): void {
 		this._alloc(data.byteLength)
 
-    const tempDataView = new DataView(data);
+    const tempDataView = new DataView(data instanceof ArrayBuffer ? data : data.buffer);
     for (let i = 0; i < data.byteLength; i++) {
       this._dataView.setUint8(this._length + i, tempDataView.getUint8(i));
     }

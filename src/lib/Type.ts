@@ -70,9 +70,10 @@ export const enum Type {
   //
 
   /**
-   * Any JavaScript ArrayBufferLike representation.
+   * Any JavaScript ArrayBuffer or ArrayBufferView (e.g. UInt8Array).
    *
-   * @see {ArrayBufferLike}
+   * @see {ArrayBuffer}
+   * @see {ArrayBufferView}
    */
   Binary = 'binary',
 
