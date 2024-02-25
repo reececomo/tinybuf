@@ -30,8 +30,8 @@ const UserEncoder = new BinaryCodec<MyUserModel>({
     first: Type.String,
     last: Type.String
   },
-  pass: Type.Buffer,
-  'dateOfBirth?': Type.Date,
+  pass: Type.Binary,
+  'dateOfBirth?': Type.Date, // optional field
   creationDate: Type.Date,
   active: Type.Boolean,
   achievements: [Type.UInt], // array of unsigned integers
@@ -43,6 +43,7 @@ const binary = UserEncoder.encode({
     first: 'Guilherme',
     last: 'Souza'
   },
+  pass: myPasswordHashUInt8ArrayView.buffer,
   creationDate: new Date(),
   active: true,
   achievements: [3, 14, 15, 92, 65, 35],
@@ -55,23 +56,23 @@ const myUser = UserEncoder.decode(myUserBinary);
 ## Types
 
 ### Primitives
-* `Type.Int`: signed integer (between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`).
-* `Type.UInt`: unsigned integer (between 0 and `Number.MAX_SAFE_INTEGER`),
+* `Type.Int`: Signed integer (between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`).
+* `Type.UInt`: Unsigned integer (between 0 and `Number.MAX_SAFE_INTEGER`),
 * `Type.Int8`, `Type.Int16`, `Type.Int32`: signed integers (1, 2 or 4 bytes).
 * `Type.UInt8`, `Type.UInt16`, `Type.UInt32`: unsigned integers (1, 2 or 4 bytes).
-* `Type.Double`: an 8 byte / 64-bit precision floating-point number (this is default for JavaScript's `number` type).
-* `Type.Float`: a 4 byte / 32-bit precision floating-point number.
-* `Type.Half`: a 2 byte / 16-bit precision floating-point number.
-* `Type.String`: a UTF-8 encoded string.
-* `Type.Boolean`: a boolean.
+* `Type.Double`: An 8 byte / 64-bit precision floating-point number (this is default for JavaScript's `number` type).
+* `Type.Float`: A 4 byte / 32-bit precision floating-point number.
+* `Type.Half`: A 2 byte / 16-bit precision floating-point number.
+* `Type.String`: A UTF-8 encoded string.
+* `Type.Boolean`: A boolean.
 
 > `Type.UInt` and `Type.Int` will dynamically encode values as 1, 2, 4, or 8 bytes. See [Type.Int](https://github.com/reececomo/typescript-binary/blob/main/src/lib/Type.ts) for limits.
 
 ### Advanced
 * `Type.BooleanArray`: A packed array of booleans (any length), encoded together (you can pack many booleans into one byte).
-* `Type.Buffer`: a Buffer instance
-* `Type.RegExp`: a JavaScript `RegExp` object
-* `Type.Date`: a JavaScript `Date` object
+* `Type.Binary`: Any `ArrayBuffer` or `ArrayBufferView` instance (.e.g `UInt8Array`).
+* `Type.RegExp`: Any JavaScript `RegExp` object.
+* `Type.Date`: Any JavaScript `Date` object.
 * `Type.JSON`: Any data supported by [JSON format](http://json.org/). See below for more details.
 * `Type.Bitmask8`, `Type.Bitmask16`, and `Type.Bitmask32`: A fixed-length array of booleans, encoded as a `uint8`, `uint16` or `uint32`.
 
