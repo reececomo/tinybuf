@@ -43,7 +43,7 @@ export declare const stringCoder: BinaryCoder<string>;
 /**
  * <uint_length> <buffer_data>
  */
-export declare const BufferCoder: BinaryCoder<Buffer>;
+export declare const bufferCoder: BinaryCoder<Buffer>;
 /**
  * either 0x00 or 0x01
  */

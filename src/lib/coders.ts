@@ -239,17 +239,17 @@ export const stringCoder: BinaryCoder<string> = {
       throw new TypeError('Expected a string at ' + path + ', got ' + s)
     }
     
-    BufferCoder.write(Buffer.from(s), data, path)
+    bufferCoder.write(Buffer.from(s), data, path)
   },
   read: function (state) {
-    return BufferCoder.read(state).toString()
+    return bufferCoder.read(state).toString()
   }
 }
 
 /**
  * <uint_length> <buffer_data>
  */
-export const BufferCoder: BinaryCoder<Buffer> = {
+export const bufferCoder: BinaryCoder<Buffer> = {
   write: function (B, data, path) {
     if (!Buffer.isBuffer(B)) {
       throw new TypeError('Expected a Buffer at ' + path + ', got ' + B)
@@ -409,13 +409,16 @@ export const dateCoder: BinaryCoder<Date> = {
   write: function (d, data, path) {
     if (!(d instanceof Date)) {
       throw new TypeError('Expected an instance of Date at ' + path + ', got ' + d)
-    } else if (isNaN(d.getTime())) {
-      throw new TypeError('Expected a valid Date at ' + path + ', got ' + d)
+    } else {
+      const time = d.getTime();
+      if (isNaN(time)) {
+        throw new TypeError('Expected a valid Date at ' + path + ', got ' + d)
+      }
+      intCoder.write(time, data, path)
     }
-    uintCoder.write(d.getTime(), data, path)
   },
   read: function (state) {
-    return new Date(uintCoder.read(state))
+    return new Date(intCoder.read(state))
   }
 }
 
@@ -469,7 +472,7 @@ function integerToBooleanArray(int: number): boolean[] {
 export function getCoder(type: Type): BinaryCoder<any> {
   switch (type) {
     case Type.Boolean: return booleanCoder;
-    case Type.Buffer: return BufferCoder;
+    case Type.Buffer: return bufferCoder;
     case Type.Date: return dateCoder;
     case Type.Half: return float16Coder;
     case Type.Float: return float32Coder;

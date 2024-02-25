@@ -6,19 +6,23 @@ export const enum Type {
   // Primitives:
   //
 
-  /** A single boolean, encoded as a single UInt8. @see {Type.Bitmask8} */
+  /**
+   * A single boolean, encoded as 1 byte.
+   *
+   * @see {Type.BooleanArray} @see {Type.Bitmask8} to pack multiple booleans into 1 byte.
+   */
   Boolean = 'bool',
 
   /** A string. */
   String = 'str',
 
-  /** Floating-point number (16-bit, half precision). */
+  /** Floating-point number (16-bit, half precision, 2 bytes). */
   Half = 'half',
 
-  /** Floating-point number (32-bit, single precision). */
+  /** Floating-point number (32-bit, single precision, 4 bytes). */
   Float = 'float',
 
-  /** Floating-point number (64-bit, double precision). Default JavaScript `number` type. */
+  /** Floating-point number (64-bit, double precision, 8 bytes). Default JavaScript `number` type. */
   Double = 'double',
 
   /**
@@ -32,13 +36,13 @@ export const enum Type {
    */
   Int = 'int',
 
-  /** Signed 1 byte integer (between 0 and 128). */
+  /** Signed 1 byte integer (between -127 and 127). */
   Int8 = 'int8',
 
-  /** Signed 2 byte integer (between 0 and 32,767). */
+  /** Signed 2 byte integer (between -32,767 and 32,767). */
   Int16 = 'int16',
 
-  /** Signed 4 byte integer (between 0 and 2,147,483,647). */
+  /** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
   Int32 = 'int32',
 
   /**
@@ -73,15 +77,19 @@ export const enum Type {
 
   /**
    * A JavaScript date object.
+   *
+   * Encoded as an 8 byte (64-bit) integer UTC timestamp from as the number
+   * of milliseconds since the Unix Epoch (January 1, 1970, 00:00:00 UTC).
+   *
    * @see {Date}
    */
   Date = 'date',
 
   /**
-   * A JavaScript regular expression object.
+   * A JavaScript regular expression.
    * @see {RegExp}
    */
-  RegExp = 'regexp',
+  RegExp = 'regex',
   
   /**
    * Any JSON-serializable data.
@@ -116,12 +124,16 @@ export const enum Type {
   //
 
   /**
+   * Do not use this directly, use array syntax instead.
+   *
    * An array definition.
    * @see {Array}
    */
   Array = '[array]',
 
   /**
+   * Do not use this directly, use object syntax instead.
+   *
    * A dictionary-like definition.
    */
   Object = '{object}',

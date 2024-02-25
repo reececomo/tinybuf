@@ -154,8 +154,8 @@ describe('types', function () {
   })
 
   it('should be sound for Buffer', function () {
-    check(coders.BufferCoder, Buffer.from([]))
-    check(coders.BufferCoder, Buffer.from([3, 14, 15, 92, 65, 35]))
+    check(coders.bufferCoder, Buffer.from([]))
+    check(coders.bufferCoder, Buffer.from([3, 14, 15, 92, 65, 35]))
   })
 
   it('should be sound for boolean', function () {
@@ -186,6 +186,10 @@ describe('types', function () {
     check(coders.dateCoder, new Date)
   })
 })
+
+//
+// ----- Helpers: -----
+//
 
 function writeBuffer<T>(coder: any, value: T): Buffer {
   var data = new MutableBuffer();

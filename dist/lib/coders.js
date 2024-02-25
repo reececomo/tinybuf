@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.BufferCoder = exports.stringCoder = exports.float16Coder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
+exports.getCoder = exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.bufferCoder = exports.stringCoder = exports.float16Coder = exports.float32Coder = exports.float64Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = void 0;
 const HalfFloat_1 = require("./HalfFloat");
 /* ---------------------------
  Binary Coder Implementations
@@ -213,16 +213,16 @@ exports.stringCoder = {
         if (typeof s !== 'string') {
             throw new TypeError('Expected a string at ' + path + ', got ' + s);
         }
-        exports.BufferCoder.write(Buffer.from(s), data, path);
+        exports.bufferCoder.write(Buffer.from(s), data, path);
     },
     read: function (state) {
-        return exports.BufferCoder.read(state).toString();
+        return exports.bufferCoder.read(state).toString();
     }
 };
 /**
  * <uint_length> <buffer_data>
  */
-exports.BufferCoder = {
+exports.bufferCoder = {
     write: function (B, data, path) {
         if (!Buffer.isBuffer(B)) {
             throw new TypeError('Expected a Buffer at ' + path + ', got ' + B);
@@ -363,13 +363,16 @@ exports.dateCoder = {
         if (!(d instanceof Date)) {
             throw new TypeError('Expected an instance of Date at ' + path + ', got ' + d);
         }
-        else if (isNaN(d.getTime())) {
-            throw new TypeError('Expected a valid Date at ' + path + ', got ' + d);
+        else {
+            const time = d.getTime();
+            if (isNaN(time)) {
+                throw new TypeError('Expected a valid Date at ' + path + ', got ' + d);
+            }
+            exports.intCoder.write(time, data, path);
         }
-        exports.uintCoder.write(d.getTime(), data, path);
     },
     read: function (state) {
-        return new Date(exports.uintCoder.read(state));
+        return new Date(exports.intCoder.read(state));
     }
 };
 /**
@@ -417,7 +420,7 @@ function integerToBooleanArray(int) {
 function getCoder(type) {
     switch (type) {
         case "bool" /* Type.Boolean */: return exports.booleanCoder;
-        case "buffer" /* Type.Buffer */: return exports.BufferCoder;
+        case "buffer" /* Type.Buffer */: return exports.bufferCoder;
         case "date" /* Type.Date */: return exports.dateCoder;
         case "half" /* Type.Half */: return exports.float16Coder;
         case "float" /* Type.Float */: return exports.float32Coder;
@@ -426,7 +429,7 @@ function getCoder(type) {
         case "int8" /* Type.Int8 */: return exports.int8Coder;
         case "int16" /* Type.Int16 */: return exports.int16Coder;
         case "int32" /* Type.Int32 */: return exports.int32Coder;
-        case "regexp" /* Type.RegExp */: return exports.regexCoder;
+        case "regex" /* Type.RegExp */: return exports.regexCoder;
         case "str" /* Type.String */: return exports.stringCoder;
         case "uint" /* Type.UInt */: return exports.uintCoder;
         case "uint8" /* Type.UInt8 */: return exports.uint8Coder;
