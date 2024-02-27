@@ -2,9 +2,9 @@
  * Wraps a buffer with a read head pointer.
  */
 export declare class ReadState {
+    _offset: number;
     private _dataView;
-    private _offset;
-    constructor(arrayBuffer: ArrayBuffer);
+    constructor(arrayBuffer: ArrayBuffer, skipBytes?: number);
     /** Used to skip bytes for reading headers. */
     incrementOffset(): void;
     peekUInt8(): number;

@@ -26,63 +26,107 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BinaryCodec = void 0;
 const coders = __importStar(require("./coders"));
 const Field_1 = require("./Field");
+const hashCode_1 = require("./lib/hashCode");
 const MutableArrayBuffer_1 = require("./MutableArrayBuffer");
 const ReadState_1 = require("./ReadState");
 const Type_1 = require("./Type");
 /**
  * A binary buffer encoder/decoder.
+ *
+ * Binary
  */
 class BinaryCodec {
-    constructor(type) {
-        if (Array.isArray(type)) {
-            if (type.length !== 1) {
+    constructor(definition, 
+    /**
+     * An optional Id (UInt16) to be encoded as the first 2 bytes.
+     * Uses @see {hashCode} by default. Set `null` to disable.
+     *
+     * You can use this with @see {BinaryCodec.peek(...)} or @see {BinaryCodecInterpreter}
+     */
+    Id) {
+        this.Id = Id;
+        if (Array.isArray(definition)) {
+            if (definition.length !== 1) {
                 throw new TypeError('Invalid array definition, it must contain exactly one element');
             }
             this.type = "[array]" /* Type.Array */;
-            this.subBinaryCodec = new BinaryCodec(type[0]);
+            this.subBinaryCodec = new BinaryCodec(definition[0]);
         }
-        else if (type instanceof Type_1.Optional) {
+        else if (definition instanceof Type_1.Optional) {
             throw new Error("Invalid type given. Root object must not be an Optional.");
         }
-        else if (typeof type === 'object') {
+        else if (typeof definition === 'object') {
             this.type = "{object}" /* Type.Object */;
-            this.fields = Object.keys(type).map(function (name) {
-                return new Field_1.Field(name, type[name]);
+            this.fields = Object.keys(definition).map(function (name) {
+                return new Field_1.Field(name, definition[name]);
             });
         }
-        else if (type !== undefined) {
-            this.type = type;
+        else if (definition !== undefined) {
+            this.type = definition;
         }
         else {
             throw new Error("Invalid type given. Must be array containing a single type, an object, or a known coder type.");
         }
+        // Create a hash code
+        const shape = this.type === "{object}" /* Type.Object */ ? definition : {};
+        this.hashCode = (0, hashCode_1.generateObjectShapeHashCode)(shape);
+        if (this.Id === undefined && this.Id !== null) {
+            this.Id = this.hashCode;
+        }
     }
     /**
-     * Encode data to binary.
+     * Whether this data matches this
+     */
+    matches(data) {
+        try {
+            this.encode(data);
+            return true;
+        }
+        catch (error) {
+            return false;
+        }
+    }
+    // ----- Static methods: -----
+    /**
+     * A helper function to peek the Id.
+     *
+     * Default is integer, but you can set `Type.String` to read a string, otherwise this will return the length of the string.
+     *
+     * If all your codecs have set a @see {Id}, you can use this to differentiate.
+     */
+    static peekId(buffer) {
+        const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
+        return dataView.getUint16(0);
+    }
+    // ----- Public methods: -----
+    /**
+     * Encode an object to binary.
      *
      * @throws if the value is invalid
      */
     encode(value) {
-        var data = new MutableArrayBuffer_1.MutableArrayBuffer();
-        this.write(value, data, '');
+        const data = new MutableArrayBuffer_1.MutableArrayBuffer();
+        this._writePrefixIfSet(data);
+        this._write(value, data, '');
         return data.toArrayBuffer();
     }
     /**
-     * Decode data.
+     * Decode binary data to an object.
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
     decode(arrayBuffer) {
-        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer));
+        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer, this.Id === false ? 0 : 2));
     }
+    // ----- Implementation: -----
     /**
     * @param {*} value
     * @param {MutableArrayBuffer} data
     * @param {string} path
     * @throws if the value is invalid
     */
-    write(value, data, path) {
-        var i, field, subpath, subValue, len;
+    _write(value, data, path) {
+        let i, field, subpath, subValue, len;
         if (this.type === "[array]" /* Type.Array */) {
             // Array field
             return this._writeArray(value, data, path, this.subBinaryCodec);
@@ -96,7 +140,7 @@ class BinaryCodec {
             throw new TypeError('Expected an object at ' + path);
         }
         // Write each field
-        for (i = 0, len = this.fields.length; i < len; i++) {
+        for (let i = 0, len = this.fields.length; i < len; i++) {
             field = this.fields[i];
             subpath = path ? path + '.' + field.name : field.name;
             subValue = value[field.name];
@@ -112,12 +156,21 @@ class BinaryCodec {
             }
             if (!field.isArray) {
                 // Scalar field
-                field.type.write(subValue, data, subpath);
+                field.type._write(subValue, data, subpath);
                 continue;
             }
             // Array field
             this._writeArray(subValue, data, subpath, field.type);
         }
+    }
+    /**
+     * Writes @see {Id} as the prefix of the buffer.
+     */
+    _writePrefixIfSet(mutableArrayBuffer) {
+        if (this.Id === false) {
+            return;
+        }
+        coders.uint16Coder.write(this.Id, mutableArrayBuffer, '');
     }
     /**
     * @param {*} value
@@ -135,7 +188,7 @@ class BinaryCodec {
         len = value.length;
         coders.uintCoder.write(len, data);
         for (i = 0; i < len; i++) {
-            type.write(value[i], data, path + '.' + i);
+            type._write(value[i], data, path + '.' + i);
         }
     }
     /**
@@ -148,31 +201,6 @@ class BinaryCodec {
     read(state) {
         this.read = this._compileRead();
         return this.read(state);
-    }
-    /**
-    * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
-    */
-    getHash() {
-        var hash = new MutableArrayBuffer_1.MutableArrayBuffer;
-        hashType(this, false, false);
-        return hash.toArrayBuffer();
-        /**
-        * @param {BinaryCodec} type
-        * @param {boolean} array
-        * @param {boolean} optional
-        */
-        function hashType(type, array, isOptional) {
-            // Write type (first char + flags)
-            // AOxx xxxx
-            hash.writeUInt8((this.type.charCodeAt(0) & 0x3f) | (array ? 0x80 : 0) | (isOptional ? 0x40 : 0));
-            if (this.type === "[array]" /* Type.Array */) {
-                hashType(type.subBinaryCodec, false, false);
-            }
-            else if (this.type === "{object}" /* Type.Object */) {
-                coders.uintCoder.write(type.fields.length, hash);
-                type.fields.forEach((f) => hashType(f.type, f.isArray, f.isOptional));
-            }
-        }
     }
     _readOptional(state) {
         return coders.booleanCoder.read(state);

@@ -2,11 +2,12 @@
  * Wraps a buffer with a read head pointer.
  */
 export class ReadState {
-  public _offset: number = 0;
+  public _offset: number;
   private _dataView: DataView;
 
-  constructor(arrayBuffer: ArrayBuffer) {
+  constructor(arrayBuffer: ArrayBuffer, skipBytes: number = 0) {
     this._dataView = new DataView(arrayBuffer);
+    this._offset = skipBytes;
   }
 
   /** Used to skip bytes for reading headers. */

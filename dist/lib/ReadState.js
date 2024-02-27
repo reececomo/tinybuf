@@ -5,9 +5,9 @@ exports.ReadState = void 0;
  * Wraps a buffer with a read head pointer.
  */
 class ReadState {
-    constructor(arrayBuffer) {
-        this._offset = 0;
+    constructor(arrayBuffer, skipBytes = 0) {
         this._dataView = new DataView(arrayBuffer);
+        this._offset = skipBytes;
     }
     /** Used to skip bytes for reading headers. */
     incrementOffset() {

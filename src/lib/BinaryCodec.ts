@@ -1,24 +1,32 @@
 import * as coders from './coders';
 import { Field } from './Field';
+import { generateObjectShapeHashCode } from './lib/hashCode';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import { Optional, Type, TypedTypeDefinition } from './Type';
 
 /**
  * A binary buffer encoder/decoder.
+ *
+ * Binary 
  */
 export class BinaryCodec<T = any> {
   protected readonly type: Type;
   protected readonly fields: Field[]
   protected readonly subBinaryCodec?: BinaryCodec<T>;
+
+  /** A shape-unique hash. */
+  public readonly hashCode: number;
   
   constructor(
     definition: TypedTypeDefinition<T>,
     /**
-     * An optional prefix to be encoded as the first byte (or bytes). You can use this
-     * with @see {BinaryCodec.peek(...)}
+     * An optional Id (UInt16) to be encoded as the first 2 bytes.
+     * Uses @see {hashCode} by default. Set `null` to disable.
+     *
+     * You can use this with @see {BinaryCodec.peek(...)} or @see {BinaryCodecInterpreter}
      */
-    public readonly Prefix?: string | number,
+    public readonly Id?: number | false,
   ) {
     if (Array.isArray(definition)) {
       if (definition.length !== 1) {
@@ -41,23 +49,41 @@ export class BinaryCodec<T = any> {
     } else {
       throw new Error("Invalid type given. Must be array containing a single type, an object, or a known coder type.");
     }
+    
+    // Create a hash code
+    const shape = this.type === Type.Object ? definition as any : {};
+    this.hashCode = generateObjectShapeHashCode(shape);
+
+    if (this.Id === undefined && this.Id !== null) {
+      this.Id = this.hashCode;
+    }
+  }
+
+  /**
+   * Whether this data matches this 
+   */
+  public matches(data: any): data is T {
+    try {
+      this.encode(data);
+      return true;
+    }
+    catch (error) {
+      return false;
+    }
   }
 
   // ----- Static methods: -----
 
   /**
-   * A helper function to peek the first byte (or bytes) and extract an integer or string.
+   * A helper function to peek the Id.
    *
    * Default is integer, but you can set `Type.String` to read a string, otherwise this will return the length of the string.
    *
-   * If all your codecs have set a @see {Prefix}, you can use this to differentiate.
+   * If all your codecs have set a @see {Id}, you can use this to differentiate.
    */
-  public static peek(buffer: ArrayBuffer | ArrayBufferView, format?: Type.UInt, byteOffset?: number): number
-  public static peek(buffer: ArrayBuffer | ArrayBufferView, format: Type.String, byteOffset?: number): string
-  public static peek(buffer: ArrayBuffer | ArrayBufferView, format: Type.UInt | Type.String = Type.UInt, byteOffset: number = 0): number | string {
-    const _read = new ReadState(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
-    _read._offset = byteOffset;
-    return format === Type.String ? coders.stringCoder.read(_read) : coders.intCoder.read(_read);
+  public static peekId(buffer: ArrayBuffer | ArrayBufferView): number {
+    const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
+    return dataView.getUint16(0);
   }
 
   // ----- Public methods: -----
@@ -70,7 +96,7 @@ export class BinaryCodec<T = any> {
   public encode(value: T): ArrayBuffer {
     const data = new MutableArrayBuffer();
     this._writePrefixIfSet(data);
-    this._write(value, data, '')
+    this._write(value, data, '');
     return data.toArrayBuffer();
   }
   
@@ -80,7 +106,10 @@ export class BinaryCodec<T = any> {
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
   public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T {
-    return this.read(new ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer))
+    return this.read(new ReadState(
+      arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
+      this.Id === false ? 0 : 2
+    ));
   }
 
   // ----- Implementation: -----
@@ -92,7 +121,7 @@ export class BinaryCodec<T = any> {
   * @throws if the value is invalid
   */
   protected _write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string) {
-    var i: number, field: Field, subpath: any, subValue: any, len: number
+    let i: number, field: Field, subpath: any, subValue: any, len: number
     
     if (this.type === Type.Array) {
       // Array field
@@ -108,7 +137,7 @@ export class BinaryCodec<T = any> {
     }
     
     // Write each field
-    for (i = 0, len = this.fields.length; i < len; i++) {
+    for (let i = 0, len = this.fields.length; i < len; i++) {
       field = this.fields[i]
       subpath = path ? path + '.' + field.name : field.name
       subValue = value[field.name]
@@ -135,42 +164,14 @@ export class BinaryCodec<T = any> {
   }
 
   /**
-   * Writes `Identifier` as the prefix of the buffer `encode()`.
+   * Writes @see {Id} as the prefix of the buffer.
    */
   protected _writePrefixIfSet(mutableArrayBuffer: MutableArrayBuffer): void {
-    if (this.Prefix === undefined) {
-      return;
-    }
-  
-    if (typeof this.Prefix === 'string') {
-      coders.stringCoder.write(this.Prefix, mutableArrayBuffer, '');
-    }
-    else if (typeof this.Prefix === 'number') {
-      coders.intCoder.write(Math.round(this.Prefix), mutableArrayBuffer, '');
-    }
-  }
-
-  /**
-   * Writes `Identifier` as the prefix of the buffer `encode()`.
-   */
-  protected _readPrefixIfSet(readState: ReadState): string | number {
-    if (this.Prefix === undefined) {
+    if (this.Id === false) {
       return;
     }
 
-    let readPrefix: typeof this.Prefix;
-  
-    if (typeof this.Prefix === 'string') {
-      readPrefix = coders.stringCoder.read(readState);
-    }
-    
-    readPrefix = coders.intCoder.read(readState);
-
-    if (readPrefix !== this.Prefix) {
-      throw new TypeError(`Expected prefix: '${this.Prefix}', instead received '${readPrefix}'`);
-    }
-
-    return readPrefix;
+    coders.uint16Coder.write(this.Id, mutableArrayBuffer, '');
   }
   
   /**
@@ -200,40 +201,11 @@ export class BinaryCodec<T = any> {
   * @return {*}
   * @throws if fails
   */
-  protected read(state: ReadState) {
-    this._readPrefixIfSet(state);
-
-    this.read = this._compileRead()
+  protected read(state: ReadState): T {
+    this.read = this._compileRead();
     return this.read(state)
   }
-  
-  /**
-  * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
-  */
-  protected getHash() {
-    var hash = new MutableArrayBuffer
-    hashType(this, false, false)
-    return hash.toArrayBuffer()
-    
-    /**
-    * @param {BinaryCodec} type
-    * @param {boolean} array
-    * @param {boolean} optional
-    */
-    function hashType(type: BinaryCodec<T>, array: boolean, isOptional: boolean) {
-      // Write type (first char + flags)
-      // AOxx xxxx
-      hash.writeUInt8((this.type.charCodeAt(0) & 0x3f) | (array ? 0x80 : 0) | (isOptional ? 0x40 : 0))
-      
-      if (this.type === Type.Array) {
-        hashType(type.subBinaryCodec, false, false)
-      } else if (this.type === Type.Object) {
-        coders.uintCoder.write(type.fields.length, hash)
-        type.fields.forEach((f) => hashType(f.type, f.isArray, f.isOptional));
-      }
-    }
-  }
-  
+
   protected _readOptional(state: ReadState): boolean {
     return coders.booleanCoder.read(state);
   }
@@ -243,7 +215,7 @@ export class BinaryCodec<T = any> {
   * @return {function(ReadState):*}
   * @private
   */
-  protected _compileRead() {
+  protected _compileRead(): (state: ReadState) => T {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type
       // In this case, there is no need to write custom code
@@ -276,7 +248,7 @@ export class BinaryCodec<T = any> {
       return code
     }).join(',') + '}'
     
-    return new Function('state', code)
+    return new Function('state', code) as any;
   }
   
   /**
