@@ -94,7 +94,7 @@ describe('BinaryCodec', function () {
   })
   
   it('should encode an array', function () {
-    const intArray = new BinaryCodec<number[]>([Type.Int])
+    const intArray = new BinaryCodec<number[]>([Type.Int]);
     expect(intArray.decode(intArray.encode([]))).toEqual([])
     expect(intArray.decode(intArray.encode([3]))).toEqual([3])
     expect(intArray.decode(intArray.encode([3, 14, 15]))).toEqual([3, 14, 15])
@@ -120,7 +120,7 @@ describe('BOOLEAN_ARRAY', () => {
   const MyCoder = new BinaryCodec<{ name, coolBools }>({
     name: Type.String,
     coolBools: Type.BooleanTuple,
-  });
+  }, "m");
 
   it('should encode less than 8', () => {
     const before = {
@@ -129,6 +129,8 @@ describe('BOOLEAN_ARRAY', () => {
     };
 
     const encoded = MyCoder.encode(before);
+
+    expect(BinaryCodec.peek(encoded, Type.String)).toBe(MyCoder.Prefix);
 
     const after = MyCoder.decode(encoded);
     expect(after).toStrictEqual({

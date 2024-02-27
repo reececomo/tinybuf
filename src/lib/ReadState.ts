@@ -2,8 +2,8 @@
  * Wraps a buffer with a read head pointer.
  */
 export class ReadState {
+  public _offset: number = 0;
   private _dataView: DataView;
-  private _offset: number = 0
 
   constructor(arrayBuffer: ArrayBuffer) {
     this._dataView = new DataView(arrayBuffer);

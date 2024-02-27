@@ -8,53 +8,82 @@ import { Optional, Type, TypedTypeDefinition } from './Type';
  * A binary buffer encoder/decoder.
  */
 export class BinaryCodec<T = any> {
-  readonly type: Type;
-  readonly fields: Field[]
-  readonly subBinaryCodec?: BinaryCodec<T>;
+  protected readonly type: Type;
+  protected readonly fields: Field[]
+  protected readonly subBinaryCodec?: BinaryCodec<T>;
   
-  constructor(type: TypedTypeDefinition<T>) {
-    if (Array.isArray(type)) {
-      if (type.length !== 1) {
+  constructor(
+    definition: TypedTypeDefinition<T>,
+    /**
+     * An optional prefix to be encoded as the first byte (or bytes). You can use this
+     * with @see {BinaryCodec.peek(...)}
+     */
+    public readonly Prefix?: string | number,
+  ) {
+    if (Array.isArray(definition)) {
+      if (definition.length !== 1) {
         throw new TypeError('Invalid array definition, it must contain exactly one element')
       }
       
       this.type = Type.Array;
-      this.subBinaryCodec = new BinaryCodec<any>(type[0]);
+      this.subBinaryCodec = new BinaryCodec<any>(definition[0]);
     }
-    else if (type instanceof Optional) {
+    else if (definition instanceof Optional) {
       throw new Error("Invalid type given. Root object must not be an Optional.")
     }
-    else if (typeof type === 'object') {
+    else if (typeof definition === 'object') {
       this.type = Type.Object
-      this.fields = Object.keys(type).map(function (name) {
-        return new Field(name, type[name])
+      this.fields = Object.keys(definition).map(function (name) {
+        return new Field(name, definition[name])
       })
-    } else if (type !== undefined) {
-      this.type = type;
+    } else if (definition !== undefined) {
+      this.type = definition;
     } else {
       throw new Error("Invalid type given. Must be array containing a single type, an object, or a known coder type.");
     }
   }
+
+  // ----- Static methods: -----
+
+  /**
+   * A helper function to peek the first byte (or bytes) and extract an integer or string.
+   *
+   * Default is integer, but you can set `Type.String` to read a string, otherwise this will return the length of the string.
+   *
+   * If all your codecs have set a @see {Prefix}, you can use this to differentiate.
+   */
+  public static peek(buffer: ArrayBuffer | ArrayBufferView, format?: Type.UInt, byteOffset?: number): number
+  public static peek(buffer: ArrayBuffer | ArrayBufferView, format: Type.String, byteOffset?: number): string
+  public static peek(buffer: ArrayBuffer | ArrayBufferView, format: Type.UInt | Type.String = Type.UInt, byteOffset: number = 0): number | string {
+    const _read = new ReadState(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
+    _read._offset = byteOffset;
+    return format === Type.String ? coders.stringCoder.read(_read) : coders.intCoder.read(_read);
+  }
+
+  // ----- Public methods: -----
   
   /**
-   * Encode data to binary.
+   * Encode an object to binary.
    *
    * @throws if the value is invalid
    */
   public encode(value: T): ArrayBuffer {
-    var data = new MutableArrayBuffer();
-    this.write(value, data, '')
+    const data = new MutableArrayBuffer();
+    this._writePrefixIfSet(data);
+    this._write(value, data, '')
     return data.toArrayBuffer();
   }
   
   /**
-   * Decode data.
+   * Decode binary data to an object.
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
   public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T {
     return this.read(new ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer))
   }
+
+  // ----- Implementation: -----
   
   /**
   * @param {*} value
@@ -62,7 +91,7 @@ export class BinaryCodec<T = any> {
   * @param {string} path
   * @throws if the value is invalid
   */
-  public write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string) {
+  protected _write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string) {
     var i: number, field: Field, subpath: any, subValue: any, len: number
     
     if (this.type === Type.Array) {
@@ -96,13 +125,52 @@ export class BinaryCodec<T = any> {
       
       if (!field.isArray) {
         // Scalar field
-        field.type.write(subValue, data, subpath)
+        field.type._write(subValue, data, subpath)
         continue
       }
       
       // Array field
       this._writeArray(subValue, data, subpath, field.type)
     }
+  }
+
+  /**
+   * Writes `Identifier` as the prefix of the buffer `encode()`.
+   */
+  protected _writePrefixIfSet(mutableArrayBuffer: MutableArrayBuffer): void {
+    if (this.Prefix === undefined) {
+      return;
+    }
+  
+    if (typeof this.Prefix === 'string') {
+      coders.stringCoder.write(this.Prefix, mutableArrayBuffer, '');
+    }
+    else if (typeof this.Prefix === 'number') {
+      coders.intCoder.write(Math.round(this.Prefix), mutableArrayBuffer, '');
+    }
+  }
+
+  /**
+   * Writes `Identifier` as the prefix of the buffer `encode()`.
+   */
+  protected _readPrefixIfSet(readState: ReadState): string | number {
+    if (this.Prefix === undefined) {
+      return;
+    }
+
+    let readPrefix: typeof this.Prefix;
+  
+    if (typeof this.Prefix === 'string') {
+      readPrefix = coders.stringCoder.read(readState);
+    }
+    
+    readPrefix = coders.intCoder.read(readState);
+
+    if (readPrefix !== this.Prefix) {
+      throw new TypeError(`Expected prefix: '${this.Prefix}', instead received '${readPrefix}'`);
+    }
+
+    return readPrefix;
   }
   
   /**
@@ -113,7 +181,7 @@ export class BinaryCodec<T = any> {
   * @throws if the value is invalid
   * @private
   */
-  private _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<T>) {
+  protected _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<T>) {
     var i: string | number, len: number
     if (!Array.isArray(value)) {
       throw new TypeError('Expected an Array at ' + path)
@@ -121,7 +189,7 @@ export class BinaryCodec<T = any> {
     len = value.length
     coders.uintCoder.write(len, data)
     for (i = 0; i < len; i++) {
-      type.write(value[i], data, path + '.' + i)
+      type._write(value[i], data, path + '.' + i)
     }
   }
   
@@ -132,7 +200,9 @@ export class BinaryCodec<T = any> {
   * @return {*}
   * @throws if fails
   */
-  public read(state: ReadState) {
+  protected read(state: ReadState) {
+    this._readPrefixIfSet(state);
+
     this.read = this._compileRead()
     return this.read(state)
   }
@@ -140,7 +210,7 @@ export class BinaryCodec<T = any> {
   /**
   * Return a signature for this type. Two types that resolve to the same hash can be said as equivalents
   */
-  public getHash() {
+  protected getHash() {
     var hash = new MutableArrayBuffer
     hashType(this, false, false)
     return hash.toArrayBuffer()
@@ -164,7 +234,7 @@ export class BinaryCodec<T = any> {
     }
   }
   
-  public _readOptional(state: ReadState): boolean {
+  protected _readOptional(state: ReadState): boolean {
     return coders.booleanCoder.read(state);
   }
   
@@ -173,7 +243,7 @@ export class BinaryCodec<T = any> {
   * @return {function(ReadState):*}
   * @private
   */
-  private _compileRead() {
+  protected _compileRead() {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type
       // In this case, there is no need to write custom code
@@ -216,7 +286,7 @@ export class BinaryCodec<T = any> {
   * @throws - if invalid
   * @private
   */
-  private _readArray(type: { read: (arg0: any) => any; }, state: any) {
+  protected _readArray(type: { read: (arg0: any) => any; }, state: any) {
     var arr = new Array(coders.uintCoder.read(state)),
     j: number
     for (j = 0; j < arr.length; j++) {
