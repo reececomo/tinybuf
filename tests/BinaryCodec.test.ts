@@ -28,7 +28,7 @@ describe('BinaryCodec', function () {
   };
 
   it('should correctly parse a type', function () {
-    expect(MyBinaryCodec).toEqual({
+    expect(MyBinaryCodec).toMatchObject({
       __proto__: BinaryCodec.prototype,
       type: Type.Object,
       fields: [
@@ -94,7 +94,7 @@ describe('BinaryCodec', function () {
   })
   
   it('should encode an array', function () {
-    const intArray = new BinaryCodec<number[]>([Type.Int])
+    const intArray = new BinaryCodec<number[]>([Type.Int]);
     expect(intArray.decode(intArray.encode([]))).toEqual([])
     expect(intArray.decode(intArray.encode([3]))).toEqual([3])
     expect(intArray.decode(intArray.encode([3, 14, 15]))).toEqual([3, 14, 15])
@@ -211,6 +211,37 @@ describe('BITMASK_8', () => {
     expect(after.coolBools.length).toBe(8);
   });
 });
+
+describe('Id', () => {
+  it('matches expected shapes', () => {
+    const format = {
+      name: Type.String,
+    };
+    const MyNakedCoder = new BinaryCodec<any>(format as any, false);
+    const MyClothedCoder = new BinaryCodec<any>(format as any);
+    
+    expect(MyNakedCoder.Id).toBe(false);
+    expect(MyClothedCoder.Id).not.toBe(false);
+
+    const binary1 = MyNakedCoder.encode({ name: 'Example' });
+    const binary2 = MyClothedCoder.encode({ name: 'Example' });
+
+    expect(binary1.byteLength).toEqual(binary2.byteLength - 2);
+  });
+})
+
+describe('matches', () => {
+  it('matches expected shapes', () => {
+    const MyCoder = new BinaryCodec<any>({
+      name: Type.String,
+      property: [{ subProperty: Type.String }],
+      other: Optional(Type.String),
+    });
+  
+    expect(MyCoder.matches({ name: 'Mary', property: [{ subProperty: 'woo' }] })).toBeTruthy();
+    expect(MyCoder.matches({ name: 'Mike', property: [{ invalid: 'woo' }] })).toBeFalsy();
+  });
+})
 
 describe('BITMASK_32', () => {
   const MyCoder = new BinaryCodec<any>({

@@ -21,6 +21,11 @@ To reduce overhead in the format, it carries no information about types. This im
 Note that, since it's a binary format, it is not meant to be easily viewed/edited by hand.
 
 ## Usage
+
+1. Define a `BinaryCodec`
+2. Use `encode(...)` to convert and object to binary
+3. Use `decode(...)` to convert binary to an object
+
 ```js
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
@@ -51,6 +56,34 @@ const binary = UserEncoder.encode({
 
 // Decode:
 const myUser: MyUserModel = UserEncoder.decode(myUserBinary);
+```
+
+### Differentiating 
+
+Each `BinaryCodec` is automatically assigned a 2-byte `UInt16` identifier (`Id`) upon creation,
+which is encoded as the first two bytes of the binary format. This can be used with `BinaryCodec.peekId(...)`
+to differentiate between multiple formats.
+
+You can disable this by passing `false` as the `Id` argument in the `BinaryCodec` constructor.
+
+You can also manually set the `Id`, in case of hashcode collision (or for any other reason).
+
+### Multiple formats
+
+Use a `BinaryCodecInterpreter` to handle multiple binary formats at once:
+
+```ts
+const binaryGroup = new BinaryCodecInterpreter()
+  .register(MyRecvFormat1, (data) => handleData)
+  .register(MyRecvFormat2, (data) => handleData)
+  .register(MySendFormat1)
+  .register(MySendFormat2);
+
+// Handle incoming
+binaryGroup.decode(incomingData); // Triggers the above data handlers.
+
+// Send data
+const buffer = binaryGroup.encode({ /* ... */ });
 ```
 
 ## Types
