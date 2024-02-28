@@ -21,19 +21,15 @@ Encode/decode powerful binary buffers in TypeScript.
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
 const GameWorldBinaryCodec = new BinaryCodec<GameState>({
-  time: Type.Date,
+  time: Type.UInt16,
   players: [{
     id: Type.String,
     health: Type.UInt8,
-    position: {
+    position: Optional({
       x: Type.Float,
       y: Type.Float
-    },
-    velocity: {
-      x: Type.Float,
-      y: Type.Float
-    },
-    ability: Optional(Type.String),
+    }),
+    jump: Type.Boolean
   }],
 });
 
@@ -41,7 +37,7 @@ const GameWorldBinaryCodec = new BinaryCodec<GameState>({
 const binary = GameWorldBinaryCodec.encode(gameWorld.getState());
 
 binary.byteLength;
-// 34
+// 21
 
 // Decode:
 const data: GameState = GameWorldBinaryCodec.decode(binary);
