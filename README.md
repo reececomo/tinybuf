@@ -1,153 +1,108 @@
 # TypeScript Binary
 
-Encode/decode powerful binary buffers in TypeScript, and much smaller and faster than JSON (or BSON).
+Encode/decode powerful binary buffers in TypeScript.
 
-This project is forked from the fantastic [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui). It works similarly to [Google's Protocol Buffers](https://protobuf.dev/), but with flexible support.
-
-Compatible with [geckos.io](https://github.com/geckosio/geckos.io) (which is like [socket.io](https://github.com/socketio/socket.io) over WebRTC Data Channels).
+* Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
+* Similar to [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/), with zero dependencies.
+* Hard-forked from the fantastic [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui). 
 
 ## Install
+
 `npm install typescript-binary`
 
 `yarn add typescript-binary`
 
-
-## Goal
-
-This module encodes and decodes data to your own custom binary formats (using ArrayBuffers), and is analogous to `JSON.stringify(...)` and `JSON.parse(...)`. The format was designed to be very compact and give support for complex types (including `Array`, `Date` and `Buffer`).
-
-To reduce overhead in the format, it carries no information about types. This implies that you must use a shared data schema to encode/decode properly. Huge plus: this automatically validates the data against the given schema (*input sanitization for free!*). This binary format is well suited for very well-defined data, such as data packets for an online game.
-
-Note that, since it's a binary format, it is not meant to be easily viewed/edited by hand.
-
 ## Usage
 
-1. Define a `BinaryCodec`
-2. Use `encode(...)` to convert and object to binary
-3. Use `decode(...)` to convert binary to an object
+1. Define a `BinaryCodec<T>`.
+2. Use `encode(...)` and `decode(...)` to convert an object to a binary buffer (and back).
 
 ```js
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
-// Define:
-const UserEncoder = new BinaryCodec<MyUserModel>({
-  name: {
-    first: Type.String,
-    last: Type.String
-  },
-  pass: Type.Binary,
-  dateOfBirth: Optional(Type.Date),
-  creationDate: Type.Date,
-  active: Type.Boolean,
-  achievements: [Type.UInt],
+const GameWorldBinaryCodec = new BinaryCodec<GameState>({
+  time: Type.Date,
+  players: [{
+    id: Type.String,
+    health: Type.UInt8,
+    position: {
+      x: Type.Float,
+      y: Type.Float
+    },
+    velocity: {
+      x: Type.Float,
+      y: Type.Float
+    },
+    ability: Optional(Type.String),
+  }],
 });
 
 // Encode
-const binary = UserEncoder.encode({
-  name: {
-    first: 'Guilherme',
-    last: 'Souza'
-  },
-  pass: myPasswordHashUInt8ArrayView.buffer,
-  creationDate: new Date(),
-  active: true,
-  achievements: [3, 14, 15, 92, 65, 35],
-});
+const binary = GameWorldBinaryCodec.encode(gameWorld.getState());
+
+binary.byteLength;
+// 34
 
 // Decode:
-const myUser: MyUserModel = UserEncoder.decode(myUserBinary);
+const data: GameState = GameWorldBinaryCodec.decode(binary);
 ```
 
-### Differentiating 
+### Handling multiple binary formats
 
-Each `BinaryCodec` is automatically assigned a 2-byte `UInt16` identifier (`Id`) upon creation,
-which is encoded as the first two bytes of the binary format. This can be used with `BinaryCodec.peekId(...)`
-to differentiate between multiple formats.
+By default, each `BinaryCodec` includes a 2-byte `UInt16` identifier (`Id`). This can be disabled by passing `false` as the second argument to the `BinaryCodec` constructor, or you can optionally provide your own manual identifier.
 
-You can disable this by passing `false` as the `Id` argument in the `BinaryCodec` constructor.
+These Ids can be read by `BinaryCodec.peekId(...)` to differentiate between multiple formats.
 
-You can also manually set the `Id`, in case of hashcode collision (or for any other reason).
-
-### Multiple formats
+#### BinaryCodecInterpreter - Auto-decode multiple formats
 
 Use a `BinaryCodecInterpreter` to handle multiple binary formats at once:
 
 ```ts
-const binaryGroup = new BinaryCodecInterpreter()
+const group = new BinaryCodecInterpreter()
   .register(MyRecvFormat1, (data) => handleData)
   .register(MyRecvFormat2, (data) => handleData)
-  .register(MySendFormat1)
-  .register(MySendFormat2);
+  .register(MySendFormat1);
 
-// Handle incoming
-binaryGroup.decode(incomingData); // Triggers the above data handlers.
+// Triggers the above data handlers.
+// Efficient! Runs in O(1) time.
+group.decode(incomingData);
 
 // Send data
-const buffer = binaryGroup.encode({ /* ... */ });
+// Less efficient, runs in O(n)!
+const buffer = group.encode({ /* ... */ });
 ```
 
 ## Types
 
-### Primitives
-* `Type.Int`: Signed integer (between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`).
-* `Type.UInt`: Unsigned integer (between 0 and `Number.MAX_SAFE_INTEGER`),
-* `Type.Int8`, `Type.Int16`, `Type.Int32`: signed integers (1, 2 or 4 bytes).
-* `Type.UInt8`, `Type.UInt16`, `Type.UInt32`: unsigned integers (1, 2 or 4 bytes).
-* `Type.Double`: An 8 byte / 64-bit precision floating-point number (this is default for JavaScript's `number` type).
-* `Type.Float`: A 4 byte / 32-bit precision floating-point number.
-* `Type.Half`: A 2 byte / 16-bit precision floating-point number.
-* `Type.String`: A UTF-8 encoded string.
-* `Type.Boolean`: A boolean.
+Here are all the ready-to-use types:
 
-> `Type.UInt` and `Type.Int` will dynamically encode values as 1, 2, 4, or 8 bytes. See [Type.Int](https://github.com/reececomo/typescript-binary/blob/main/src/lib/Type.ts) for limits.
+| Type | **JavaScript Type** | **Bytes** | **About** |
+|:---|:---:|:---:|---|
+| `Type.Double` | `number` | 8 | A 64-bit "double-precision" floating point number.<br/>**The default JavaScript `number` type.** |
+| `Type.Float` | `number` | 4 | A 32-bit "single-precision" floating point number. |
+| `Type.Half` | `number` | 2 | A 16-bit "half-precision" floating point number. **Important Note:** Low decimal precision, and max large values are between -65,500 and 65,500. |
+| `Type.Int` | `number` | 1-8 | Any integer between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`.|
+| `Type.Int8` | `number` | 1 | Integer between -127 and 127 |
+| `Type.Int16` | `number` | 2 | Integer between -32,767 and 32,767 |
+| `Type.Int32` | `number` | 4 | Integer between -2,147,483,647 and 2,147,483,647 |
+| `Type.UInt` | `number` | 1-8 | Any unsigned integer between 0 and `Number.MAX_SAFE_INTEGER`. Alias for `Type.Int`, but validates that values are positive/unsigned. |
+| `Type.UInt8` | `number` | 1 | Unsigned integer between 0 and 255 |
+| `Type.UInt16` | `number` | 2 | Unsigned integer between 0 and 65,535 |
+| `Type.UInt32` | `number` | 4 | Unsigned integer between 0 and 4,294,967,295 |
+| `Type.String` | `string` | 1<sup>*</sup> + string byte length | Any string, encoded as UTF-8.<br/><sup>*</sup>There is a small overhead of `Type.UInt` to mark the length of the string, which for small strings is 1 byte. Strings longer than 64 bytes will have a 2 byte header. Strings longer than 8,192 bytes will have a 4 byte header. Strings longer than 268,435,456 bytes will have an 8 byte header, but will also have bigger problems to deal with. |
+| `Type.Boolean` | `boolean` | 1 | A single boolean. |
+| `Type.BooleanTuple` | `boolean[]` | 1 (for every 6 values) | Multiple booleans (variable length) packed into a single byte. 1-6 booleans = 1 byte, 7-12 = 2 bytes, etc. |
+| `Type.Bitmask8` | `boolean[]` | 1 | Up to 8 booleans (padded with `false` below 8) |
+| `Type.Bitmask16` | `boolean[]` | 2 | Up to 16 booleans (padded with `false` below 16) |
+| `Type.Bitmask32` | `boolean[]` | 4 | Up to 32 booleans (padded with `false` below 32) |
+| `Type.Binary` | `ArrayBuffer \| ArrayBufferView` | `UInt` (~1) + buffer byte length | Any JavaScript ArrayBuffer or ArrayBufferView (e.g. UInt8Array) |
+| `Type.Date` | `Date` | 8 | JavaScript `Date` object as a UTC timestamp in milliseconds from Unix Epoch date (Jan 1, 1970). |
+| `Type.RegExp` | `RegExp` | `UInt` (~1) + byte length | JavaScript `RegExp` object. |
+| `Type.JSON` | `object \| JSON` | 1<sup>*</sup> + string byte length | Any [JSON format](http://json.org/) data, encoded as a string. |
+| `Type.Array` | `Array` | 1<sup>*</sup> overhead | Any array. Use array syntax instead. |
+| `Type.Object` | `object` | NONE | Any serializable object. Buffers are ordered, flattened structures, so there is no overhead to using object types. |
+| `Optional(T)` | `undefined \| T` | 1 | Any optional field. Use the `Optional(...)` helper. |
 
-### Advanced
-* `Type.BooleanTuple`: A tuple of booleans (any length), encoded together (you can pack many booleans into one byte).
-* `Type.Binary`: Any `ArrayBuffer` or `ArrayBufferView` instance (.e.g `UInt8Array`).
-* `Type.RegExp`: Any JavaScript `RegExp` object.
-* `Type.Date`: Any JavaScript `Date` object.
-* `Type.JSON`: Any data supported by [JSON format](http://json.org/). See below for more details.
-* `Type.Bitmask8`, `Type.Bitmask16`, and `Type.Bitmask32`: A fixed-length array of booleans, encoded as a `uint8`, `uint16` or `uint32`.
+<sup>*</sup>: Encoded as a `UInt`, can be 1-8 bytes depending on the size of the associated data.
 
-### Objects
-Nested data-types.
-
-Examples:
-
-```ts
-profile: {
-  name: Type.String,
-  dateOfBirth: Type.Date
-}
-```
-
-### Arrays
-An array type in which every element has the same data schema.
-
-Example:
-
-```ts
-names: [Type.String],
-profiles: [{
-  name: Type.String,
-  dateOfBirth: Type.Date
-}]
-```
-
-### Optionals
-Define optional values with `Optional(...)`.
-
-Example:
-
-```ts
-{
-  a: Type.String,
-  b: Optional([{ 'c?': Type.Int }]),
-}
-```
-
-### JSON type
-As stated before, `typescript-binary` requires the data to have a rather strict schema. But sometimes, part of the data may not fit this reality. In this case, you can fallback to JSON. You will lose the core benefits of binary, but you will gain flexibility.
-
-## Spec
-The binary format spec is documented in the [FORMAT.md](./FORMAT.md) file
+> **About `Type.Int`/`Type.UInt`:** Dynamically uses either 1, 2, 4 or 8 bytes. <ul><li>Between -64 -> 64: 1 byte.</li><li>Between -8,192 -> 8,192: 2 bytes.</li><li>Between -268,435,456 -> 268,435,456: 4 bytes.</li><li>Larger values: 8 bytes.</li></ul>
