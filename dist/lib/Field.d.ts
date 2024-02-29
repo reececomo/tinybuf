@@ -1,14 +1,14 @@
 import { BinaryCodec } from './BinaryCodec';
-import { TypeDefinition } from './Type';
+import { FieldDefinition } from './Type';
 /**
  * Parse and represent an object field. See example in Type.js
  */
 export declare class Field {
     readonly name: string;
-    readonly type: BinaryCodec;
+    readonly type: BinaryCodec<any>;
     readonly isOptional: boolean;
     readonly isArray: boolean;
-    constructor(name: string, rawType: TypeDefinition);
+    constructor(name: string, rawType: FieldDefinition);
 }
 export default Field;
 //# sourceMappingURL=Field.d.ts.map

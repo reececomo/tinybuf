@@ -45,14 +45,7 @@ class BinaryCodec {
      */
     Id) {
         this.Id = Id;
-        if (Array.isArray(definition)) {
-            if (definition.length !== 1) {
-                throw new TypeError('Invalid array definition, it must contain exactly one element');
-            }
-            this.type = "[array]" /* Type.Array */;
-            this.subBinaryCodec = new BinaryCodec(definition[0]);
-        }
-        else if (definition instanceof Type_1.Optional) {
+        if (definition instanceof Type_1.Optional) {
             throw new Error("Invalid type given. Root object must not be an Optional.");
         }
         else if (typeof definition === 'object') {
@@ -127,11 +120,7 @@ class BinaryCodec {
     */
     _write(value, data, path) {
         let i, field, subpath, subValue, len;
-        if (this.type === "[array]" /* Type.Array */) {
-            // Array field
-            return this._writeArray(value, data, path, this.subBinaryCodec);
-        }
-        else if (this.type !== "{object}" /* Type.Object */) {
+        if (this.type !== "{object}" /* Type.Object */) {
             // Simple type
             return coders.getCoder(this.type).write(value, data, path);
         }
@@ -215,9 +204,6 @@ class BinaryCodec {
             // Scalar type
             // In this case, there is no need to write custom code
             return coders.getCoder(this.type).read;
-        }
-        else if (this.type === "[array]" /* Type.Array */) {
-            return this._readArray.bind(this, this.subBinaryCodec);
         }
         // As an example, compiling code to new Type({a:'int', 'b?':['string']}) will result in:
         // return {

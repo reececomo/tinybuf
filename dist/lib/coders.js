@@ -426,9 +426,9 @@ function getCoder(type) {
         case "bool" /* Type.Boolean */: return exports.booleanCoder;
         case "binary" /* Type.Binary */: return exports.arrayBufferCoder;
         case "date" /* Type.Date */: return exports.dateCoder;
-        case "half" /* Type.Half */: return exports.float16Coder;
-        case "float" /* Type.Float */: return exports.float32Coder;
-        case "double" /* Type.Double */: return exports.float64Coder;
+        case "float16" /* Type.Float16 */: return exports.float16Coder;
+        case "float32" /* Type.Float32 */: return exports.float32Coder;
+        case "float64" /* Type.Float64 */: return exports.float64Coder;
         case "int" /* Type.Int */: return exports.intCoder;
         case "int8" /* Type.Int8 */: return exports.int8Coder;
         case "int16" /* Type.Int16 */: return exports.int16Coder;
