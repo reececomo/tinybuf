@@ -3,23 +3,23 @@ import { Field } from './Field';
 import { generateObjectShapeHashCode } from './lib/hashCode';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Optional, Type, TypedTypeDefinition } from './Type';
+import { InferredDecodedType, EncoderDefinition, Optional, Type } from './Type';
 
 /**
  * A binary buffer encoder/decoder.
  *
  * Binary 
  */
-export class BinaryCodec<T = any> {
+export class BinaryCodec<EncoderType extends EncoderDefinition> {
   protected readonly type: Type;
   protected readonly fields: Field[]
-  protected readonly subBinaryCodec?: BinaryCodec<T>;
+  // protected readonly subBinaryCodec?: BinaryCodec<EncoderType, DecoderType>;
 
   /** A shape-unique hash. */
   public readonly hashCode: number;
   
   constructor(
-    definition: TypedTypeDefinition<T>,
+    definition: EncoderType,
     /**
      * An optional Id (UInt16) to be encoded as the first 2 bytes.
      * Uses @see {hashCode} by default. Set `null` to disable.
@@ -28,15 +28,7 @@ export class BinaryCodec<T = any> {
      */
     public readonly Id?: number | false,
   ) {
-    if (Array.isArray(definition)) {
-      if (definition.length !== 1) {
-        throw new TypeError('Invalid array definition, it must contain exactly one element')
-      }
-      
-      this.type = Type.Array;
-      this.subBinaryCodec = new BinaryCodec<any>(definition[0]);
-    }
-    else if (definition instanceof Optional) {
+    if (definition instanceof Optional) {
       throw new Error("Invalid type given. Root object must not be an Optional.")
     }
     else if (typeof definition === 'object') {
@@ -62,7 +54,7 @@ export class BinaryCodec<T = any> {
   /**
    * Whether this data matches this 
    */
-  public matches(data: any): data is T {
+  public matches(data: any): data is EncoderType {
     try {
       this.encode(data);
       return true;
@@ -93,7 +85,7 @@ export class BinaryCodec<T = any> {
    *
    * @throws if the value is invalid
    */
-  public encode(value: T): ArrayBuffer {
+  public encode(value: InferredDecodedType<EncoderType>): ArrayBuffer {
     const data = new MutableArrayBuffer();
     this._writePrefixIfSet(data);
     this._write(value, data, '');
@@ -105,11 +97,11 @@ export class BinaryCodec<T = any> {
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
-  public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T {
+  public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): InferredDecodedType<EncoderType> {
     return this.read(new ReadState(
       arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
       this.Id === false ? 0 : 2
-    ));
+    )) as any;
   }
 
   // ----- Implementation: -----
@@ -123,10 +115,7 @@ export class BinaryCodec<T = any> {
   protected _write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string) {
     let i: number, field: Field, subpath: any, subValue: any, len: number
     
-    if (this.type === Type.Array) {
-      // Array field
-      return this._writeArray(value as any, data, path, this.subBinaryCodec)
-    } else if (this.type !== Type.Object) {
+    if (this.type !== Type.Object) {
       // Simple type
       return coders.getCoder(this.type).write(value, data, path)
     }
@@ -182,7 +171,7 @@ export class BinaryCodec<T = any> {
   * @throws if the value is invalid
   * @private
   */
-  protected _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<T>) {
+  protected _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<any>) {
     var i: string | number, len: number
     if (!Array.isArray(value)) {
       throw new TypeError('Expected an Array at ' + path)
@@ -201,7 +190,7 @@ export class BinaryCodec<T = any> {
   * @return {*}
   * @throws if fails
   */
-  protected read(state: ReadState): T {
+  protected read(state: ReadState): EncoderType {
     this.read = this._compileRead();
     return this.read(state)
   }
@@ -215,13 +204,11 @@ export class BinaryCodec<T = any> {
   * @return {function(ReadState):*}
   * @private
   */
-  protected _compileRead(): (state: ReadState) => T {
+  protected _compileRead(): (state: ReadState) => EncoderType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type
       // In this case, there is no need to write custom code
       return coders.getCoder(this.type).read
-    } else if (this.type === Type.Array) {
-      return this._readArray.bind(this, this.subBinaryCodec)
     }
     
     // As an example, compiling code to new Type({a:'int', 'b?':['string']}) will result in:
