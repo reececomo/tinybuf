@@ -1,16 +1,16 @@
 import { BinaryCodec } from './BinaryCodec';
-import { OptionalType, TypeDefinition } from './Type';
+import { OptionalType, FieldDefinition } from './Type';
 
 /**
  * Parse and represent an object field. See example in Type.js
  */
 export class Field {
   readonly name: string
-  readonly type: BinaryCodec;
+  readonly type: BinaryCodec<any>;
   readonly isOptional: boolean;
   readonly isArray: boolean;
 
-  constructor(name: string, rawType: TypeDefinition) {
+  constructor(name: string, rawType: FieldDefinition) {
     this.isOptional = rawType instanceof OptionalType
 
     let type = rawType instanceof OptionalType ? rawType.type : rawType;

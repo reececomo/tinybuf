@@ -5,14 +5,14 @@ import BinaryCodec from "./BinaryCodec";
  * to encode or decode multiple formats at once.
  */
 export class BinaryCodecInterpreter {
-  private _codecs = new Map<string | number, BinaryCodec>();
+  private _codecs = new Map<string | number, BinaryCodec<any>>();
   private _onHandlers = new Map<string | number, (data: any) => any>();
 
   /**
    * Register binary codec.
    * @throws if a codec was already registered (or their Id's collide)
    */
-  public register<T>(codec: BinaryCodec<T>, onData?: (data: T) => void): this {
+  public register<T>(codec: BinaryCodec<any>, onData?: (data: T) => void): this {
     if (codec.Id === false) {
       throw new Error('BinaryCodec requires an Id to be registered.');
     }

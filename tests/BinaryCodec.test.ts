@@ -5,12 +5,12 @@ import {
 } from '../src/index';
 
 describe('BinaryCodec', function () {
-  const MyBinaryCodec = new BinaryCodec<{ a, b, c: { d? }[]}>({
+  const MyBinaryCodec = new BinaryCodec({
     a: Type.Int,
     b: [Type.Int],
     c: [{
       d: Optional(Type.String)
-    }]
+    }],
   });
 
   const validData = {
@@ -24,7 +24,7 @@ describe('BinaryCodec', function () {
       {
         d: '?'
       },
-    ]
+    ],
   };
 
   it('should correctly parse a type', function () {
@@ -80,7 +80,7 @@ describe('BinaryCodec', function () {
         a: 17,
         b: [],
         c: [{
-          d: true
+          d: true as any // should be boolean
         }]
       })
     }).toThrow();
@@ -94,16 +94,16 @@ describe('BinaryCodec', function () {
   })
   
   it('should encode an array', function () {
-    const intArray = new BinaryCodec<number[]>([Type.Int]);
-    expect(intArray.decode(intArray.encode([]))).toEqual([])
-    expect(intArray.decode(intArray.encode([3]))).toEqual([3])
-    expect(intArray.decode(intArray.encode([3, 14, 15]))).toEqual([3, 14, 15])
+    const intArray = new BinaryCodec({ data: [Type.Int] });
+    expect(intArray.decode(intArray.encode({ data: [] }))).toEqual({ data: [] })
+    expect(intArray.decode(intArray.encode({ data: [3] }))).toEqual({ data: [3] })
+    expect(intArray.decode(intArray.encode({ data: [3, 14, 15] }))).toEqual({ data: [3, 14, 15] })
     
-    const objArray = new BinaryCodec<object[]>([{
+    const objArray = new BinaryCodec({ data: [{
       v: Type.Int,
       f: Type.String
-    }])
-    expect(objArray.decode(objArray.encode([]))).toEqual([])
+    }]})
+    expect(objArray.decode(objArray.encode({ data: [] }))).toEqual({ data: [] })
     const data = [{
       v: 1,
       f: 'one'
@@ -111,13 +111,13 @@ describe('BinaryCodec', function () {
       v: 2,
       f: 'two'
     }]
-    expect(objArray.decode(objArray.encode(data))).toEqual(data)
+    expect(objArray.decode(objArray.encode({ data }))).toEqual({ data })
   })
 });
 
 
 describe('BOOLEAN_ARRAY', () => {
-  const MyCoder = new BinaryCodec<{ name, coolBools }>({
+  const MyCoder = new BinaryCodec({
     name: Type.String,
     coolBools: Type.BooleanTuple,
   });
@@ -171,7 +171,7 @@ describe('BOOLEAN_ARRAY', () => {
 });
 
 describe('BITMASK_8', () => {
-  const MyCoder = new BinaryCodec<{ name, coolBools }>({
+  const MyCoder = new BinaryCodec({
     name: Type.String,
     coolBools: Type.Bitmask8,
   });
@@ -217,8 +217,8 @@ describe('Id', () => {
     const format = {
       name: Type.String,
     };
-    const MyNakedCoder = new BinaryCodec<any>(format as any, false);
-    const MyClothedCoder = new BinaryCodec<any>(format as any);
+    const MyNakedCoder = new BinaryCodec(format as any, false);
+    const MyClothedCoder = new BinaryCodec(format as any);
     
     expect(MyNakedCoder.Id).toBe(false);
     expect(MyClothedCoder.Id).not.toBe(false);
@@ -232,7 +232,7 @@ describe('Id', () => {
 
 describe('matches', () => {
   it('matches expected shapes', () => {
-    const MyCoder = new BinaryCodec<any>({
+    const MyCoder = new BinaryCodec({
       name: Type.String,
       property: [{ subProperty: Type.String }],
       other: Optional(Type.String),
@@ -244,7 +244,7 @@ describe('matches', () => {
 })
 
 describe('BITMASK_32', () => {
-  const MyCoder = new BinaryCodec<any>({
+  const MyCoder = new BinaryCodec({
     name: Type.String,
     coolBools: Type.Bitmask32,
     other: Optional(Type.String),

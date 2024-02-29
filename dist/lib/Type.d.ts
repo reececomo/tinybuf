@@ -1,21 +1,41 @@
-/** All Type values, except the special Type.Array and Type.Object data structures. */
-type ValueType = Exclude<Type, Type.Array | Type.Object>;
-/** Type definition, including nested/object syntax. */
-export type TypeDefinition = ValueType | [ValueType] | OptionalType<TypeDefinition> | {
-    [property: string]: TypeDefinition;
-} | [{
-    [property: string]: TypeDefinition;
-}];
-export type TypedTypeDefinition<T = any> = ValueType | [ValueType] | OptionalType<TypedTypeDefinition<T>> | {
-    [property in keyof T]: TypedTypeDefinition<T[property]>;
-} | [{
-    [property in keyof T]: TypedTypeDefinition<T[property]>;
-}];
 export declare class OptionalType<T> {
     type: T;
     constructor(type: T);
 }
 export declare function Optional<T>(t: T): OptionalType<T>;
+/** Mappings for the value types. */
+type ValueTypes = {
+    [Type.Float16]: number;
+    [Type.Float32]: number;
+    [Type.Float64]: number;
+    [Type.Int]: number;
+    [Type.Int8]: number;
+    [Type.Int16]: number;
+    [Type.Int32]: number;
+    [Type.UInt]: number;
+    [Type.UInt8]: number;
+    [Type.UInt16]: number;
+    [Type.UInt32]: number;
+    [Type.Boolean]: boolean;
+    [Type.BooleanTuple]: boolean[];
+    [Type.Bitmask8]: boolean[];
+    [Type.Bitmask16]: boolean[];
+    [Type.Bitmask32]: boolean[];
+    [Type.String]: string;
+    [Type.Date]: Date;
+    [Type.RegExp]: RegExp;
+    [Type.JSON]: any;
+    [Type.Binary]: ArrayBuffer;
+};
+export type EncoderDefinition = {
+    [key: string]: keyof ValueTypes | Array<keyof ValueTypes> | OptionalType<keyof ValueTypes> | OptionalType<Array<keyof ValueTypes>> | OptionalType<EncoderDefinition> | OptionalType<EncoderDefinition[]> | EncoderDefinition | EncoderDefinition[];
+};
+export type FieldDefinition = keyof ValueTypes | Array<keyof ValueTypes> | OptionalType<keyof ValueTypes> | OptionalType<Array<keyof ValueTypes>> | OptionalType<EncoderDefinition> | OptionalType<EncoderDefinition[]> | EncoderDefinition | EncoderDefinition[];
+export type InferredDecodedType<EncoderType> = {
+    [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends Array<keyof ValueTypes> ? Array<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredDecodedType<EncoderType[EKey]> : EncoderType[EKey] extends Array<EncoderDefinition> ? Array<InferredDecodedType<EncoderType[EKey][number]>> : never;
+} & {
+    [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? EKey : never]?: EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends Array<keyof ValueTypes>> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
+};
 /**
  * Binary coder types.
  */
@@ -29,11 +49,19 @@ export declare const enum Type {
     /** A string. */
     String = "str",
     /** Floating-point number (16-bit, half precision, 2 bytes). */
-    Half = "half",
+    Float16 = "float16",
     /** Floating-point number (32-bit, single precision, 4 bytes). */
-    Float = "float",
+    Float32 = "float32",
     /** Floating-point number (64-bit, double precision, 8 bytes). Default JavaScript `number` type. */
-    Double = "double",
+    Float64 = "float64",
+    /** Alias for `Type.Float16` @see {Float16} */
+    Half = "float16",
+    /** Alias for `Type.Float32` @see {Float32} */
+    Single = "float32",
+    /** Alias for `Type.Float64` @see {Float64} */
+    Double = "float64",
+    /** Alias for `Type.Float32` @see {Float32} */
+    Float = "float32",
     /**
      * Signed integer.
      *

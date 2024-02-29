@@ -481,9 +481,9 @@ export function getCoder(type: Type): BinaryCoder<any> {
     case Type.Boolean: return booleanCoder;
     case Type.Binary: return arrayBufferCoder;
     case Type.Date: return dateCoder;
-    case Type.Half: return float16Coder;
-    case Type.Float: return float32Coder;
-    case Type.Double: return float64Coder;
+    case Type.Float16: return float16Coder;
+    case Type.Float32: return float32Coder;
+    case Type.Float64: return float64Coder;
     case Type.Int: return intCoder;
     case Type.Int8: return int8Coder;
     case Type.Int16: return int16Coder;

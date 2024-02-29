@@ -1,13 +1,13 @@
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
-import { Type, TypedTypeDefinition } from './Type';
+import { InferredDecodedType, EncoderDefinition, Type } from './Type';
 /**
  * A binary buffer encoder/decoder.
  *
  * Binary
  */
-export declare class BinaryCodec<T = any> {
+export declare class BinaryCodec<EncoderType extends EncoderDefinition> {
     /**
      * An optional Id (UInt16) to be encoded as the first 2 bytes.
      * Uses @see {hashCode} by default. Set `null` to disable.
@@ -17,10 +17,9 @@ export declare class BinaryCodec<T = any> {
     readonly Id?: number | false;
     protected readonly type: Type;
     protected readonly fields: Field[];
-    protected readonly subBinaryCodec?: BinaryCodec<T>;
     /** A shape-unique hash. */
     readonly hashCode: number;
-    constructor(definition: TypedTypeDefinition<T>, 
+    constructor(definition: EncoderType, 
     /**
      * An optional Id (UInt16) to be encoded as the first 2 bytes.
      * Uses @see {hashCode} by default. Set `null` to disable.
@@ -31,7 +30,7 @@ export declare class BinaryCodec<T = any> {
     /**
      * Whether this data matches this
      */
-    matches(data: any): data is T;
+    matches(data: any): data is EncoderType;
     /**
      * A helper function to peek the Id.
      *
@@ -45,13 +44,13 @@ export declare class BinaryCodec<T = any> {
      *
      * @throws if the value is invalid
      */
-    encode(value: T): ArrayBuffer;
+    encode<DecodedType extends InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer;
     /**
      * Decode binary data to an object.
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
-    decode(arrayBuffer: ArrayBuffer | ArrayBufferView): T;
+    decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType;
     /**
     * @param {*} value
     * @param {MutableArrayBuffer} data
@@ -73,7 +72,7 @@ export declare class BinaryCodec<T = any> {
     * @throws if the value is invalid
     * @private
     */
-    protected _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<T>): void;
+    protected _writeArray(value: string | any[], data: any, path: string, type: BinaryCodec<any>): void;
     /**
     * This funciton will be executed only the first time
     * After that, we'll compile the read routine and add it directly to the instance
@@ -81,14 +80,14 @@ export declare class BinaryCodec<T = any> {
     * @return {*}
     * @throws if fails
     */
-    protected read(state: ReadState): T;
+    protected read(state: ReadState): EncoderType;
     protected _readOptional(state: ReadState): boolean;
     /**
     * Compile the decode method for this object
     * @return {function(ReadState):*}
     * @private
     */
-    protected _compileRead(): (state: ReadState) => T;
+    protected _compileRead(): (state: ReadState) => EncoderType;
     /**
     * @param {BinaryCodec} type
     * @param {ReadState} state

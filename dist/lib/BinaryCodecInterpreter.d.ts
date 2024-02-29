@@ -10,7 +10,7 @@ export declare class BinaryCodecInterpreter {
      * Register binary codec.
      * @throws if a codec was already registered (or their Id's collide)
      */
-    register<T>(codec: BinaryCodec<T>, onData?: (data: T) => void): this;
+    register<T>(codec: BinaryCodec<any>, onData?: (data: T) => void): this;
     /**
      * Encode the data using one of the registered formats.
      * @throws If no codec is able to encode this data.

@@ -20,7 +20,7 @@ Encode/decode powerful binary buffers in TypeScript.
 ```js
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
-const GameWorldBinaryCodec = new BinaryCodec<GameState>({
+const GameWorldBinaryCodec = new BinaryCodec({
   time: Type.UInt16,
   players: [{
     id: Type.String,
@@ -34,7 +34,7 @@ const GameWorldBinaryCodec = new BinaryCodec<GameState>({
 });
 
 // Encode
-const binary = GameWorldBinaryCodec.encode(gameWorld.getState());
+const binary: ArrayBuffer = GameWorldBinaryCodec.encode(gameWorld.getState());
 
 binary.byteLength;
 // 21
@@ -74,23 +74,23 @@ Here are all the ready-to-use types:
 
 | **Type** | **JavaScript Type** | **Bytes** | **About** |
 |:---:|:---:|:---:|---|
-| `Type.Double` | `number` | 8 | A 64-bit "double-precision" floating point number. Default JavaScript `number` type. |
-| `Type.Float` | `number` | 4 | A 32-bit "single-precision" floating point number. |
-| `Type.Half` | `number` | 2 | A 16-bit "half-precision" floating point number. **Important Note:** Low decimal precision, and max large values are between -65,500 and 65,500. |
-| `Type.Int` | `number` | 1-8<sup>#</sup> | Any integer between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`.|
-| `Type.Int8` | `number` | 1 | Integer between -127 and 127 |
-| `Type.Int16` | `number` | 2 | Integer between -32,767 and 32,767 |
-| `Type.Int32` | `number` | 4 | Integer between -2,147,483,647 and 2,147,483,647 |
-| `Type.UInt` | `number` | 1-8<sup>#</sup> | Any unsigned integer between 0 and `Number.MAX_SAFE_INTEGER`. Alias for `Type.Int`, but validates that values are positive/unsigned. |
-| `Type.UInt8` | `number` | 1 | Unsigned integer between 0 and 255 |
-| `Type.UInt16` | `number` | 2 | Unsigned integer between 0 and 65,535 |
-| `Type.UInt32` | `number` | 4 | Unsigned integer between 0 and 4,294,967,295 |
-| `Type.String` | `string` | 1<sup>†</sup> | Any string, encoded as UTF-8. |
+| `Type.Float64` | `number` | 8 | A 64-bit "double-precision" floating point number. Default JavaScript `number` type. |
+| `Type.Float32` | `number` | 4 | A 32-bit "single-precision" floating point number. |
+| `Type.Float16` | `number` | 2 | A 16-bit "half-precision" floating point number.<br/>**Important Note:** Low decimal precision, and max large values are between -65,500 and 65,500. |
+| `Type.Int` | `number` | 1-8<sup>#</sup> | Integer between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`. Dynamically sized.|
+| `Type.Int8` | `number` | 1 | Integer between -127 and 127. Fixed size. |
+| `Type.Int16` | `number` | 2 | Integer between -32,767 and 32,767. Fixed size. |
+| `Type.Int32` | `number` | 4 | Integer between -2,147,483,647 and 2,147,483,647. Fixed size. |
+| `Type.UInt` | `number` | 1-8<sup>#</sup> | Any unsigned integer between 0 and `Number.MAX_SAFE_INTEGER`. Alias for `Type.Int`, but validates that values are positive/unsigned. Dynamically sized. |
+| `Type.UInt8` | `number` | 1 | Unsigned integer between 0 and 255. Fixed size. |
+| `Type.UInt16` | `number` | 2 | Unsigned integer between 0 and 65,535. Fixed size. |
+| `Type.UInt32` | `number` | 4 | Unsigned integer between 0 and 4,294,967,295. Fixed size. |
+| `Type.String` | `string` | 1<sup>†</sup> | A string encoded as UTF-8. |
 | `Type.Boolean` | `boolean` | 1 | A single boolean. |
-| `Type.BooleanTuple` | `boolean[]` | 1<sup>¶</sup> | Multiple booleans (variable length) packed into a single byte. 1-6 booleans = 1 byte, 7-12 = 2 bytes, etc. |
-| `Type.Bitmask8` | `boolean[]` | 1 | Up to 8 booleans (padded with `false` below 8) |
-| `Type.Bitmask16` | `boolean[]` | 2 | Up to 16 booleans (padded with `false` below 16) |
-| `Type.Bitmask32` | `boolean[]` | 4 | Up to 32 booleans (padded with `false` below 32) |
+| `Type.BooleanTuple` | `boolean[]` | 1<sup>¶</sup> | An array of booleans. Dynamically sized. |
+| `Type.Bitmask8` | `boolean[]` | 1 | 1-8 booleans. Fixed size. |
+| `Type.Bitmask16` | `boolean[]` | 2 | 1-16 booleans. Fixed size. |
+| `Type.Bitmask32` | `boolean[]` | 4 | 1-32 booleans. Fixed size. |
 | `Type.Date` | `Date` | 8 | JavaScript `Date` object as a UTC timestamp in milliseconds from Unix Epoch date (Jan 1, 1970). |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup> | JavaScript `RegExp` object. |
 | `Type.JSON` | `object \| JSON` | 1<sup>†</sup> | Any [JSON format](http://json.org/) data, encoded as a string. |
@@ -99,9 +99,12 @@ Here are all the ready-to-use types:
 | `Type.Array` | `Array` | 1<sup>†</sup> | (Use array syntax.) Any array. |
 | `Type.Object` | `object` | _none_ | (Use object syntax.) No overhead to using object types. Buffers are ordered, flattened structures. |
 
-<sup>#</sup>Dynamically uses 1, 2, 4 or 8 bytes. Values between -64 and 64 are encoded as 1 byte, between -8,192 and 8,192 as 2 bytes, between -268,435,456 and 268,435,456 as 4 bytes, and larger values (up to maximum JavaScript limits) as 8 bytes.
+<sup>#</sup>`Type.Int`/`Type.UInt`: 1, 2, 4 or 8 bytes. Values between -64 and 64 are encoded as 1 byte, between -8,192 and 8,192 as 2 bytes, between -268,435,456 and 268,435,456 as 4 bytes, and larger as 8 bytes (up to the JavaScript limit).
 
 <sup>†</sup>Encoded as `[length][payload]` where `length` is a `Type.UInt` representing the number of bytes in the payload.
 
 <sup>¶</sup>1 byte for up to 6 booleans. i.e. 9 booleans would require 2 bytes.
 
+## Encoding guide
+
+See [ENCODING.md](/ENCODING.md) for encoding guide.
