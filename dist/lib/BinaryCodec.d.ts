@@ -44,13 +44,13 @@ export declare class BinaryCodec<EncoderType extends EncoderDefinition> {
      *
      * @throws if the value is invalid
      */
-    encode(value: InferredDecodedType<EncoderType>): ArrayBuffer;
+    encode<DecodedType = InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer;
     /**
      * Decode binary data to an object.
      *
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
-    decode(arrayBuffer: ArrayBuffer | ArrayBufferView): InferredDecodedType<EncoderType>;
+    decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType;
     /**
     * @param {*} value
     * @param {MutableArrayBuffer} data

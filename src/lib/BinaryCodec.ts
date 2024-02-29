@@ -85,7 +85,7 @@ export class BinaryCodec<EncoderType extends EncoderDefinition> {
    *
    * @throws if the value is invalid
    */
-  public encode(value: InferredDecodedType<EncoderType>): ArrayBuffer {
+  public encode<DecodedType = InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer {
     const data = new MutableArrayBuffer();
     this._writePrefixIfSet(data);
     this._write(value, data, '');
@@ -97,7 +97,7 @@ export class BinaryCodec<EncoderType extends EncoderDefinition> {
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
-  public decode(arrayBuffer: ArrayBuffer | ArrayBufferView): InferredDecodedType<EncoderType> {
+  public decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType {
     return this.read(new ReadState(
       arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
       this.Id === false ? 0 : 2
