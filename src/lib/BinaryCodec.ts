@@ -85,7 +85,7 @@ export class BinaryCodec<EncoderType extends EncoderDefinition> {
    *
    * @throws if the value is invalid
    */
-  public encode<DecodedType = InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer {
+  public encode<DecodedType extends InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer {
     const data = new MutableArrayBuffer();
     this._writePrefixIfSet(data);
     this._write(value, data, '');

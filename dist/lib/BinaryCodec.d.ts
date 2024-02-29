@@ -44,7 +44,7 @@ export declare class BinaryCodec<EncoderType extends EncoderDefinition> {
      *
      * @throws if the value is invalid
      */
-    encode<DecodedType = InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer;
+    encode<DecodedType extends InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer;
     /**
      * Decode binary data to an object.
      *
