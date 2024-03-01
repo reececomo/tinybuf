@@ -1,6 +1,14 @@
+<div align="center">
+
+<img src="docs/hero.png" alt="TypeScript Binary Icon showing binary peeking out from behind a square." height="106">
+
 # TypeScript Binary
 
-Encode/decode powerful binary buffers in TypeScript.
+Powerful, lightweight binary formats in TypeScript.
+
+[![NPM version](https://img.shields.io/npm/v/typescript-binary.svg?style=flat-square)](https://www.npmjs.com/package/typescript-binary)
+
+</div>
 
 * Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
 * Similar to [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/), with zero dependencies.
@@ -14,29 +22,29 @@ Encode/decode powerful binary buffers in TypeScript.
 
 ## Usage
 
+Define a `BinaryCode` like so:
+
 ```js
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
 // Define
 const GameWorldData = new BinaryCodec({
-  time: Type.UInt16,
+  time: Type.Int,
   players: [{
     id: Type.String,
     health: Type.UInt8,
     position: Optional({
-      x: Type.Float,
-      y: Type.Float
+      x: Type.Float64,
+      y: Type.Float64
     }),
     jump: Type.Boolean
   }],
 });
 
 // Encode
-const buffer = GameWorldData.encode(gameWorld.getState());
+const binary = GameWorldData.encode(gameWorld.getState());
 
-buffer.byteLength;
-// 20
-
+// Decode
 const data = GameWorldData.decode(binary);
 // {
 //   time: number,
@@ -54,13 +62,13 @@ const data = GameWorldData.decode(binary);
 
 ### Handling multiple binary formats
 
-By default, each `BinaryCodec` encodes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCodec` constructor. You can also provide your own fixed identifier (i.e. an `Enum`).
+By default, each `BinaryCodec` includes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCodec` constructor. You can also provide your own fixed identifier instead (i.e. an `Enum`).
 
-You can use the static function `BinaryCodec.peekId(buffer: ArrayBuffer): number` to read identifer.
+Read the identifer with the static function `BinaryCodec.peekId(...)`.
 
 #### BinaryFormatHandler
 
-Handle multiple binary formats at once:
+Handle multiple binary formats at once with event listeners:
 
 ```ts
 const binaryHandler = new BinaryFormatHandler()
@@ -110,4 +118,4 @@ Here are all the ready-to-use types:
 
 ## Encoding guide
 
-See [ENCODING.md](/ENCODING.md) for encoding guide.
+See [docs/ENCODING.md](docs/ENCODING.md) for encoding guide.
