@@ -29,25 +29,28 @@ import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
 // Define
 const GameWorldData = new BinaryCodec({
-  time: Type.Int,
+  timeRemaining: Type.UInt,
   players: [{
     id: Type.String,
     health: Type.UInt8,
     position: Optional({
-      x: Type.Float64,
-      y: Type.Float64
+      x: Type.Float34,
+      y: Type.Float34
     }),
-    jump: Type.Boolean
+    isJumping: Type.Boolean
   }],
 });
 
 // Encode
 const binary = GameWorldData.encode(gameWorld.getState());
 
+binary.byteLength
+// 20
+
 // Decode
 const data = GameWorldData.decode(binary);
 // {
-//   time: number,
+//   timeRemaining: number,
 //   players: Array<{
 //     id: string,
 //     health: number,
@@ -55,7 +58,7 @@ const data = GameWorldData.decode(binary);
 //       x: number,
 //       y: number
 //     },
-//     jump: boolean
+//     isJumping: boolean
 //   }>
 // }
 ```
@@ -85,36 +88,38 @@ Here are all the ready-to-use types:
 
 | **Type** | **JavaScript Type** | **Bytes** | **About** |
 |:---:|:---:|:---:|---|
-| `Type.Float64` | `number` | 8 | A 64-bit "double-precision" floating point number. Default JavaScript `number` type. |
-| `Type.Float32` | `number` | 4 | A 32-bit "single-precision" floating point number. |
-| `Type.Float16` | `number` | 2 | A 16-bit "half-precision" floating point number.<br/>**Important Note:** Low decimal precision, and max large values are between -65,500 and 65,500. |
-| `Type.Int` | `number` | 1-8<sup>#</sup> | Integer between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`. Dynamically sized.|
-| `Type.Int8` | `number` | 1 | Integer between -127 and 127. Fixed size. |
-| `Type.Int16` | `number` | 2 | Integer between -32,767 and 32,767. Fixed size. |
-| `Type.Int32` | `number` | 4 | Integer between -2,147,483,647 and 2,147,483,647. Fixed size. |
-| `Type.UInt` | `number` | 1-8<sup>#</sup> | Any unsigned integer between 0 and `Number.MAX_SAFE_INTEGER`. Alias for `Type.Int`, but validates that values are positive/unsigned. Dynamically sized. |
-| `Type.UInt8` | `number` | 1 | Unsigned integer between 0 and 255. Fixed size. |
-| `Type.UInt16` | `number` | 2 | Unsigned integer between 0 and 65,535. Fixed size. |
-| `Type.UInt32` | `number` | 4 | Unsigned integer between 0 and 4,294,967,295. Fixed size. |
-| `Type.String` | `string` | 1<sup>†</sup> | A string encoded as UTF-8. |
+| `Type.Int` | `number` | 1-8<sup>*</sup> | Integer up to `±Number.MAX_SAFE_INTEGER`. Dynamically sized. |
+| `Type.Int8` | `number` | 1 | Integer between -127 to 128. |
+| `Type.Int16` | `number` | 2 | Integer between -32,767 to 32,767. |
+| `Type.Int32` | `number` | 4 | Integer between -2,147,483,647 to 2,147,483,647. |
+| `Type.UInt` | `number` | 1-8<sup>#</sup> | Unsigned integer up to `Number.MAX_SAFE_INTEGER`. Dynamically sized. |
+| `Type.UInt8` | `number` | 1 | Unsigned integer up to 255. |
+| `Type.UInt16` | `number` | 2 | Unsigned integer up to 65,535. |
+| `Type.UInt32` | `number` | 4 | Unsigned integer up to 4,294,967,295. |
+| `Type.Float16` | `number` | 2 | A 16-bit "half-precision" floating point.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
+| `Type.Float32` | `number` | 4 | A 32-bit "single-precision" floating point. |
+| `Type.Float64` | `number` | 8 | Default JavaScript `number` type. A 64-bit "double-precision" floating point. |
+| `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
 | `Type.Boolean` | `boolean` | 1 | A single boolean. |
 | `Type.BooleanTuple` | `boolean[]` | 1<sup>¶</sup> | An array of booleans. Dynamically sized. |
-| `Type.Bitmask8` | `boolean[]` | 1 | 1-8 booleans. Fixed size. |
-| `Type.Bitmask16` | `boolean[]` | 2 | 1-16 booleans. Fixed size. |
-| `Type.Bitmask32` | `boolean[]` | 4 | 1-32 booleans. Fixed size. |
-| `Type.Date` | `Date` | 8 | JavaScript `Date` object as a UTC timestamp in milliseconds from Unix Epoch date (Jan 1, 1970). |
-| `Type.RegExp` | `RegExp` | 1<sup>†</sup> | JavaScript `RegExp` object. |
-| `Type.JSON` | `object \| JSON` | 1<sup>†</sup> | Any [JSON format](http://json.org/) data, encoded as a string. |
-| `Type.Binary` | `ArrayBuffer` | 1<sup>†</sup> | JavaScript `ArrayBuffer`. |
+| `Type.Bitmask8` | `boolean[]` | 1 | 1-8 booleans. |
+| `Type.Bitmask16` | `boolean[]` | 2 | 1-16 booleans. |
+| `Type.Bitmask32` | `boolean[]` | 4 | 1-32 booleans. |
+| `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | [JSON format](http://json.org/) data, encoded as a UTF-8 string. |
+| `Type.Binary` | `ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | JavaScript `ArrayBuffer` data. |
+| `Type.RegExp` | `RegExp` | 1<sup>†</sup>&nbsp;+&nbsp;n&nbsp;+&nbsp;1 | JavaScript `RegExp` object. |
+| `Type.Date` | `Date` | 8 | JavaScript `Date` object. |
 | `Optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(...)` helper. Array elements cannot be optional. |
-| `Type.Array` | `Array` | 1<sup>†</sup> | (Use array syntax.) Any array. |
-| `Type.Object` | `object` | _none_ | (Use object syntax.) No overhead to using object types. Buffers are ordered, flattened structures. |
+| `[T]` | `Array<T>` | 1<sup>†</sup>&nbsp;+&nbsp;n | Use array syntax. Any array. |
+| `{}` | `object` | _none_ | Use object syntax. No overhead to using object types. Buffers are ordered, flattened structures. |
 
-<sup>#</sup>`Type.Int`/`Type.UInt`: 1, 2, 4 or 8 bytes. Values between -64 and 64 are encoded as 1 byte, between -8,192 and 8,192 as 2 bytes, between -268,435,456 and 268,435,456 as 4 bytes, and larger as 8 bytes (up to the JavaScript limit).
+<sup>*</sup>`Int` encodes <±64 = 1 byte, <±8,192 = 2 bytes, <±268,435,456 = 4 bytes, otherwise = 8 bytes.
 
-<sup>†</sup>Encoded as `[length][payload]` where `length` is a `Type.UInt` representing the number of bytes in the payload.
+<sup>#</sup>`UInt` encodes <128 = 1 byte, <16,384 = 2 bytes, <536,870,912 = 4 bytes, otherwise = 8 bytes.
 
-<sup>¶</sup>1 byte for up to 6 booleans. i.e. 9 booleans would require 2 bytes.
+<sup>†</sup>Length of payload bytes as a `UInt`. Typical usage is 1 byte, but can be 2-8 bytes for larger payloads.
+
+<sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
 
 ## Encoding guide
 
