@@ -1,9 +1,13 @@
-export { MutableArrayBuffer } from './lib/MutableArrayBuffer';
-export { Field } from './lib/Field';
-export { ReadState } from './lib/ReadState';
-export { BinaryCodec } from './lib/BinaryCodec';
-export { BinaryCodecInterpreter } from './lib/BinaryCodecInterpreter';
-export { Type, Optional } from './lib/Type';
-export { quantizeToHalfFloat16 } from './lib/HalfFloat';
+// Core
+export { Type, Optional } from './core/Type';
+export * from './core/BinaryCodec';
+export * from './core/BinaryFormatHandler';
 
-export * as coders from './lib/coders';
+// Special types
+export * from './core/lib/float16';
+
+// Utility
+export * from './core/MutableArrayBuffer';
+export * from './core/Field';
+export * from './core/ReadState';
+export * as coders from './core/lib/coders';

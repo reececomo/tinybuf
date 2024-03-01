@@ -70,6 +70,48 @@ describe('BinaryCodec', function () {
     })
   })
 
+  it('decode() emits output that is valid input for encode()', () => {
+    const Example = new BinaryCodec({
+      integer: Type.UInt16,
+      objectArray: [{
+        str: Type.String,
+        uint: Type.UInt8,
+        optionalObject: Optional({
+          x: Type.Float,
+          y: Type.Float
+        }),
+        boolean: Type.Boolean
+      }],
+      optionalArray: Optional([Type.String]),
+      booleanTuple: Type.BooleanTuple,
+      bitmask8: Type.Bitmask8,
+    });
+
+    const binary = Example.encode({
+      integer: 123,
+      objectArray: [
+        {
+          str: 'lol',
+          uint: 100,
+          optionalObject: {
+            x: 1,
+            y: 2.3
+          },
+          boolean: true
+        }
+      ],
+      booleanTuple: [true, false, true],
+      bitmask8: [false, false, true, false, false, false, false, true],
+    });
+
+    expect(binary.byteLength).toBe(23);
+
+    const decoded = Example.decode(binary);
+    const binary2 = Example.encode(decoded);
+
+    expect(binary).toEqual(binary2);
+  })
+
   it('should not encode a non conforming object', function () {
     expect(() => {
       (MyBinaryCodec as any).encode(12)

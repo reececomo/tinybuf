@@ -15,6 +15,9 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -23,20 +26,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.coders = exports.quantizeToHalfFloat16 = exports.Optional = exports.BinaryCodecInterpreter = exports.BinaryCodec = exports.ReadState = exports.Field = exports.MutableArrayBuffer = void 0;
-var MutableArrayBuffer_1 = require("./lib/MutableArrayBuffer");
-Object.defineProperty(exports, "MutableArrayBuffer", { enumerable: true, get: function () { return MutableArrayBuffer_1.MutableArrayBuffer; } });
-var Field_1 = require("./lib/Field");
-Object.defineProperty(exports, "Field", { enumerable: true, get: function () { return Field_1.Field; } });
-var ReadState_1 = require("./lib/ReadState");
-Object.defineProperty(exports, "ReadState", { enumerable: true, get: function () { return ReadState_1.ReadState; } });
-var BinaryCodec_1 = require("./lib/BinaryCodec");
-Object.defineProperty(exports, "BinaryCodec", { enumerable: true, get: function () { return BinaryCodec_1.BinaryCodec; } });
-var BinaryCodecInterpreter_1 = require("./lib/BinaryCodecInterpreter");
-Object.defineProperty(exports, "BinaryCodecInterpreter", { enumerable: true, get: function () { return BinaryCodecInterpreter_1.BinaryCodecInterpreter; } });
-var Type_1 = require("./lib/Type");
+exports.coders = exports.Optional = void 0;
+// Core
+var Type_1 = require("./core/Type");
 Object.defineProperty(exports, "Optional", { enumerable: true, get: function () { return Type_1.Optional; } });
-var HalfFloat_1 = require("./lib/HalfFloat");
-Object.defineProperty(exports, "quantizeToHalfFloat16", { enumerable: true, get: function () { return HalfFloat_1.quantizeToHalfFloat16; } });
-exports.coders = __importStar(require("./lib/coders"));
+__exportStar(require("./core/BinaryCodec"), exports);
+__exportStar(require("./core/BinaryFormatHandler"), exports);
+// Special types
+__exportStar(require("./core/lib/float16"), exports);
+// Utility
+__exportStar(require("./core/MutableArrayBuffer"), exports);
+__exportStar(require("./core/Field"), exports);
+__exportStar(require("./core/ReadState"), exports);
+exports.coders = __importStar(require("./core/lib/coders"));
 //# sourceMappingURL=index.js.map

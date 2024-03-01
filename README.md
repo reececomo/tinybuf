@@ -14,13 +14,11 @@ Encode/decode powerful binary buffers in TypeScript.
 
 ## Usage
 
-1. Define a `BinaryCodec<T>`.
-2. Use `encode(...)` and `decode(...)` to convert an object to a binary buffer (and back).
-
 ```js
 import { BinaryCodec, Type, Optional } from 'typescript-binary';
 
-const GameWorldBinaryCodec = new BinaryCodec({
+// Define
+const GameWorldData = new BinaryCodec({
   time: Type.UInt16,
   players: [{
     id: Type.String,
@@ -34,38 +32,43 @@ const GameWorldBinaryCodec = new BinaryCodec({
 });
 
 // Encode
-const binary: ArrayBuffer = GameWorldBinaryCodec.encode(gameWorld.getState());
+const buffer = GameWorldData.encode(gameWorld.getState());
 
-binary.byteLength;
-// 21
+buffer.byteLength;
+// 20
 
-// Decode:
-const data: GameState = GameWorldBinaryCodec.decode(binary);
+const data = GameWorldData.decode(binary);
+// {
+//   time: number,
+//   players: Array<{
+//     id: string,
+//     health: number,
+//     position?: {
+//       x: number,
+//       y: number
+//     },
+//     jump: boolean
+//   }>
+// }
 ```
 
 ### Handling multiple binary formats
 
-By default, each `BinaryCodec` includes a 2-byte `UInt16` identifier (`Id`). This can be disabled by passing `false` as the second argument to the `BinaryCodec` constructor, or you can optionally provide your own manual identifier.
+By default, each `BinaryCodec` encodes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCodec` constructor. You can also provide your own fixed identifier (i.e. an `Enum`).
 
-These Ids can be read by `BinaryCodec.peekId(...)` to differentiate between multiple formats.
+You can use the static function `BinaryCodec.peekId(buffer: ArrayBuffer): number` to read identifer.
 
-#### BinaryCodecInterpreter - Auto-decode multiple formats
+#### BinaryFormatHandler
 
-Use a `BinaryCodecInterpreter` to handle multiple binary formats at once:
+Handle multiple binary formats at once:
 
 ```ts
-const group = new BinaryCodecInterpreter()
-  .register(MyRecvFormat1, (data) => handleData)
-  .register(MyRecvFormat2, (data) => handleData)
-  .register(MySendFormat1);
+const binaryHandler = new BinaryFormatHandler()
+  .on(MyFormatA, (data) => handleMyFormatA(data))
+  .on(MyFormatB, (data) => handleMyFormatB(data));
 
-// Triggers the above data handlers.
-// Efficient! Runs in O(1) time.
-group.decode(incomingData);
-
-// Send data
-// Less efficient, runs in O(n)!
-const buffer = group.encode({ /* ... */ });
+// Trigger the relevant handler (or throw UnhandledBinaryDecodeError)
+binaryHandler.processBuffer(binary);
 ```
 
 ## Types
@@ -94,8 +97,8 @@ Here are all the ready-to-use types:
 | `Type.Date` | `Date` | 8 | JavaScript `Date` object as a UTC timestamp in milliseconds from Unix Epoch date (Jan 1, 1970). |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup> | JavaScript `RegExp` object. |
 | `Type.JSON` | `object \| JSON` | 1<sup>†</sup> | Any [JSON format](http://json.org/) data, encoded as a string. |
-| `Type.Binary` | `ArrayBuffer \| ArrayBufferView` | 1<sup>†</sup> | JavaScript `ArrayBuffer` or `ArrayBufferView` (i.e. `UInt8Array`) |
-| `Optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(...)` helper. |
+| `Type.Binary` | `ArrayBuffer` | 1<sup>†</sup> | JavaScript `ArrayBuffer`. |
+| `Optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(...)` helper. Array elements cannot be optional. |
 | `Type.Array` | `Array` | 1<sup>†</sup> | (Use array syntax.) Any array. |
 | `Type.Object` | `object` | _none_ | (Use object syntax.) No overhead to using object types. Buffers are ordered, flattened structures. |
 

@@ -7,7 +7,7 @@ import {
 import uintValues from './uint.json';
 import intValues from './int.json';
 
-describe('types', function () {
+describe('type coders', function () {
   const coder = coders.uintCoder;
 
   it('should correctly convert auto uints', function () {
@@ -106,7 +106,7 @@ describe('types', function () {
     });
   })
 
-  it('should be sound for double precision floats', function () {
+  it('should work correctly correctly for double precision floats', function () {
     check(coders.float64Coder, 0)
     check(coders.float64Coder, 3.14)
     check(coders.float64Coder, -Math.E)
@@ -117,7 +117,7 @@ describe('types', function () {
     check(coders.float64Coder, NaN)
   })
 
-  it('should be sound for single precision floats', function () {
+  it('should work correctly correctly for single precision floats', function () {
     check(coders.float32Coder, 0)
     check(coders.float32Coder, -0.5)
     check(coders.float32Coder, 0.5)
@@ -132,7 +132,7 @@ describe('types', function () {
     check(coders.float32Coder, NaN)
   })
 
-  it('should be sound for half precision floats', function () {
+  it('should work correctly correctly for half precision floats', function () {
     check(coders.float16Coder, 0)
     check(coders.float16Coder, -0.5)
     check(coders.float16Coder, 0.5)
@@ -147,13 +147,13 @@ describe('types', function () {
     check(coders.float16Coder, NaN)
   })
 
-  it('should be sound for string', function () {
+  it('should work correctly correctly for string', function () {
     check(coders.stringCoder, '')
     check(coders.stringCoder, 'Hello World')
     check(coders.stringCoder, '\u0000 Ūnĭcōde \uD83D\uDC04')
   })
 
-  it('should be sound for arraybuffer and arraybufferview types', function () {
+  it('should work correctly correctly for ArrayBuffer', function () {
     const exampleArrayBuffer = new ArrayBuffer(6);
     const exampleDataView = new DataView(exampleArrayBuffer);
     for (const [i, value] of [3, 14, 15, 92, 65, 35].entries()) {
@@ -161,16 +161,15 @@ describe('types', function () {
     }
 
     check(coders.arrayBufferCoder, exampleArrayBuffer)
-    check(coders.arrayBufferCoder, new Uint8Array([3, 14, 15, 92, 65, 35]), exampleArrayBuffer)
-    check(coders.arrayBufferCoder, exampleDataView, exampleArrayBuffer)
+    check(coders.arrayBufferCoder, exampleDataView.buffer, exampleArrayBuffer)
   })
 
-  it('should be sound for boolean', function () {
+  it('should work correctly correctly for boolean', function () {
     check(coders.booleanCoder, true)
     check(coders.booleanCoder, false)
   })
 
-  it('should be sound for json', function () {
+  it('should work correctly correctly for json', function () {
     check(coders.jsonCoder, true)
     check(coders.jsonCoder, 17)
     check(coders.jsonCoder, null)
@@ -184,12 +183,12 @@ describe('types', function () {
     })
   })
 
-  it('should be sound for regex', function () {
+  it('should work correctly correctly for regex', function () {
     check(coders.regexCoder, /my-regex/)
     check(coders.regexCoder, /^\.{3,}[\]\[2-5-]|(?:2)$/ig)
   })
 
-  it('should be sound for date', function () {
+  it('should work correctly correctly for date', function () {
     check(coders.dateCoder, new Date)
   })
 })
@@ -199,7 +198,7 @@ describe('types', function () {
 //
 
 function _writeArrayBuffer<T>(coder: any, value: T): ArrayBuffer {
-  var data = new MutableArrayBuffer();
+  const  data = new MutableArrayBuffer();
   coder.write(value, data, '')
   return data.toArrayBuffer()
 }
@@ -217,7 +216,7 @@ function _readArrayBuffer<T>(coder: any, arrayBuffer: ArrayBuffer): T {
  * @return {string} - hex string
  */
 function _write(type, value) {
-  var data = new MutableArrayBuffer();
+  const data = new MutableArrayBuffer();
   type.write(value, data, '')
   return arrayBufferToHexString(data.toArrayBuffer());
 }
@@ -229,7 +228,7 @@ function _write(type, value) {
  */
 function _readHex(hexStr, type) {
   const arrayBuffer = hexStringToArrayBuffer(hexStr);
-  var state = new ReadState(arrayBuffer),
+  const state = new ReadState(arrayBuffer),
     r = type.read(state)
   expect(state.hasEnded()).toBe(true);
   return r
@@ -239,7 +238,7 @@ function _readHex(hexStr, type) {
  * @param {Object} type
  * @param {*} value
  */
-function check(type, value: any, afterValue?: any) {
+function check<T>(type: coders.BinaryTypeCoder<T>, value: T, afterValue?: T) {
   expect(_readHex(_write(type, value), type)).toEqual(afterValue ?? value);
 }
 
