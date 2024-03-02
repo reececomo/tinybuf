@@ -37,8 +37,8 @@ const GameWorldData = new BinaryCoder({
       id: Type.String,
       health: Type.UInt8,
       position: Optional({
-        x: Type.Float34,
-        y: Type.Float34,
+        x: Type.Float32,
+        y: Type.Float32,
       }),
       isJumping: Type.Boolean,
     },
