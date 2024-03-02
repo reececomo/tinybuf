@@ -17,7 +17,7 @@ export declare function fromFloat16(halfPrecisionBits: number): number;
 /**
  * The fround16() method returns the nearest 16-bit half precision float representation of a number.
  *
- * @param value A number.
+ * @param doubleFloat A number.
  * @returns The nearest 16-bit half precision float representation of x.
  */
 export declare function fround16(doubleFloat: number): number;

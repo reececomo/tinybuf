@@ -37,8 +37,6 @@ class WriteTypeError extends TypeError {
 }
 exports.WriteTypeError = WriteTypeError;
 /**
- * Dynamic resize.
- *
  * Formats (big-endian):
  * 7b  0xxx xxxx
  * 14b  10xx xxxx  xxxx xxxx
@@ -47,22 +45,23 @@ exports.WriteTypeError = WriteTypeError;
  */
 exports.uintCoder = {
     write: function (value, data, path) {
-        if (Math.round(value) !== value || value > Number.MAX_SAFE_INTEGER || value < 0) {
+        if (typeof value !== 'number' || value > Number.MAX_SAFE_INTEGER || value < 0) {
             throw new WriteTypeError('uint', value, path);
         }
-        if (value < MAX_AUTO_UINT8) {
-            data.writeUInt8(value);
+        const uIntValue = r2z(value);
+        if (uIntValue < MAX_AUTO_UINT8) {
+            data.writeUInt8(uIntValue);
         }
-        else if (value < MAX_AUTO_UINT16) {
-            data.writeUInt16(value + 0x8000);
+        else if (uIntValue < MAX_AUTO_UINT16) {
+            data.writeUInt16(uIntValue + 0x8000);
         }
-        else if (value < MAX_AUTO_UINT32) {
-            data.writeUInt32(value + 0xc0000000);
+        else if (uIntValue < MAX_AUTO_UINT32) {
+            data.writeUInt32(uIntValue + 0xc0000000);
         }
         else {
             // Split in two 32b uints
-            data.writeUInt32(Math.floor(value / POW_32) + 0xe0000000);
-            data.writeUInt32(value >>> 0);
+            data.writeUInt32(Math.floor(uIntValue / POW_32) + 0xe0000000);
+            data.writeUInt32(uIntValue >>> 0);
         }
     },
     read: function (state) {
@@ -84,10 +83,10 @@ exports.uintCoder = {
 };
 exports.uint8Coder = {
     write: function (value, data, path) {
-        if (value < 0 || value > MAX_UINT8) {
+        if (typeof value !== 'number' || value < 0 || value > MAX_UINT8) {
             throw new WriteTypeError('uint8', value, path);
         }
-        data.writeUInt8(Math.round(value));
+        data.writeUInt8(r2z(value));
     },
     read: function (state) {
         return state.readUInt8();
@@ -95,10 +94,10 @@ exports.uint8Coder = {
 };
 exports.uint16Coder = {
     write: function (value, data, path) {
-        if (value < 0 || value > MAX_UINT16) {
+        if (typeof value !== 'number' || value < 0 || value > MAX_UINT16) {
             throw new WriteTypeError('uint16', value, path);
         }
-        data.writeUInt16(Math.round(value));
+        data.writeUInt16(r2z(value));
     },
     read: function (state) {
         return state.readUInt16();
@@ -106,36 +105,39 @@ exports.uint16Coder = {
 };
 exports.uint32Coder = {
     write: function (value, data, path) {
-        if (value < 0 || value > MAX_UINT32) {
+        if (typeof value !== 'number' || value < 0 || value > MAX_UINT32) {
             throw new WriteTypeError('uint32', value, path);
         }
-        data.writeUInt32(Math.round(value));
+        data.writeUInt32(r2z(value));
     },
     read: function (state) {
         return state.readUInt32();
     }
 };
 /**
- * Same format as uint
+ * Same formats as uintCoder.
+ *
+ * @see {uintCoder}
  */
 exports.intCoder = {
     write: function (value, data, path) {
-        if (Math.round(value) !== value || value > Number.MAX_SAFE_INTEGER || value < -Number.MAX_SAFE_INTEGER) {
+        if (typeof value !== 'number' || value > Number.MAX_SAFE_INTEGER || value < -Number.MAX_SAFE_INTEGER) {
             throw new WriteTypeError('int', value, path);
         }
-        if (value >= -MAX_AUTO_INT8 && value < MAX_AUTO_INT8) {
-            data.writeUInt8(value & 0x7f);
+        const intValue = r2z(value);
+        if (intValue >= -MAX_AUTO_INT8 && intValue < MAX_AUTO_INT8) {
+            data.writeUInt8(intValue & 0x7f);
         }
-        else if (value >= -MAX_AUTO_INT16 && value < MAX_AUTO_INT16) {
-            data.writeUInt16((value & 0x3fff) + 0x8000);
+        else if (intValue >= -MAX_AUTO_INT16 && intValue < MAX_AUTO_INT16) {
+            data.writeUInt16((intValue & 0x3fff) + 0x8000);
         }
-        else if (value >= -MAX_AUTO_INT32 && value < MAX_AUTO_INT32) {
-            data.writeUInt32((value & 0x1fffffff) + 0xc0000000);
+        else if (intValue >= -MAX_AUTO_INT32 && intValue < MAX_AUTO_INT32) {
+            data.writeUInt32((intValue & 0x1fffffff) + 0xc0000000);
         }
         else {
             // Split in two 32b uints
-            data.writeUInt32((Math.floor(value / POW_32) & 0x1fffffff) + 0xe0000000);
-            data.writeUInt32(value >>> 0);
+            data.writeUInt32((Math.floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
+            data.writeUInt32(intValue >>> 0);
         }
     },
     read: function (state) {
@@ -161,10 +163,10 @@ exports.intCoder = {
 };
 exports.int8Coder = {
     write: function (value, data, path) {
-        if (value < -MAX_INT8 || value > MAX_INT8) {
+        if (typeof value !== 'number' || value < -MAX_INT8 || value > MAX_INT8) {
             throw new WriteTypeError('int8', value, path);
         }
-        data.writeInt8(Math.round(value));
+        data.writeInt8(r2z(value));
     },
     read: function (state) {
         return state.readInt8();
@@ -172,10 +174,10 @@ exports.int8Coder = {
 };
 exports.int16Coder = {
     write: function (value, data, path) {
-        if (value < -MAX_INT16 || value > MAX_INT16) {
+        if (typeof value !== 'number' || value < -MAX_INT16 || value > MAX_INT16) {
             throw new WriteTypeError('int16', value, path);
         }
-        data.writeInt16(Math.round(value));
+        data.writeInt16(r2z(value));
     },
     read: function (state) {
         return state.readInt16();
@@ -183,10 +185,10 @@ exports.int16Coder = {
 };
 exports.int32Coder = {
     write: function (value, data, path) {
-        if (value < -MAX_INT32 || value > MAX_INT32) {
+        if (typeof value !== 'number' || value < -MAX_INT32 || value > MAX_INT32) {
             throw new WriteTypeError('int32', value, path);
         }
-        data.writeInt32(Math.round(value));
+        data.writeInt32(r2z(value));
     },
     read: function (state) {
         return state.readInt32();
@@ -279,10 +281,7 @@ exports.booleanCoder = {
     },
     read: function (state) {
         const value = state.readUInt8();
-        if (value > 1) {
-            throw new RangeError(`Invalid boolean value: ${value}`);
-        }
-        return Boolean(value);
+        return Boolean(value !== 0);
     }
 };
 /**
@@ -296,7 +295,7 @@ exports.booleanArrayCoder = {
             throw new WriteTypeError('boolean[]', value, path);
         }
         const chunkSize = 6;
-        for (let i = 0; i < value.length; i += chunkSize) {
+        for (let i = 0; i < Math.max(1, value.length); i += chunkSize) {
             const isFinalChunk = i + chunkSize >= value.length;
             const bools = value.slice(i, i + chunkSize);
             const values = [/* header */ true, isFinalChunk, ...bools];
@@ -341,7 +340,7 @@ exports.bitmask16Coder = {
         if (!boolArray.isBooleanArray(value)) {
             throw new WriteTypeError('boolean[]', value, path);
         }
-        const bitmask = boolArray.fixedLengthBooleanArrayToBitmask(value, 8);
+        const bitmask = boolArray.fixedLengthBooleanArrayToBitmask(value, 16);
         data.writeUInt16(bitmask);
     },
     read: function (state) {
@@ -425,4 +424,8 @@ exports.dateCoder = {
         return new Date(exports.intCoder.read(state));
     }
 };
+/** Round toward zero */
+function r2z(x) {
+    return x < 0 ? Math.ceil(x) : Math.floor(x);
+}
 //# sourceMappingURL=coders.js.map

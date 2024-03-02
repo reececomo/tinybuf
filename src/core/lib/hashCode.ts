@@ -8,7 +8,7 @@ export function generateObjectShapeHashCode(obj: object): number {
 
 /**
  * DJB2 hash algorithm (modified for 16-bit uints).
- * 
+ *
  * DJB2 is a simple and widely used non-cryptographic
  * hash function created by Daniel J. Bernstein.
  *

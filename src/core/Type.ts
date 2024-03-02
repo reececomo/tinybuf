@@ -44,28 +44,34 @@ export function Optional<T extends FieldDefinition>(t: T): OptionalType<T> {
 }
 
 /**
- * A definition for a binary encoder.
+ * A definition for an object binary encoder.
  */
 export type EncoderDefinition = {
   [key: string]: FieldDefinition | OptionalType<FieldDefinition>;
 };
 
-export type FieldDefinition = keyof ValueTypes | Array<keyof ValueTypes> | EncoderDefinition | EncoderDefinition[] | OptionalType<FieldDefinition>;
+/**
+ * Definition for an object-field binary encoder.
+ */
+export type FieldDefinition = keyof ValueTypes | [keyof ValueTypes] | EncoderDefinition | [EncoderDefinition] | OptionalType<FieldDefinition>;
 
-export type InferredDecodedType<EncoderType> = {
+/**
+ * The resulting type of the decoded data, based on the encoder definition.
+ */
+export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
   [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes
       ? ValueTypes[EncoderType[EKey]] // Value type.
-      : /* else if */ EncoderType[EKey] extends Array<keyof ValueTypes>
+      : /* else if */ EncoderType[EKey] extends [keyof ValueTypes]
         ? Array<ValueTypes[EncoderType[EKey][0]]>
         : /* else if */ EncoderType[EKey] extends EncoderDefinition
           ? InferredDecodedType<EncoderType[EKey]>
-          : /* else if */ EncoderType[EKey] extends Array<EncoderDefinition>
+          : /* else if */ EncoderType[EKey] extends [EncoderDefinition]
             ? Array<InferredDecodedType<EncoderType[EKey][number]>>
             : never;
 } & {
   [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? EKey : never]?: EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes>
     ? ValueTypes[OptionalValue] | undefined
-    : /* else if */ EncoderType[EKey] extends OptionalType<infer OptionalValue extends Array<keyof ValueTypes>>
+    : /* else if */ EncoderType[EKey] extends OptionalType<infer OptionalValue extends [keyof ValueTypes]>
       ? Array<ValueTypes[OptionalValue[0]]> | undefined
       : /* else if */ EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition>
         ? InferredDecodedType<OptionalValue> | undefined
@@ -77,14 +83,13 @@ export type InferredDecodedType<EncoderType> = {
  * Binary coder types.
  */
 export const enum Type {
-  //
-  // Primitives:
-  //
-
   /**
    * A single boolean, encoded as 1 byte.
    *
-   * @see {Type.BooleanTuple} @see {Type.Bitmask8} to pack multiple booleans into 1 byte.
+   * To pack multiple booleans into a single byte, see:
+   *
+   * @see {Type.BooleanTuple}
+   * @see {Type.Bitmask8}
    */
   Boolean = 'bool',
 
@@ -99,18 +104,6 @@ export const enum Type {
 
   /** Floating-point number (64-bit, double precision, 8 bytes). Default JavaScript `number` type. */
   Float64 = 'float64',
-
-  /** Alias for `Type.Float16` @see {Float16} */
-  Half = 'float16',
-
-  /** Alias for `Type.Float32` @see {Float32} */
-  Single = 'float32',
-
-  /** Alias for `Type.Float64` @see {Float64} */
-  Double = 'float64',
-
-  /** Alias for `Type.Float32` @see {Float32} */
-  Float = 'float32',
 
   /**
    * Signed integer.
@@ -157,10 +150,9 @@ export const enum Type {
   //
 
   /**
-   * Any JavaScript ArrayBuffer or ArrayBufferView (e.g. UInt8Array).
+   * Any JavaScript ArrayBuffer.
    *
    * @see {ArrayBuffer}
-   * @see {ArrayBufferView}
    */
   Binary = 'binary',
 
@@ -176,18 +168,15 @@ export const enum Type {
 
   /**
    * A JavaScript regular expression.
+   *
    * @see {RegExp}
    */
   RegExp = 'regex',
-  
+
   /**
    * Any JSON-serializable data.
    */
   JSON = 'json',
-
-  //
-  // Boolean tuple types:
-  //
 
   /**
    * A tuple/array of booleans.
@@ -208,22 +197,53 @@ export const enum Type {
   /** An array containing up to 32 booleans, encoded as a single UInt32. */
   Bitmask32 = 'bitmask32',
 
-  //
-  // Data structures:
-  //
+  // ----- Data structures: -----
 
-  /**
-   * Do not use this directly, use array syntax instead.
-   *
-   * An array definition.
-   * @see {Array}
-   */
+  /** [INTERNAL ONLY] Use "[T]" array syntax instead. */
   Array = '[array]',
 
-  /**
-   * Do not use this directly, use object syntax instead.
-   *
-   * A dictionary-like definition.
-   */
+  /** [INTERNAL ONLY] Use "{}" object syntax instead. */
   Object = '{object}',
+
+  // ----- Aliases: -----
+
+  /** Alias for `Type.Float16` @see {Float16} */
+  Half = 'float16',
+
+  /** Alias for `Type.Float32` @see {Float32} */
+  Single = 'float32',
+
+  /** Alias for `Type.Float64` @see {Float64} */
+  Double = 'float64',
+
+  /** Alias for `Type.Float32` @see {Float32} */
+  Float = 'float32',
 }
+
+export const ValidValueTypes: readonly string[] = [
+  // Floats
+  Type.Float16,
+  Type.Float32,
+  Type.Float64,
+  // Integers
+  Type.Int,
+  Type.Int8,
+  Type.Int16,
+  Type.Int32,
+  Type.UInt,
+  Type.UInt8,
+  Type.UInt16,
+  Type.UInt32,
+  // Boolean
+  Type.Boolean,
+  Type.BooleanTuple,
+  Type.Bitmask8,
+  Type.Bitmask16,
+  Type.Bitmask32,
+  // Other
+  Type.String,
+  Type.Date,
+  Type.RegExp,
+  Type.JSON,
+  Type.Binary,
+] as const;

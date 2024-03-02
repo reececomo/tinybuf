@@ -3,11 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BinaryFormatHandler = exports.UnhandledBinaryDecodeError = void 0;
-const BinaryCodec_1 = __importDefault(require("./BinaryCodec"));
+exports.BinaryFormatHandler = exports.BinaryCoderIdCollisionError = exports.UnhandledBinaryDecodeError = void 0;
+const BinaryCoder_1 = __importDefault(require("./BinaryCoder"));
 class UnhandledBinaryDecodeError extends Error {
 }
 exports.UnhandledBinaryDecodeError = UnhandledBinaryDecodeError;
+class BinaryCoderIdCollisionError extends Error {
+}
+exports.BinaryCoderIdCollisionError = BinaryCoderIdCollisionError;
 /**
  * A utility that facilitates the management and handling of multiple binary formats.
  *
@@ -15,23 +18,23 @@ exports.UnhandledBinaryDecodeError = UnhandledBinaryDecodeError;
  */
 class BinaryFormatHandler {
     constructor() {
-        this.codecs = new Map();
+        this.coders = new Map();
     }
-    /** All available codecs. */
+    /** All available coders. */
     get available() {
-        return new Set([...this.codecs.values()].map(v => v[0]));
+        return new Set([...this.coders.values()].map(v => v[0]));
     }
     /**
-     * Register a binary codec for encoding and decoding.
+     * Register a binary coder for encoding and decoding.
      */
-    on(codec, onDataHandler) {
-        if (codec.Id === false) {
-            throw new Error('Cannot register a BinaryCodec with Id=false.');
+    on(coder, onDataHandler) {
+        if (coder.Id === undefined) {
+            throw new TypeError('Cannot register a BinaryCoder that has Id disabled.');
         }
-        if (this.codecs.has(codec.Id)) {
-            throw new Error(`Codec was already registered with matching Id: '0b${codec.Id.toString(2)}'`);
+        if (this.coders.has(coder.Id)) {
+            throw new BinaryCoderIdCollisionError(`Coder was already registered with matching Id: ${coder.Id}`);
         }
-        this.codecs.set(codec.Id, [codec, onDataHandler]);
+        this.coders.set(coder.Id, [coder, onDataHandler]);
         return this;
     }
     /**
@@ -39,17 +42,17 @@ class BinaryFormatHandler {
      *
      * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
      *
-     * @throws {UnhandledBinaryDecodeError} If no matching codec handler is configured.
+     * @throws {UnhandledBinaryDecodeError} If no matching coder handler is configured.
      * @throws {RangeError} If buffer has < 2 bytes.
      */
     processBuffer(buffer) {
-        const id = BinaryCodec_1.default.peekId(buffer);
-        const tuple = this.codecs.get(id);
+        const id = BinaryCoder_1.default.peekId(buffer);
+        const tuple = this.coders.get(id);
         if (!tuple) {
             throw new UnhandledBinaryDecodeError(`No handler registered for: '0b${id.toString(2)}'`);
         }
-        const [codec, onDataHandler] = tuple;
-        const data = codec.decode(buffer);
+        const [coder, onDataHandler] = tuple;
+        const data = coder.decode(buffer);
         onDataHandler(data);
     }
 }

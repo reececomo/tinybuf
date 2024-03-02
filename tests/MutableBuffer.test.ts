@@ -6,7 +6,7 @@ describe('MutableArrayBuffer', () => {
     const input = "🌍".repeat(48);
 
     const mutableBuffer = new MutableArrayBuffer(32);
-    
+
     expect(mutableBuffer.currentAllocatedBytes).toBe(32);
 
     const textBuffer = new TextEncoder().encode(input).buffer;
@@ -16,5 +16,5 @@ describe('MutableArrayBuffer', () => {
 
     const text = new TextDecoder('utf-8').decode(mutableBuffer.toArrayBuffer());
     expect(text).toBe(input);
-  })
+  });
 });

@@ -27,16 +27,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.coders = exports.Optional = void 0;
-// Core
 var Type_1 = require("./core/Type");
 Object.defineProperty(exports, "Optional", { enumerable: true, get: function () { return Type_1.Optional; } });
-__exportStar(require("./core/BinaryCodec"), exports);
+__exportStar(require("./core/BinaryCoder"), exports);
 __exportStar(require("./core/BinaryFormatHandler"), exports);
-// Special types
-__exportStar(require("./core/lib/float16"), exports);
-// Utility
 __exportStar(require("./core/MutableArrayBuffer"), exports);
 __exportStar(require("./core/Field"), exports);
 __exportStar(require("./core/ReadState"), exports);
+__exportStar(require("./core/lib/float16"), exports);
 exports.coders = __importStar(require("./core/lib/coders"));
 //# sourceMappingURL=index.js.map

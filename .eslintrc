@@ -1,0 +1,103 @@
+{
+  "root": true,
+  "rules": {
+    "newline-before-return": 0,
+    "prefer-const": 0,
+    "no-fallthrough": 0,
+    "@typescript-eslint/no-duplicate-enum-values": 0,
+    "@typescript-eslint/no-inferrable-types": 0,
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/no-empty-interface": 0,
+    "@typescript-eslint/no-non-null-assertion": 0,
+    "@typescript-eslint/no-empty-function": 0,
+    "@typescript-eslint/indent": 0,
+    "@typescript-eslint/no-extra-semi": 0,
+    "jsdoc/require-jsdoc": 0,
+    "jsdoc/require-param": 0,
+    "jsdoc/require-returns": 0,
+    "jsdoc/require-param-type": 0,
+    "jsdoc/require-param-description": 0,
+    "jsdoc/require-returns-type": 0,
+    "jsdoc/require-returns-description": 0,
+    "jsdoc/tag-lines": 0,
+    "jsdoc/multiline-blocks": 0,
+    "@typescript-eslint/explicit-member-accessibility": 1,
+    "jsdoc/check-line-alignment": 1,
+    "jsdoc/check-syntax": 1,
+    "jsdoc/no-blank-block-descriptions": 1,
+    "jsdoc/no-blank-blocks": 1,
+    "jsdoc/informative-docs": 1,
+    "jsdoc/no-defaults": 1,
+    "jsdoc/no-types": 1,
+    "no-trailing-spaces": "warn",
+    "@typescript-eslint/ban-types": "warn",
+    "disable-autofix/jsdoc/require-jsdoc": [
+      "warn",
+      {
+        "checkConstructors": false,
+        "publicOnly": true,
+        "require": {
+          "MethodDefinition": true
+        }
+      }
+    ],
+    "max-len": [
+      "warn",
+      200
+    ],
+    "brace-style": [
+      "warn",
+      "stroustrup"
+    ],
+    "curly": "warn",
+    "semi": [
+      "warn",
+      "always"
+    ],
+    "import-newlines/enforce": [
+      "warn",
+      {
+        "items": 3,
+        "max-len": 80,
+        "semi": true
+      }
+    ],
+    "indent": [
+      "warn",
+      2,
+      {
+        "SwitchCase": 1
+      }
+    ],
+    "@typescript-eslint/explicit-function-return-type": [
+      "error",
+      {
+        "allowExpressions": true
+      }
+    ],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "args": "none"
+      }
+    ]
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/strict",
+    "plugin:jsdoc/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "import-newlines",
+    "jsdoc",
+    "eslint-plugin-disable-autofix"
+  ]
+}

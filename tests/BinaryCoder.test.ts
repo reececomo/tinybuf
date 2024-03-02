@@ -1,11 +1,7 @@
-import {
-  BinaryCodec,
-  Type,
-  Optional,
-} from '../src/index';
+import { BinaryCoder, Type, Optional } from '../src/index';
 
-describe('BinaryCodec', function () {
-  const MyBinaryCodec = new BinaryCodec({
+describe('BinaryCoder', () => {
+  const MyBinaryCoder = new BinaryCoder({
     a: Type.Int,
     b: [Type.Int],
     c: [{
@@ -27,9 +23,86 @@ describe('BinaryCodec', function () {
     ],
   };
 
-  it('should correctly parse a type', function () {
-    expect(MyBinaryCodec).toMatchObject({
-      __proto__: BinaryCodec.prototype,
+  it('should encode all types', () => {
+    const MyCoder = new BinaryCoder({
+      myBinary: Type.Binary,
+      myBoolean: Type.Boolean,
+      myBooleanTuple: Type.BooleanTuple,
+      myFloat16: Type.Float16,
+      myFloat32: Type.Float32,
+      myFloat64: Type.Float64,
+      myInt: Type.Int,
+      myInt16: Type.Int16,
+      myInt32: Type.Int32,
+      myInt8: Type.Int8,
+      myJSON: Type.JSON,
+      myRegExp: Type.RegExp,
+      myString: Type.String,
+      myOptional: Optional([Type.String]),
+      myObject: {
+        myUInt: Type.UInt,
+        myUInt16: Type.UInt16,
+        myUInt32: Type.UInt32,
+        myUInt8: Type.UInt8,
+      },
+      myOptionalObject: Optional({
+        myDate: Type.Date,
+        myBitmask16: Type.Bitmask16,
+        myBitmask32: Type.Bitmask32,
+        myBitmask8: Type.Bitmask8,
+      })
+    });
+
+    const before = {
+      myBinary: new TextEncoder().encode('binary').buffer,
+      myBoolean: true,
+      myBooleanTuple: [false, true],
+      myFloat16: 1.23046875,
+      myFloat32: 1.2300000190734863,
+      myFloat64: 1.23,
+      myInt: 1,
+      myInt16: -260,
+      myInt32: -32767,
+      myInt8: -12,
+      myJSON: {
+        nestedData: 'wow'!
+      },
+      myRegExp: /test/gi,
+      myString: 'example',
+      myOptional: ['multiple', 'strings'],
+      myObject: {
+        myUInt: 1,
+        myUInt16: 256,
+        myUInt32: 65000,
+        myUInt8: 1,
+      },
+      myOptionalObject: {
+        myDate: new Date(),
+        myBitmask8: [
+          true, false, true, false, true, false, true, false
+        ],
+        myBitmask16: [
+          true, false, true, false, true, false, true, false,
+          true, false, true, false, true, false, true, false
+        ],
+        myBitmask32: [
+          true, false, true, false, true, false, true, false,
+          true, false, true, false, true, false, true, false,
+          true, false, true, false, true, false, true, false,
+          true, false, true, false, true, false, true, false
+        ],
+      }
+    };
+
+    const encoded = MyCoder.encode(before);
+    const after = MyCoder.decode(encoded);
+
+    expect(after).toStrictEqual(before);
+  });
+
+  it('should correctly parse a type', () => {
+    expect(MyBinaryCoder).toMatchObject({
+      __proto__: BinaryCoder.prototype,
       type: Type.Object,
       fields: [
         {
@@ -67,11 +140,56 @@ describe('BinaryCodec', function () {
           }
         }
       ]
-    })
-  })
+    });
+  });
+
+  it('should encode hash code as Id when Id is not set', () => {
+    const coder = new BinaryCoder({ a: Type.UInt }, undefined);
+    expect(coder.Id).not.toBe(undefined);
+
+    const data = coder.encode({ a: 0 });
+    expect(data.byteLength).toBe(3);
+  });
+
+  it('should encode Id when set manually', () => {
+    const coder = new BinaryCoder({ a: Type.UInt }, 32);
+    expect(coder.Id).not.toBe(undefined);
+
+    const data = coder.encode({ a: 0 });
+    expect(data.byteLength).toBe(3);
+  });
+
+  it('should encode no Id when Id is false', () => {
+    const coder = new BinaryCoder({ a: Type.UInt }, false);
+    expect(coder.Id).toBe(undefined);
+
+    const data = coder.encode({ a: 0 });
+    expect(data.byteLength).toBe(1);
+  });
+
+  it('should throw TypeError when passed an invalid Id', () => {
+    expect(() => new BinaryCoder({ data: Type.UInt }, 'AB' as any)).toThrow(TypeError);
+    expect(() => new BinaryCoder({ data: Type.UInt }, true as any)).toThrow(TypeError);
+    expect(() => new BinaryCoder({ data: Type.UInt }, -1)).toThrow(TypeError);
+    expect(() => new BinaryCoder({ data: Type.UInt }, 65_536)).toThrow(TypeError);
+    expect(() => new BinaryCoder({ data: Type.UInt }, 1.01)).toThrow(TypeError);
+  });
+
+  it('should throw TypeError when an array contains non-1 value', () => {
+    expect(() => new BinaryCoder({ data: [] as any })).toThrow(TypeError);
+    expect(() => new BinaryCoder({ data: [Type.String, Type.String] as any })).toThrow(TypeError);
+  });
+
+  it('should throw TypeError when root object is optional', () => {
+    expect(() => new BinaryCoder(Optional({ a: Type.UInt }) as any)).toThrow(TypeError);
+  });
+
+  it('should throw TypeError when root object is unknown coder type', () => {
+    expect(() => new BinaryCoder('bigint128' as any)).toThrow(TypeError);
+  });
 
   it('decode() emits output that is valid input for encode()', () => {
-    const Example = new BinaryCodec({
+    const Example = new BinaryCoder({
       integer: Type.UInt16,
       objectArray: [{
         str: Type.String,
@@ -110,56 +228,56 @@ describe('BinaryCodec', function () {
     const binary2 = Example.encode(decoded);
 
     expect(binary).toEqual(binary2);
-  })
+  });
 
-  it('should not encode a non conforming object', function () {
+  it('should not encode a non conforming object', () => {
     expect(() => {
-      (MyBinaryCodec as any).encode(12)
+      (MyBinaryCoder as any).encode(12);
     }).toThrow();
 
     expect(() => {
-      MyBinaryCodec.encode({
+      MyBinaryCoder.encode({
         a: 17,
         b: [],
         c: [{
           d: true as any // should be boolean
         }]
-      })
+      });
     }).toThrow();
-  })
+  });
 
-  it('should encode a conforming object and read back the data', function () {
-    const encoded = MyBinaryCodec.encode(validData);
-    const decoded = MyBinaryCodec.decode(encoded);
+  it('should encode a conforming object and read back the data', () => {
+    const encoded = MyBinaryCoder.encode(validData);
+    const decoded = MyBinaryCoder.decode(encoded);
 
     expect(decoded).toEqual(validData);
-  })
-  
-  it('should encode an array', function () {
-    const intArray = new BinaryCodec({ data: [Type.Int] });
-    expect(intArray.decode(intArray.encode({ data: [] }))).toEqual({ data: [] })
-    expect(intArray.decode(intArray.encode({ data: [3] }))).toEqual({ data: [3] })
-    expect(intArray.decode(intArray.encode({ data: [3, 14, 15] }))).toEqual({ data: [3, 14, 15] })
-    
-    const objArray = new BinaryCodec({ data: [{
+  });
+
+  it('should encode an array', () => {
+    const intArray = new BinaryCoder({ data: [Type.Int] });
+    expect(intArray.decode(intArray.encode({ data: [] }))).toEqual({ data: [] });
+    expect(intArray.decode(intArray.encode({ data: [3] }))).toEqual({ data: [3] });
+    expect(intArray.decode(intArray.encode({ data: [3, 14, 15] }))).toEqual({ data: [3, 14, 15] });
+
+    const objArray = new BinaryCoder({ data: [{
       v: Type.Int,
       f: Type.String
-    }]})
-    expect(objArray.decode(objArray.encode({ data: [] }))).toEqual({ data: [] })
+    }]});
+    expect(objArray.decode(objArray.encode({ data: [] }))).toEqual({ data: [] });
     const data = [{
       v: 1,
       f: 'one'
     }, {
       v: 2,
       f: 'two'
-    }]
-    expect(objArray.decode(objArray.encode({ data }))).toEqual({ data })
-  })
+    }];
+    expect(objArray.decode(objArray.encode({ data }))).toEqual({ data });
+  });
 });
 
 
 describe('BOOLEAN_ARRAY', () => {
-  const MyCoder = new BinaryCodec({
+  const MyCoder = new BinaryCoder({
     name: Type.String,
     coolBools: Type.BooleanTuple,
   });
@@ -177,7 +295,7 @@ describe('BOOLEAN_ARRAY', () => {
       name: 'my awesome example string',
       coolBools: [false, true, false, true, false],
     });
-    
+
     expect(before.coolBools.length).toBe(after.coolBools.length);
   });
 
@@ -206,14 +324,14 @@ describe('BOOLEAN_ARRAY', () => {
         false, false, true, false, true, false, true, false, true,
       ],
     });
-    
+
     expect(before.coolBools.length).toBe(45);
     expect(after.coolBools.length).toBe(45);
   });
 });
 
 describe('BITMASK_8', () => {
-  const MyCoder = new BinaryCodec({
+  const MyCoder = new BinaryCoder({
     name: Type.String,
     coolBools: Type.Bitmask8,
   });
@@ -221,7 +339,7 @@ describe('BITMASK_8', () => {
   it('should encode all booleans below the minimum allowed', () => {
     const before = {
       name: 'my awesome example string',
-      coolBools: [true, false, true],
+      coolBools: [false, true, false, true],
     };
 
     const encoded = MyCoder.encode(before);
@@ -229,9 +347,9 @@ describe('BITMASK_8', () => {
     const after = MyCoder.decode(encoded);
     expect(after).toStrictEqual({
       name: 'my awesome example string',
-      coolBools: [true, false, true, false, false, false, false, false],
+      coolBools: [false, true, false, true, false, false, false, false],
     });
-    
+
     expect(after.coolBools.length).toBe(8);
   });
 
@@ -248,7 +366,7 @@ describe('BITMASK_8', () => {
       name: 'my awesome example string',
       coolBools: [false, false, true, false, true, false, true, false],
     });
-    
+
     expect(before.coolBools.length).toBe(9);
     expect(after.coolBools.length).toBe(8);
   });
@@ -259,34 +377,48 @@ describe('Id', () => {
     const format = {
       name: Type.String,
     };
-    const MyNakedCoder = new BinaryCodec(format as any, false);
-    const MyClothedCoder = new BinaryCodec(format as any);
-    
-    expect(MyNakedCoder.Id).toBe(false);
-    expect(MyClothedCoder.Id).not.toBe(false);
+    const MyNakedCoder = new BinaryCoder(format as any, false);
+    const MyClothedCoder = new BinaryCoder(format as any);
+
+    expect(MyNakedCoder.Id).toBe(undefined);
+    expect(MyClothedCoder.Id).not.toBe(undefined);
 
     const binary1 = MyNakedCoder.encode({ name: 'Example' });
     const binary2 = MyClothedCoder.encode({ name: 'Example' });
 
     expect(binary1.byteLength).toEqual(binary2.byteLength - 2);
   });
-})
+});
 
-describe('matches', () => {
-  it('matches expected shapes', () => {
-    const MyCoder = new BinaryCodec({
-      name: Type.String,
-      property: [{ subProperty: Type.String }],
-      other: Optional(Type.String),
-    });
-  
-    expect(MyCoder.matches({ name: 'Mary', property: [{ subProperty: 'woo' }] })).toBeTruthy();
-    expect(MyCoder.matches({ name: 'Mike', property: [{ invalid: 'woo' }] })).toBeFalsy();
+describe('Bitmask16', () => {
+  const MyCoder = new BinaryCoder({
+    name: Type.String,
+    coolBools: Type.Bitmask16,
   });
-})
 
-describe('BITMASK_32', () => {
-  const MyCoder = new BinaryCodec({
+  it('should encode all booleans below the minimum allowed', () => {
+    const before = {
+      name: 'my awesome example string',
+      coolBools: [false, true, true, false, false,],
+    };
+
+    const encoded = MyCoder.encode(before);
+
+    const after = MyCoder.decode(encoded);
+    expect(after).toStrictEqual({
+      name: 'my awesome example string',
+      coolBools: [
+        false, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false,
+      ],
+    });
+
+    expect(after.coolBools.length).toBe(16);
+  });
+});
+
+describe('Bitmask32', () => {
+  const MyCoder = new BinaryCoder({
     name: Type.String,
     coolBools: Type.Bitmask32,
     other: Optional(Type.String),
@@ -312,7 +444,7 @@ describe('BITMASK_32', () => {
       ],
       other: 'hmm',
     });
-    
+
     expect(after.coolBools.length).toBe(32);
   });
 
@@ -342,7 +474,7 @@ describe('BITMASK_32', () => {
       ],
       other: 'hmm',
     });
-    
+
     expect(before.coolBools.length).toBe(35);
     expect(after.coolBools.length).toBe(32);
   });

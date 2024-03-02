@@ -8,8 +8,6 @@ export declare class WriteTypeError extends TypeError {
     constructor(expectedType: string, value: any, path?: string);
 }
 /**
- * Dynamic resize.
- *
  * Formats (big-endian):
  * 7b  0xxx xxxx
  * 14b  10xx xxxx  xxxx xxxx
@@ -21,7 +19,9 @@ export declare const uint8Coder: BinaryTypeCoder<number>;
 export declare const uint16Coder: BinaryTypeCoder<number>;
 export declare const uint32Coder: BinaryTypeCoder<number>;
 /**
- * Same format as uint
+ * Same formats as uintCoder.
+ *
+ * @see {uintCoder}
  */
 export declare const intCoder: BinaryTypeCoder<number>;
 export declare const int8Coder: BinaryTypeCoder<number>;
