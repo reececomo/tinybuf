@@ -12,12 +12,12 @@ export declare function fromScalar8(uInt8: number): number;
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function uScalar8Round(doubleFloat: number): number;
+export declare function uScalarRound(doubleFloat: number): number;
 /**
  * Quantize a number to an 8-bit signed scalar between -1.0 and 1.0.
  *
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function scalar8Round(doubleFloat: number): number;
+export declare function scalarRound(doubleFloat: number): number;
 //# sourceMappingURL=scalar.d.ts.map

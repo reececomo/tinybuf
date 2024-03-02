@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scalar8Round = exports.uScalar8Round = exports.fromScalar8 = exports.fromUScalar8 = exports.toScalar8 = exports.toUScalar8 = void 0;
+exports.scalarRound = exports.uScalarRound = exports.fromScalar8 = exports.fromUScalar8 = exports.toScalar8 = exports.toUScalar8 = void 0;
 const math_1 = require("./math");
 /** @returns A UInt8 bitmask representation. */
 function toUScalar8(uScalar) {
@@ -30,18 +30,18 @@ exports.fromScalar8 = fromScalar8;
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-function uScalar8Round(doubleFloat) {
+function uScalarRound(doubleFloat) {
     return fromUScalar8(toUScalar8(doubleFloat));
 }
-exports.uScalar8Round = uScalar8Round;
+exports.uScalarRound = uScalarRound;
 /**
  * Quantize a number to an 8-bit signed scalar between -1.0 and 1.0.
  *
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-function scalar8Round(doubleFloat) {
+function scalarRound(doubleFloat) {
     return fromScalar8(toScalar8(doubleFloat));
 }
-exports.scalar8Round = scalar8Round;
+exports.scalarRound = scalarRound;
 //# sourceMappingURL=scalar.js.map

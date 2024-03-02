@@ -28,7 +28,7 @@ export function fromScalar8(uInt8: number): number {
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export function uScalar8Round(doubleFloat: number): number {
+export function uScalarRound(doubleFloat: number): number {
   return fromUScalar8(toUScalar8(doubleFloat));
 }
 
@@ -38,6 +38,6 @@ export function uScalar8Round(doubleFloat: number): number {
  * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export function scalar8Round(doubleFloat: number): number {
+export function scalarRound(doubleFloat: number): number {
   return fromScalar8(toScalar8(doubleFloat));
 }
