@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BinaryCodec = void 0;
+exports.BinaryCoder = void 0;
 const coders = __importStar(require("./lib/coders"));
 const Field_1 = require("./Field");
 const hashCode_1 = require("./lib/hashCode");
@@ -31,7 +31,7 @@ const MutableArrayBuffer_1 = require("./MutableArrayBuffer");
 const ReadState_1 = require("./ReadState");
 const Type_1 = require("./Type");
 /**
- * BinaryCodec is a utility class for encoding and decoding binary data based
+ * BinaryCoder is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
  *
  * @see {Id}
@@ -39,17 +39,19 @@ const Type_1 = require("./Type");
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-class BinaryCodec {
+class BinaryCoder {
     /**
      * @param encoderDefinition A defined encoding format.
      * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
      */
     constructor(encoderDefinition, Id) {
-        if (typeof Id === 'number' && (Id < 0 || Id > 65535)) {
-            throw new RangeError(`hashCode must be between 0 and 65535.`);
+        if (Id !== undefined
+            && Id !== false
+            && !(typeof Id === 'number' && Id >= 0 && Id <= 65535 && Math.floor(Id) === Id)) {
+            throw new TypeError('Id must be uint16 or `false`');
         }
-        else if (encoderDefinition instanceof Type_1.Optional) {
-            throw new Error("Invalid type given. Root object must not be an Optional.");
+        else if (encoderDefinition instanceof Type_1.OptionalType) {
+            throw new TypeError("Invalid type given. Root object must not be an Optional.");
         }
         else if (typeof encoderDefinition === 'object') {
             this.type = "{object}" /* Type.Object */;
@@ -57,26 +59,14 @@ class BinaryCodec {
                 return new Field_1.Field(name, encoderDefinition[name]);
             });
         }
-        else if (encoderDefinition !== undefined) {
+        else if (encoderDefinition !== undefined && typeof encoderDefinition === 'string' && Type_1.ValidValueTypes.includes(encoderDefinition)) {
             this.type = encoderDefinition;
         }
         else {
-            throw new Error("Invalid type given. Must be array containing a single type, an object, or a known coder type.");
+            throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
         }
         // Create a hash code
-        this.Id = Id === undefined && this.type === "{object}" /* Type.Object */ ? (0, hashCode_1.generateObjectShapeHashCode)(encoderDefinition) : Id !== null && Id !== void 0 ? Id : 0;
-    }
-    /**
-     * Whether this data matches this
-     */
-    matches(data) {
-        try {
-            this.encode(data);
-            return true;
-        }
-        catch (error) {
-            return false;
-        }
+        this.Id = Id === undefined && this.type === "{object}" /* Type.Object */ ? (0, hashCode_1.generateObjectShapeHashCode)(encoderDefinition) : typeof Id === 'number' ? Id : undefined;
     }
     // ----- Static methods: -----
     /**
@@ -84,7 +74,7 @@ class BinaryCodec {
      *
      * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
      *
-     * @see {BinaryCodec.Id}
+     * @see {BinaryCoder.Id}
      * @throws {RangeError} if buffer size < 2
      */
     static peekId(buffer) {
@@ -109,17 +99,17 @@ class BinaryCodec {
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
     decode(arrayBuffer) {
-        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer, this.Id === false ? 0 : 2));
+        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer, this.Id === undefined ? 0 : 2));
     }
     // ----- Implementation: -----
     /**
-    * @param {*} value
-    * @param {MutableArrayBuffer} data
-    * @param {string} path
-    * @throws if the value is invalid
-    */
+     * @param value
+     * @param data
+     * @param path
+     * @throws if the value is invalid
+     */
     write(value, data, path) {
-        let i, field, subpath, subValue, len;
+        let field, subpath, subValue;
         if (this.type !== "{object}" /* Type.Object */) {
             return this.getCoder(this.type).write(value, data, path);
         }
@@ -155,25 +145,54 @@ class BinaryCodec {
      * Writes @see {Id} as the prefix of the buffer.
      */
     writeId(mutableArrayBuffer) {
-        if (this.Id === false) {
+        if (this.Id === undefined) {
             return;
         }
         coders.uint16Coder.write(this.Id, mutableArrayBuffer, '');
     }
     /**
-    * This function will be executed only the first time
-    * After that, we'll compile the read routine and add it directly to the instance
-    * @param {ReadState} state
-    * @return {*}
-    * @throws if fails
-    */
+     * Helper to get the right coder.
+     */
+    getCoder(type) {
+        switch (type) {
+            case "binary" /* Type.Binary */: return coders.arrayBufferCoder;
+            case "bitmask16" /* Type.Bitmask16 */: return coders.bitmask16Coder;
+            case "bitmask32" /* Type.Bitmask32 */: return coders.bitmask32Coder;
+            case "bitmask8" /* Type.Bitmask8 */: return coders.bitmask8Coder;
+            case "bool" /* Type.Boolean */: return coders.booleanCoder;
+            case "booltuple" /* Type.BooleanTuple */: return coders.booleanArrayCoder;
+            case "date" /* Type.Date */: return coders.dateCoder;
+            case "float16" /* Type.Float16 */: return coders.float16Coder;
+            case "float32" /* Type.Float32 */: return coders.float32Coder;
+            case "float64" /* Type.Float64 */: return coders.float64Coder;
+            case "int" /* Type.Int */: return coders.intCoder;
+            case "int16" /* Type.Int16 */: return coders.int16Coder;
+            case "int32" /* Type.Int32 */: return coders.int32Coder;
+            case "int8" /* Type.Int8 */: return coders.int8Coder;
+            case "json" /* Type.JSON */: return coders.jsonCoder;
+            case "regex" /* Type.RegExp */: return coders.regexCoder;
+            case "str" /* Type.String */: return coders.stringCoder;
+            case "uint" /* Type.UInt */: return coders.uintCoder;
+            case "uint16" /* Type.UInt16 */: return coders.uint16Coder;
+            case "uint32" /* Type.UInt32 */: return coders.uint32Coder;
+            case "uint8" /* Type.UInt8 */: return coders.uint8Coder;
+        }
+    }
+    // ----- Private methods: -----
+    /**
+     * This function will be executed only the first time
+     * After that, we'll compile the read routine and add it directly to the instance
+     * @param state
+     * @returns
+     * @throws if fails
+     */
     read(state) {
         this.read = this.compileRead();
         return this.read(state);
     }
     /**
-    * Compile the decode method for this object.
-    */
+     * Compile the decode method for this object.
+     */
     compileRead() {
         if (this.type !== "{object}" /* Type.Object */ && this.type !== "[array]" /* Type.Array */) {
             // Scalar type
@@ -204,47 +223,12 @@ class BinaryCodec {
         return new Function('state', code);
     }
     /**
-     * Helper to get the right coder.
+     * @param value
+     * @param data
+     * @param path
+     * @param type
+     * @throws if the value is invalid
      */
-    getCoder(type) {
-        switch (type) {
-            case "bool" /* Type.Boolean */: return coders.booleanCoder;
-            case "binary" /* Type.Binary */: return coders.arrayBufferCoder;
-            case "date" /* Type.Date */: return coders.dateCoder;
-            case "float16" /* Type.Float16 */: return coders.float16Coder;
-            case "float32" /* Type.Float32 */: return coders.float32Coder;
-            case "float64" /* Type.Float64 */: return coders.float64Coder;
-            case "int" /* Type.Int */: return coders.intCoder;
-            case "int8" /* Type.Int8 */: return coders.int8Coder;
-            case "int16" /* Type.Int16 */: return coders.int16Coder;
-            case "int32" /* Type.Int32 */: return coders.int32Coder;
-            case "regex" /* Type.RegExp */: return coders.regexCoder;
-            case "str" /* Type.String */: return coders.stringCoder;
-            case "uint" /* Type.UInt */: return coders.uintCoder;
-            case "uint8" /* Type.UInt8 */: return coders.uint8Coder;
-            case "uint16" /* Type.UInt16 */: return coders.uint16Coder;
-            case "uint32" /* Type.UInt32 */: return coders.uint32Coder;
-            case "json" /* Type.JSON */: return coders.jsonCoder;
-            case "booltuple" /* Type.BooleanTuple */: return coders.booleanArrayCoder;
-            case "bitmask8" /* Type.Bitmask8 */: return coders.bitmask8Coder;
-            case "bitmask16" /* Type.Bitmask16 */: return coders.bitmask16Coder;
-            case "bitmask32" /* Type.Bitmask32 */: return coders.bitmask32Coder;
-            case "[array]" /* Type.Array */:
-                throw new Error('Unexpected getCoder() for array type. Use array syntax instead.');
-            case "{object}" /* Type.Object */:
-                throw new Error('Unexpected getCoder() for object type. Use object syntax instead.');
-            default:
-                throw new Error(`Unknown binary coder type: "${type}"`);
-        }
-    }
-    // ----- Private methods: -----
-    /**
-    * @param {*} value
-    * @param {MutableArrayBuffer} data
-    * @param {string} path
-    * @param {BinaryCodec} type
-    * @throws if the value is invalid
-    */
     _writeArray(value, data, path, type) {
         let i, len;
         if (!Array.isArray(value)) {
@@ -257,11 +241,8 @@ class BinaryCodec {
         }
     }
     /**
-    * @param {BinaryCodec} type
-    * @param {ReadState} state
-    * @return {Array}
-    * @throws - if invalid
-    */
+     * @throws if invalid data
+     */
     _readArray(type, state) {
         let arr = new Array(coders.uintCoder.read(state)), j;
         for (j = 0; j < arr.length; j++) {
@@ -273,6 +254,6 @@ class BinaryCodec {
         return coders.booleanCoder.read(state);
     }
 }
-exports.BinaryCodec = BinaryCodec;
-exports.default = BinaryCodec;
-//# sourceMappingURL=BinaryCodec.js.map
+exports.BinaryCoder = BinaryCoder;
+exports.default = BinaryCoder;
+//# sourceMappingURL=BinaryCoder.js.map

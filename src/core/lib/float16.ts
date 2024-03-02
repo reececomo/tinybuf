@@ -34,8 +34,8 @@ export const toFloat16 = (function() {
     // If NaN, return NaN. If Inf or exponent overflow, return Inf.
     if (e > 142) {
       bits |= 0x7c00;
-      // If exponent was 0xff and one mantissa bit was set, it means NaN,
-      // not Inf, so make sure we set one mantissa bit too.
+      // If exponent was 0xff and one significand bit was set, it means NaN,
+      // not Inf, so make sure we set one significand bit too.
       bits |= ((e == 255) ? 0 : 1) && (x & 0x007fffff);
       return bits;
     }
@@ -43,7 +43,7 @@ export const toFloat16 = (function() {
     // If exponent underflows but not too much, return a denormal
     if (e < 113) {
       m |= 0x0800;
-      // Extra rounding may overflow and set mantissa to 0 and exponent
+      // Extra rounding may overflow and set significand to 0 and exponent
       // to 1, which is OK.
       bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
       return bits;
@@ -51,12 +51,12 @@ export const toFloat16 = (function() {
 
     bits |= ((e - 112) << 10) | (m >> 1);
 
-    // Extra rounding. An overflow will set mantissa to 0 and increment
+    // Extra rounding. An overflow will set significand to 0 and increment
     // the exponent, which is OK.
     bits += m & 1;
 
     return bits;
-  }
+  };
 }());
 
 /**
@@ -66,37 +66,40 @@ export const toFloat16 = (function() {
  * @returns A number (standard 64-bit double precision representation).
  */
 export function fromFloat16(halfPrecisionBits: number): number {
-  // Extract sign, exponent, and mantissa bits
+  // Extract sign, exponent, and significand bits
   let sign = ((halfPrecisionBits & 0b1000000000000000) >> 15) === 0 ? 1 : -1;
   let exponent = (halfPrecisionBits & 0b111110000000000) >> 10;
-  let mantissa = halfPrecisionBits & 0b000001111111111;
+  let significand = halfPrecisionBits & 0b000001111111111;
 
   // Handle special cases: zero, denormal, infinity, NaN
   if (exponent === 0) {
-      // Subnormal or zero
-      if (mantissa === 0) {
-          return sign * 0; // Signed zero
-      } else {
-          return sign * Math.pow(2, -14) * (mantissa / 1024); // Subnormal
-      }
-  } else if (exponent === 0b11111) {
-      // Infinity or NaN
-      if (mantissa === 0) {
-          return sign * Infinity; // Infinity
-      } else {
-          return NaN; // NaN
-      }
+    // Subnormal or zero
+    if (significand === 0) {
+      return sign * 0; // Signed zero
+    }
+    else {
+      return sign * Math.pow(2, -14) * (significand / 1024); // Subnormal
+    }
+  }
+  else if (exponent === 0b11111) {
+    // Infinity or NaN
+    if (significand === 0) {
+      return sign * Infinity; // Infinity
+    }
+    else {
+      return NaN; // NaN
+    }
   }
 
   // Normalized number
   exponent -= 15; // Adjust exponent bias
-  return sign * Math.pow(2, exponent) * (1 + mantissa / 1024);
+  return sign * Math.pow(2, exponent) * (1 + significand / 1024);
 }
 
 /**
  * The fround16() method returns the nearest 16-bit half precision float representation of a number.
  *
- * @param value A number.
+ * @param doubleFloat A number.
  * @returns The nearest 16-bit half precision float representation of x.
  */
 export function fround16(doubleFloat: number): number {

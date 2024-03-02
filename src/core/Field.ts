@@ -1,33 +1,35 @@
-import { BinaryCodec } from './BinaryCodec';
+import { BinaryCoder } from './BinaryCoder';
 import { OptionalType, FieldDefinition } from './Type';
 
 /**
  * Parse and represent an object field. See example in Type.js
  */
 export class Field {
-  readonly name: string
-  readonly type: BinaryCodec<any>;
-  readonly isOptional: boolean;
-  readonly isArray: boolean;
+  public readonly name: string;
+  public readonly type: BinaryCoder<any>;
+  public readonly isOptional: boolean;
+  public readonly isArray: boolean;
 
-  constructor(name: string, rawType: FieldDefinition) {
-    this.isOptional = rawType instanceof OptionalType
+  public constructor(name: string, rawType: FieldDefinition) {
+    this.isOptional = rawType instanceof OptionalType;
 
     let type = rawType instanceof OptionalType ? rawType.type : rawType;
 
-    this.name = name
+    this.name = name;
 
     if (Array.isArray(type)) {
       if (type.length !== 1) {
-        throw new TypeError('Invalid array definition, it must have exactly one element')
+        throw new TypeError('Invalid array definition, it must have exactly one element');
       }
+
       type = type[0];
       this.isArray = true;
-    } else {
+    }
+    else {
       this.isArray = false;
     }
 
-    this.type = new BinaryCodec<any>(type)
+    this.type = new BinaryCoder<any>(type);
   }
 }
 

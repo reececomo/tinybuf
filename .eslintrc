@@ -1,0 +1,184 @@
+{
+    "root": true,
+    "rules": {
+      // Disables:
+      "newline-before-return": "off",
+      // Enables:
+      "no-trailing-spaces": "warn",
+      "max-len": [
+        "warn",
+        200
+      ],
+      "brace-style": [
+        "warn",
+        "stroustrup"
+      ],
+      "curly": "warn",
+      "semi": [
+        "warn",
+        "always"
+      ],
+      "import-newlines/enforce": [
+        "warn",
+        {
+          "items": 3,
+          "max-len": 80,
+          "semi": true
+        }
+      ],
+      "indent": [
+        "warn",
+        2,
+        {
+          "SwitchCase": 1 // Ignore for switch/case statements.
+        }
+      ],
+      "@typescript-eslint/ban-types": "warn",
+      "@typescript-eslint/explicit-function-return-type": [
+        "error",
+        {
+          "allowExpressions": true
+        }
+      ],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "args": "none"
+        }
+      ],
+      "@typescript-eslint/explicit-member-accessibility": "error",
+      "@typescript-eslint/member-ordering": [
+        "warn",
+        {
+          "default": [
+            // Index signature
+            "signature",
+            "call-signature",
+            // Properties / Fields
+            "public-static-field",
+            "protected-static-field",
+            "private-static-field",
+            "#private-static-field",
+            "public-decorated-field",
+            "protected-decorated-field",
+            "private-decorated-field",
+            "public-instance-field",
+            "protected-instance-field",
+            "private-instance-field",
+            "#private-instance-field",
+            "public-abstract-field",
+            "protected-abstract-field",
+            "public-field",
+            "protected-field",
+            "private-field",
+            "#private-field",
+            "static-field",
+            "instance-field",
+            "abstract-field",
+            "decorated-field",
+            "field",
+            // Static initialization
+            "static-initialization",
+            // Constructors
+            "public-constructor",
+            "protected-constructor",
+            "private-constructor",
+            "constructor",
+            // Getters / Setters
+            [
+              "public-get",
+              "public-set"
+            ],
+            [
+              "get",
+              "set"
+            ],
+            // Methods
+            "public-static-method",
+            "protected-static-method",
+            "private-static-method",
+            "#private-static-method",
+            "public-decorated-method",
+            "protected-decorated-method",
+            "private-decorated-method",
+            "public-instance-method",
+            "protected-instance-method",
+            "private-instance-method",
+            "#private-instance-method",
+            "public-abstract-method",
+            "protected-abstract-method",
+            "public-method",
+            "protected-method",
+            "private-method",
+            "#private-method",
+            "static-method",
+            "instance-method",
+            "abstract-method",
+            "decorated-method",
+            "method"
+          ]
+        }
+      ],
+      // "@typescript-eslint/prefer-readonly": "warn", // Breaks. Missing `parserOptions.project`.
+      // Disables:
+      "prefer-const": "off",
+      "no-fallthrough": "off",
+      "@typescript-eslint/no-duplicate-enum-values": "off",
+      "@typescript-eslint/no-inferrable-types": "off", // We prefer explicit types
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-empty-interface": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      // TEMPORARY DISABLES:
+      "@typescript-eslint/no-empty-function": "off", // Causes VSCode to fail :<
+      "@typescript-eslint/indent": "off", // Causes VSCode to fail :<
+      "@typescript-eslint/no-extra-semi": "off", // Causes VSCode to fail :<
+      //
+      // JSDoc Enables:
+      //
+      "jsdoc/check-line-alignment": 1,
+      "jsdoc/check-syntax": 1,
+      "jsdoc/no-blank-block-descriptions": 1,
+      "jsdoc/no-blank-blocks": 1,
+      // "jsdoc/informative-docs": 1,
+      "jsdoc/no-defaults": 1,
+      "jsdoc/no-types": 1,
+      "jsdoc/require-jsdoc": "off", // Use disable-autofix plugin to prevent autofix.
+      "disable-autofix/jsdoc/require-jsdoc": [
+        "warn",
+        {
+          "checkConstructors": false,
+          "publicOnly": true,
+          "require": {
+            "MethodDefinition": true
+          }
+        }
+      ],
+      // JSDoc Disables:
+      "jsdoc/require-param": 0,
+      "jsdoc/require-returns": 0,
+      "jsdoc/require-param-type": 0,
+      "jsdoc/require-param-description": 0,
+      "jsdoc/require-returns-type": 0,
+      "jsdoc/require-returns-description": 0,
+      "jsdoc/tag-lines": 0,
+      "jsdoc/multiline-blocks": 0
+    },
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/strict",
+      "plugin:jsdoc/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 2020,
+      "sourceType": "module"
+    },
+    "plugins": [
+      "@typescript-eslint",
+      "import-newlines",
+      "jsdoc",
+      "eslint-plugin-disable-autofix"
+    ]
+  }

@@ -7,5 +7,4 @@ module.exports = {
     '/node_modules/'
   ],
   verbose: false,
-
 };

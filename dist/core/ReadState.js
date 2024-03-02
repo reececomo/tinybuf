@@ -10,13 +10,20 @@ class ReadState {
         this._dataView = new DataView(arrayBuffer);
         this._offset = skipBytes;
     }
+    /** Whether we have reached the end of the buffer. */
+    get hasEnded() {
+        return this._offset === this._dataView.byteLength;
+    }
+    /** Read the next byte, without moving the read head pointer. */
+    peekUInt8() {
+        return this._dataView.getUint8(this._offset);
+    }
     /** Used to skip bytes for reading headers. */
     incrementOffset() {
         this._offset++;
     }
-    peekUInt8() {
-        return this._dataView.getUint8(this._offset);
-    }
+    // ----- Readers: -----
+    /* eslint-disable disable-autofix/jsdoc/require-jsdoc */
     readUInt8() {
         return this._dataView.getUint8(this._offset++);
     }
@@ -58,6 +65,7 @@ class ReadState {
         this._offset += 8;
         return r;
     }
+    /* eslint-enable disable-autofix/jsdoc/require-jsdoc */
     /**
      * @throws RangeError
      */
@@ -68,9 +76,6 @@ class ReadState {
         const arrayBuffer = this._dataView.buffer.slice(this._offset, this._offset + length);
         this._offset += length;
         return arrayBuffer;
-    }
-    hasEnded() {
-        return this._offset === this._dataView.byteLength;
     }
 }
 exports.ReadState = ReadState;

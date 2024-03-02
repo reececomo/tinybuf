@@ -14,14 +14,22 @@ class MutableArrayBuffer {
         const arrayBuffer = new ArrayBuffer(initialBytes);
         this._dataView = new DataView(arrayBuffer);
     }
-    /** The amount of bytes consumed by actual data. */
-    get byteLength() {
-        return this._length;
-    }
+    // ----- Getters: -----
     /** The amount of bytes currently available to the underlying memory. */
     get currentAllocatedBytes() {
         return this._dataView.byteLength;
     }
+    // ----- Methods: -----
+    /**
+     * Return the data as a correctly-sized array buffer.
+     *
+     * Note: The returned buffer and the internal buffer share the same memory
+     */
+    toArrayBuffer() {
+        return this._dataView.buffer.slice(0, this._length);
+    }
+    // ----- Writers: -----
+    /* eslint-disable disable-autofix/jsdoc/require-jsdoc */
     appendBuffer(data) {
         const dataView = new DataView(data);
         this._alloc(dataView.byteLength);
@@ -75,17 +83,9 @@ class MutableArrayBuffer {
         this._dataView.setFloat64(this._length, value);
         this._length += 8;
     }
-    /**
-     * Return the data as a correctly-sized array buffer.
-     *
-     * Note: The returned buffer and the internal buffer share the same memory
-     */
-    toArrayBuffer() {
-        return this._dataView.buffer.slice(0, this._length);
-    }
-    /**
-     * Alloc the given number of bytes (if needed).
-     */
+    /* eslint-enable disable-autofix/jsdoc/require-jsdoc */
+    // ----- Private methods: -----
+    /** Alloc the given number of bytes (if needed). */
     _alloc(bytes) {
         const currentDataViewLength = this._dataView.byteLength;
         if (this._length + bytes <= currentDataViewLength) {

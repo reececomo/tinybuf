@@ -1,13 +1,18 @@
-// Core
-export { Type, Optional } from './core/Type';
-export * from './core/BinaryCodec';
+export {
+  Type,
+  Optional,
+  EncoderDefinition,
+  FieldDefinition,
+  InferredDecodedType,
+  ValueTypes
+} from './core/Type';
+
+export * from './core/BinaryCoder';
 export * from './core/BinaryFormatHandler';
 
-// Special types
-export * from './core/lib/float16';
-
-// Utility
 export * from './core/MutableArrayBuffer';
 export * from './core/Field';
 export * from './core/ReadState';
+
+export * from './core/lib/float16';
 export * as coders from './core/lib/coders';

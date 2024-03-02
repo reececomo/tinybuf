@@ -1,41 +1,42 @@
-import BinaryCodec from "./BinaryCodec";
+import BinaryCoder from "./BinaryCoder";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
 
-type BinaryCodecId = number;
-type BinaryCodecOnDataHandler = (data: InferredDecodedType<any>) => any;
+type BinaryCoderId = number;
+type BinaryCoderOnDataHandler = (data: InferredDecodedType<any>) => any;
 
 export class UnhandledBinaryDecodeError extends Error {}
+export class BinaryCoderIdCollisionError extends Error {}
 
 /**
  * A utility that facilitates the management and handling of multiple binary formats.
- * 
+ *
  * It provides a central handler for encoding, decoding and routing.
  */
 export class BinaryFormatHandler {
-  private codecs = new Map<BinaryCodecId, [BinaryCodec<any>, BinaryCodecOnDataHandler]>();
+  private coders = new Map<BinaryCoderId, [BinaryCoder<any>, BinaryCoderOnDataHandler]>();
 
-  /** All available codecs. */
-  public get available(): Set<BinaryCodec<any>> {
-    return new Set([...this.codecs.values()].map(v => v[0]));
+  /** All available coders. */
+  public get available(): Set<BinaryCoder<any>> {
+    return new Set([...this.coders.values()].map(v => v[0]));
   }
 
   /**
-   * Register a binary codec for encoding and decoding.
+   * Register a binary coder for encoding and decoding.
    */
   public on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(
-    codec: BinaryCodec<EncoderType>,
+    coder: BinaryCoder<EncoderType>,
     onDataHandler: (data: DecodedType) => any
   ): this {
-    if (codec.Id === false) {
-      throw new Error('Cannot register a BinaryCodec with Id=false.');
+    if (coder.Id === undefined) {
+      throw new TypeError('Cannot register a BinaryCoder that has Id disabled.');
     }
 
-    if (this.codecs.has(codec.Id)) {
-      throw new Error(`Codec was already registered with matching Id: '0b${codec.Id.toString(2)}'`)
+    if (this.coders.has(coder.Id)) {
+      throw new BinaryCoderIdCollisionError(`Coder was already registered with matching Id: ${coder.Id}`);
     }
-  
-    this.codecs.set(codec.Id, [codec, onDataHandler]);
-    
+
+    this.coders.set(coder.Id, [coder, onDataHandler]);
+
     return this;
   }
 
@@ -44,19 +45,19 @@ export class BinaryFormatHandler {
    *
    * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
    *
-   * @throws {UnhandledBinaryDecodeError} If no matching codec handler is configured.
+   * @throws {UnhandledBinaryDecodeError} If no matching coder handler is configured.
    * @throws {RangeError} If buffer has < 2 bytes.
    */
   public processBuffer(buffer: ArrayBuffer | ArrayBufferView): void {
-    const id: number = BinaryCodec.peekId(buffer);
-    const tuple = this.codecs.get(id);
+    const id: number = BinaryCoder.peekId(buffer);
+    const tuple = this.coders.get(id);
 
     if (!tuple) {
       throw new UnhandledBinaryDecodeError(`No handler registered for: '0b${id.toString(2)}'`);
     }
-  
-    const [codec, onDataHandler] = tuple;
-    const data = codec.decode(buffer);
+
+    const [coder, onDataHandler] = tuple;
+    const data = coder.decode(buffer);
 
     onDataHandler(data);
   }
