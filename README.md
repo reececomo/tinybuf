@@ -24,7 +24,7 @@ Powerful, lightweight binary formats in TypeScript.
 
 ## Usage
 
-Define a `BinaryCode` like so:
+Define a `BinaryCoder` like so:
 
 ```js
 import { BinaryCoder, Type, Optional } from "typescript-binary";
@@ -55,7 +55,7 @@ binary.byteLength;
 const data = GameWorldData.decode(binary);
 // {
 //   timeRemaining: number,
-//   players: Array<{
+//   players: {
 //     id: string,
 //     health: number,
 //     position?: {
@@ -63,7 +63,7 @@ const data = GameWorldData.decode(binary);
 //       y: number
 //     },
 //     isJumping: boolean
-//   }>
+//   }[]
 // }
 ```
 
