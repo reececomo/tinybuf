@@ -3,10 +3,8 @@ import { BinaryTypeCoder, WriteTypeError } from '../src/core/lib/coders';
 
 import uintValues from './data/uint.json';
 import intValues from './data/int.json';
-import { testRunner } from '../jest.config';
 
 describe('coders', () => {
-
   describe('uintCoder', () => {
     const coder = coders.uintCoder;
 
@@ -523,10 +521,6 @@ function _writeAndGetHex<T>(type: BinaryTypeCoder<T>, value: T): string {
   return arrayBufferToHexString(_write(type, value));
 }
 
-function _readHex<T>(hexStr: string, type: BinaryTypeCoder<T>): T {
-  return _read(hexStringToArrayBuffer(hexStr), type);
-}
-
 function _write<T>(type: BinaryTypeCoder<T>, value: T): ArrayBuffer {
   const data = new MutableArrayBuffer();
   type.write(value, data, '');
@@ -552,17 +546,4 @@ function arrayBufferToHexString(arrayBuffer: ArrayBuffer): string {
   return Array.from(uint8Array)
     .map(byte => byte.toString(16).padStart(2, '0'))
     .join('');
-}
-
-function hexStringToArrayBuffer(hexString: string): ArrayBuffer {
-  // Remove the '0x' prefix if present
-  hexString = hexString.replace(/^0x/, '');
-
-  // Convert the hex string to bytes (Uint8Array)
-  const parts = hexString.match(/.{1,2}/g);
-
-  const bytes = parts === null ? new Uint8Array([]) : new Uint8Array(parts.map(byte => parseInt(byte, 16)));
-
-  // Convert bytes to ArrayBuffer
-  return bytes.buffer;
 }
