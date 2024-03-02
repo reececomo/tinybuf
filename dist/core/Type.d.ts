@@ -13,6 +13,8 @@ export type ValueTypes = {
     [Type.UInt8]: number;
     [Type.UInt16]: number;
     [Type.UInt32]: number;
+    [Type.UScalar]: number;
+    [Type.Scalar]: number;
     [Type.Boolean]: boolean;
     [Type.BooleanTuple]: boolean[];
     [Type.Bitmask8]: boolean[];
@@ -106,6 +108,10 @@ export declare const enum Type {
     UInt16 = "uint16",
     /** Unsigned 4 byte integer (between 0 and 4,294,967,295). */
     UInt32 = "uint32",
+    /** An unsigned scalar between 0.0 and 1.0. Stored as 1 byte. */
+    UScalar = "uscalar",
+    /** A signed scalar between -1.0 and 1.0. Stored as 1 byte. */
+    Scalar = "scalar",
     /**
      * Any JavaScript ArrayBuffer.
      *

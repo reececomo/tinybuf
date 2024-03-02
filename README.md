@@ -36,11 +36,15 @@ const GameWorldData = new BinaryCoder({
     {
       id: Type.String,
       health: Type.UInt8,
+      isJumping: Type.Boolean,
       position: Optional({
         x: Type.Float32,
         y: Type.Float32,
       }),
-      isJumping: Type.Boolean,
+      move: {
+        x: Type.Scalar,
+        y: Type.Scalar,
+      },
     },
   ],
 });
@@ -58,11 +62,15 @@ const data = GameWorldData.decode(binary);
 //   players: {
 //     id: string,
 //     health: number,
+//     isJumping: boolean,
 //     position?: {
 //       x: number,
 //       y: number
 //     },
-//     isJumping: boolean
+//     move: {
+//       x: number,
+//       y: number
+//     }
 //   }[]
 // }
 ```
@@ -100,6 +108,8 @@ Here are all the ready-to-use types:
 |    `Type.UInt8`     |      `number`       |                     1                     | Unsigned integer up to 255.                                                                                         |
 |    `Type.UInt16`    |      `number`       |                     2                     | Unsigned integer up to 65,535.                                                                                      |
 |    `Type.UInt32`    |      `number`       |                     4                     | Unsigned integer up to 4,294,967,295.                                                                               |
+|    `Type.Scalar`    |      `number`       |                     1                     | Signed scalar between -1.0 and 1.0.                                                                                 |
+|   `Type.UScalar`    |      `number`       |                     1                     | Unsigned scalar between 0.0 and 1.0.                                                                                |
 |   `Type.Float16`    |      `number`       |                     2                     | A 16-bit "half-precision" floating point.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
 |   `Type.Float32`    |      `number`       |                     4                     | A 32-bit "single-precision" floating point.                                                                         |
 |   `Type.Float64`    |      `number`       |                     8                     | Default JavaScript `number` type. A 64-bit "double-precision" floating point.                                       |

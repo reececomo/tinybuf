@@ -35,5 +35,6 @@ __exportStar(require("./core/MutableArrayBuffer"), exports);
 __exportStar(require("./core/Field"), exports);
 __exportStar(require("./core/ReadState"), exports);
 __exportStar(require("./core/lib/float16"), exports);
+__exportStar(require("./core/lib/scalar"), exports);
 exports.coders = __importStar(require("./core/lib/coders"));
 //# sourceMappingURL=index.js.map

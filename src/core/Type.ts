@@ -15,6 +15,9 @@ export type ValueTypes = {
   [Type.UInt8]: number;
   [Type.UInt16]: number;
   [Type.UInt32]: number;
+  // Scalar
+  [Type.UScalar]: number;
+  [Type.Scalar]: number;
   // Boolean
   [Type.Boolean]: boolean;
   [Type.BooleanTuple]: boolean[];
@@ -145,6 +148,12 @@ export const enum Type {
   /** Unsigned 4 byte integer (between 0 and 4,294,967,295). */
   UInt32 = 'uint32',
 
+  /** An unsigned scalar between 0.0 and 1.0. Stored as 1 byte. */
+  UScalar = 'uscalar',
+
+  /** A signed scalar between -1.0 and 1.0. Stored as 1 byte. */
+  Scalar = 'scalar',
+
   //
   // Advanced:
   //
@@ -234,6 +243,9 @@ export const ValidValueTypes: readonly string[] = [
   Type.UInt8,
   Type.UInt16,
   Type.UInt32,
+  // Scalars
+  Type.UScalar,
+  Type.Scalar,
   // Boolean
   Type.Boolean,
   Type.BooleanTuple,
