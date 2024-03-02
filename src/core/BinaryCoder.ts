@@ -185,6 +185,8 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
       case Type.Float16: return coders.float16Coder;
       case Type.Float32: return coders.float32Coder;
       case Type.Float64: return coders.float64Coder;
+      case Type.UScalar: return coders.uscalarCoder;
+      case Type.Scalar: return coders.scalarCoder;
       case Type.Int: return coders.intCoder;
       case Type.Int16: return coders.int16Coder;
       case Type.Int32: return coders.int32Coder;

@@ -23,8 +23,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.arrayBufferCoder = exports.stringCoder = exports.float64Coder = exports.float32Coder = exports.float16Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = exports.WriteTypeError = void 0;
+exports.dateCoder = exports.regexCoder = exports.jsonCoder = exports.bitmask32Coder = exports.bitmask16Coder = exports.bitmask8Coder = exports.booleanArrayCoder = exports.booleanCoder = exports.arrayBufferCoder = exports.stringCoder = exports.scalarCoder = exports.uscalarCoder = exports.float64Coder = exports.float32Coder = exports.float16Coder = exports.int32Coder = exports.int16Coder = exports.int8Coder = exports.intCoder = exports.uint32Coder = exports.uint16Coder = exports.uint8Coder = exports.uintCoder = exports.WriteTypeError = void 0;
 const boolArray = __importStar(require("./boolArray"));
+const math_1 = require("./math");
+const scalar_1 = require("./scalar");
 /* ---------------------------
  Binary Coder Implementations
  --------------------------- */
@@ -48,7 +50,7 @@ exports.uintCoder = {
         if (typeof value !== 'number' || value > Number.MAX_SAFE_INTEGER || value < 0) {
             throw new WriteTypeError('uint', value, path);
         }
-        const uIntValue = r2z(value);
+        const uIntValue = (0, math_1.r2z)(value);
         if (uIntValue < MAX_AUTO_UINT8) {
             data.writeUInt8(uIntValue);
         }
@@ -86,7 +88,7 @@ exports.uint8Coder = {
         if (typeof value !== 'number' || value < 0 || value > MAX_UINT8) {
             throw new WriteTypeError('uint8', value, path);
         }
-        data.writeUInt8(r2z(value));
+        data.writeUInt8((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readUInt8();
@@ -97,7 +99,7 @@ exports.uint16Coder = {
         if (typeof value !== 'number' || value < 0 || value > MAX_UINT16) {
             throw new WriteTypeError('uint16', value, path);
         }
-        data.writeUInt16(r2z(value));
+        data.writeUInt16((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readUInt16();
@@ -108,7 +110,7 @@ exports.uint32Coder = {
         if (typeof value !== 'number' || value < 0 || value > MAX_UINT32) {
             throw new WriteTypeError('uint32', value, path);
         }
-        data.writeUInt32(r2z(value));
+        data.writeUInt32((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readUInt32();
@@ -124,7 +126,7 @@ exports.intCoder = {
         if (typeof value !== 'number' || value > Number.MAX_SAFE_INTEGER || value < -Number.MAX_SAFE_INTEGER) {
             throw new WriteTypeError('int', value, path);
         }
-        const intValue = r2z(value);
+        const intValue = (0, math_1.r2z)(value);
         if (intValue >= -MAX_AUTO_INT8 && intValue < MAX_AUTO_INT8) {
             data.writeUInt8(intValue & 0x7f);
         }
@@ -166,7 +168,7 @@ exports.int8Coder = {
         if (typeof value !== 'number' || value < -MAX_INT8 || value > MAX_INT8) {
             throw new WriteTypeError('int8', value, path);
         }
-        data.writeInt8(r2z(value));
+        data.writeInt8((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readInt8();
@@ -177,7 +179,7 @@ exports.int16Coder = {
         if (typeof value !== 'number' || value < -MAX_INT16 || value > MAX_INT16) {
             throw new WriteTypeError('int16', value, path);
         }
-        data.writeInt16(r2z(value));
+        data.writeInt16((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readInt16();
@@ -188,7 +190,7 @@ exports.int32Coder = {
         if (typeof value !== 'number' || value < -MAX_INT32 || value > MAX_INT32) {
             throw new WriteTypeError('int32', value, path);
         }
-        data.writeInt32(r2z(value));
+        data.writeInt32((0, math_1.r2z)(value));
     },
     read: function (state) {
         return state.readInt32();
@@ -234,6 +236,34 @@ exports.float64Coder = {
     },
     read: function (state) {
         return state.readFloat64();
+    }
+};
+/**
+ * Scalar between 0.0 and 1.0.
+ */
+exports.uscalarCoder = {
+    write: function (value, data, path) {
+        if (typeof value !== 'number') {
+            throw new WriteTypeError('number', value, path);
+        }
+        data.writeUInt8((0, scalar_1.toUScalar8)(value));
+    },
+    read: function (state) {
+        return (0, scalar_1.fromUScalar8)(state.readUInt8());
+    }
+};
+/**
+ * Signed scalar between -1.0 and 1.0.
+ */
+exports.scalarCoder = {
+    write: function (value, data, path) {
+        if (typeof value !== 'number') {
+            throw new WriteTypeError('number', value, path);
+        }
+        data.writeUInt8((0, scalar_1.toScalar8)(value));
+    },
+    read: function (state) {
+        return (0, scalar_1.fromScalar8)(state.readUInt8());
     }
 };
 /**
@@ -424,8 +454,4 @@ exports.dateCoder = {
         return new Date(exports.intCoder.read(state));
     }
 };
-/** Round toward zero */
-function r2z(x) {
-    return x < 0 ? Math.ceil(x) : Math.floor(x);
-}
 //# sourceMappingURL=coders.js.map

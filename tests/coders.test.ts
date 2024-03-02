@@ -231,6 +231,58 @@ describe('coders', () => {
     });
   });
 
+  describe('scalarCoder', () => {
+    const coder = coders.uscalarCoder;
+
+    it('should handle valid values', () => {
+      check(coder, 0);
+      check(coder, 0.22, 0.22);
+      check(coder, 0.23, 0.23);
+      check(coder, 0.25, 0.25);
+      check(coder, 0.5, 0.5);
+      check(coder, 0.75, 0.75);
+      check(coder, 0.77, 0.77);
+      check(coder, 0.78, 0.78);
+      check(coder, 1);
+      check(coder, -0.1, 0);
+      check(coder, 1.1, 1);
+      check(coder, Infinity, 1);
+      check(coder, -Infinity, 0);
+      check(coder, NaN, NaN);
+    });
+
+    it('should throw WriteTypeError for invalid values', () => {
+      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(WriteTypeError);
+    });
+  });
+
+  describe('signedScalarCoder', () => {
+    const coder = coders.scalarCoder;
+
+    it('should handle valid values', () => {
+      check(coder, -1);
+      check(coder, -0.75, -0.75);
+      check(coder, -0.5, -0.5);
+      check(coder, -0.25, -0.25);
+      check(coder, -0.22, -0.22);
+      check(coder, 0);
+      check(coder, 0.25, 0.25);
+      check(coder, 0.25, 0.25);
+      check(coder, 0.5, 0.5);
+      check(coder, 0.75, 0.75);
+      check(coder, 1);
+      check(coder, -1.1, -1);
+      check(coder, 1.1, 1);
+      check(coder, Infinity, 1);
+      check(coder, -Infinity, -1);
+      check(coder, NaN, NaN);
+    });
+
+    it('should throw WriteTypeError for invalid values', () => {
+      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(WriteTypeError);
+    });
+  });
+
   describe('stringCoder', () => {
     const coder = coders.stringCoder;
 

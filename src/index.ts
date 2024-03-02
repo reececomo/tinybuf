@@ -15,4 +15,5 @@ export * from './core/Field';
 export * from './core/ReadState';
 
 export * from './core/lib/float16';
+export * from './core/lib/scalar';
 export * as coders from './core/lib/coders';

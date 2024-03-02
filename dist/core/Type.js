@@ -29,6 +29,8 @@ exports.ValidValueTypes = [
     "uint8" /* Type.UInt8 */,
     "uint16" /* Type.UInt16 */,
     "uint32" /* Type.UInt32 */,
+    "uscalar" /* Type.UScalar */,
+    "scalar" /* Type.Scalar */,
     "bool" /* Type.Boolean */,
     "booltuple" /* Type.BooleanTuple */,
     "bitmask8" /* Type.Bitmask8 */,

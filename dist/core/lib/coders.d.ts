@@ -40,6 +40,14 @@ export declare const float32Coder: BinaryTypeCoder<number>;
  */
 export declare const float64Coder: BinaryTypeCoder<number>;
 /**
+ * Scalar between 0.0 and 1.0.
+ */
+export declare const uscalarCoder: BinaryTypeCoder<number>;
+/**
+ * Signed scalar between -1.0 and 1.0.
+ */
+export declare const scalarCoder: BinaryTypeCoder<number>;
+/**
  * <uint_length> <buffer_data>
  */
 export declare const stringCoder: BinaryTypeCoder<string>;

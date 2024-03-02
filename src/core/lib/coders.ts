@@ -1,6 +1,13 @@
 import { MutableArrayBuffer } from '../MutableArrayBuffer';
 import { ReadState } from '../ReadState';
 import * as boolArray from './boolArray';
+import { r2z } from './math';
+import {
+  fromUScalar8,
+  fromScalar8,
+  toUScalar8,
+  toScalar8
+} from './scalar';
 
 
 /* ---------------------------
@@ -251,6 +258,36 @@ export const float64Coder: BinaryTypeCoder<number> = {
 };
 
 /**
+ * Scalar between 0.0 and 1.0.
+ */
+export const uscalarCoder: BinaryTypeCoder<number> = {
+  write: function (value, data, path) {
+    if (typeof value !== 'number') {
+      throw new WriteTypeError('number', value, path);
+    }
+    data.writeUInt8(toUScalar8(value));
+  },
+  read: function (state) {
+    return fromUScalar8(state.readUInt8());
+  }
+};
+
+/**
+ * Signed scalar between -1.0 and 1.0.
+ */
+export const scalarCoder: BinaryTypeCoder<number> = {
+  write: function (value, data, path) {
+    if (typeof value !== 'number') {
+      throw new WriteTypeError('number', value, path);
+    }
+    data.writeUInt8(toScalar8(value));
+  },
+  read: function (state) {
+    return fromScalar8(state.readUInt8());
+  }
+};
+
+/**
  * <uint_length> <buffer_data>
  */
 export const stringCoder: BinaryTypeCoder<string> = {
@@ -463,8 +500,3 @@ export const dateCoder: BinaryTypeCoder<Date> = {
     return new Date(intCoder.read(state));
   }
 };
-
-/** Round toward zero */
-function r2z(x: number): number {
-  return x < 0 ? Math.ceil(x) : Math.floor(x);
-}

@@ -165,6 +165,8 @@ class BinaryCoder {
             case "float16" /* Type.Float16 */: return coders.float16Coder;
             case "float32" /* Type.Float32 */: return coders.float32Coder;
             case "float64" /* Type.Float64 */: return coders.float64Coder;
+            case "uscalar" /* Type.UScalar */: return coders.uscalarCoder;
+            case "scalar" /* Type.Scalar */: return coders.scalarCoder;
             case "int" /* Type.Int */: return coders.intCoder;
             case "int16" /* Type.Int16 */: return coders.int16Coder;
             case "int32" /* Type.Int32 */: return coders.int32Coder;
