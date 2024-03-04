@@ -3,6 +3,13 @@ import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { InferredDecodedType, EncoderDefinition, Type } from './Type';
 /**
+ * Infer the decoded type of a BinaryCoder.
+ *
+ * @example
+ * let onData = (data: Infer<typeof MyBinaryCoder>) => {...};
+ */
+export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType> ? InferredDecodedType<EncoderType> : never;
+/**
  * BinaryCoder is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
  *

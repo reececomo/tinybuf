@@ -53,7 +53,7 @@ const GameWorldData = new BinaryCoder({
 const binary = GameWorldData.encode(gameWorld.getState());
 
 binary.byteLength;
-// 20
+// 22
 
 // Decode
 const data = GameWorldData.decode(binary);
