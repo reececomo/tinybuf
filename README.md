@@ -77,6 +77,8 @@ const data = GameWorldData.decode(binary);
 
 ### Handling multiple binary formats
 
+#### 2-byte header
+
 By default, each `BinaryCoder` includes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCoder` constructor. You can also provide your own fixed identifier instead (i.e. an `Enum`).
 
 Read the identifer with the static function `BinaryCoder.peekId(...)`.
@@ -86,12 +88,34 @@ Read the identifer with the static function `BinaryCoder.peekId(...)`.
 Handle multiple binary formats at once with event listeners:
 
 ```ts
+import { BinaryFormatHandler } from "typescript-binary";
+
+// Register formats
 const binaryHandler = new BinaryFormatHandler()
   .on(MyFormatA, (data) => handleMyFormatA(data))
   .on(MyFormatB, (data) => handleMyFormatB(data));
 
 // Trigger the relevant handler (or throw UnhandledBinaryDecodeError)
 binaryHandler.processBuffer(binary);
+```
+
+#### Typing methods
+
+Use `Infer<typeof MyBinaryCoder>` to add strong types to a method/handler:
+
+```ts
+import { Infer } from "typescript-binary";
+
+function handleMyFormatA(data: Infer<typeof MyFormatA>) {
+  // implement
+}
+```
+
+Alternatively, you can also force your own interfaces/types (i.e. you want to strongly map enums):
+
+```ts
+const binaryHandler = new BinaryFormatHandler()
+  .on(MyFormat, (data: MyFormatInterface) => handleMyFormat(data));
 ```
 
 ## Types
