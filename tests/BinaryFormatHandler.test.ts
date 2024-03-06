@@ -38,11 +38,11 @@ describe('BinaryCoderInterpreter', () => {
       { example: 123_123, }
     ]);
 
-    expect(BinaryCoder.peekId(data1)).toBe(27748);
-    expect(MyCoder1.Id).toBe(27748);
+    expect(BinaryCoder.peekId(data1)).toBe(40118);
+    expect(MyCoder1.Id).toBe(40118);
 
-    expect(BinaryCoder.peekId(data2)).toBe(6434);
-    expect(MyCoder2.Id).toBe(6434);
+    expect(BinaryCoder.peekId(data2)).toBe(48432);
+    expect(MyCoder2.Id).toBe(48432);
 
     expect(binaryHandler.available.size).toBe(2);
   });

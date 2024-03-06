@@ -28,9 +28,6 @@ describe('BinaryCoder', () => {
       myBinary: Type.Binary,
       myBoolean: Type.Boolean,
       myBooleanTuple: Type.BooleanTuple,
-      myFloat16: Type.Float16,
-      myFloat32: Type.Float32,
-      myFloat64: Type.Float64,
       myUScalar: Type.UScalar,
       myScalar: Type.Scalar,
       myInt: Type.Int,
@@ -46,6 +43,11 @@ describe('BinaryCoder', () => {
         myUInt16: Type.UInt16,
         myUInt32: Type.UInt32,
         myUInt8: Type.UInt8,
+        myNestedArray: [{
+          myFloat16: Type.Float16,
+          myFloat32: Type.Float32,
+          myFloat64: Type.Float64,
+        }]
       },
       myOptionalObject: Optional({
         myDate: Type.Date,
@@ -59,9 +61,6 @@ describe('BinaryCoder', () => {
       myBinary: new TextEncoder().encode('binary').buffer,
       myBoolean: true,
       myBooleanTuple: [false, true],
-      myFloat16: 1.23046875,
-      myFloat32: 1.2300000190734863,
-      myFloat64: 1.23,
       myUScalar: 0.5,
       myScalar: -0.5,
       myInt: 1,
@@ -79,6 +78,18 @@ describe('BinaryCoder', () => {
         myUInt16: 256,
         myUInt32: 65000,
         myUInt8: 1,
+        myNestedArray: [
+          {
+            myFloat16: 1.23046875,
+            myFloat32: 1.2300000190734863,
+            myFloat64: 1.23,
+          },
+          {
+            myFloat16: 1.23046875,
+            myFloat32: 1.2300000190734863,
+            myFloat64: 1.23,
+          }
+        ]
       },
       myOptionalObject: {
         myDate: new Date(),
@@ -102,6 +113,9 @@ describe('BinaryCoder', () => {
     const after = MyCoder.decode(encoded);
 
     expect(after).toStrictEqual(before);
+
+    // eslint-disable-next-line max-len
+    expect(MyCoder.format).toEqual('{binary,bool,booltuple,uscalar,scalar,int,int16,int32,int8,json,regex,str,str[]?,{uint,uint16,uint32,uint8,{float16,float32,float64}[]},{date,bitmask16,bitmask32,bitmask8}?}');
   });
 
   it('should correctly parse a type', () => {
@@ -113,7 +127,7 @@ describe('BinaryCoder', () => {
           name: 'a',
           isOptional: false,
           isArray: false,
-          type: {
+          coder: {
             type: Type.Int
           }
         },
@@ -121,7 +135,7 @@ describe('BinaryCoder', () => {
           name: 'b',
           isOptional: false,
           isArray: true,
-          type: {
+          coder: {
             type: Type.Int
           }
         },
@@ -129,14 +143,14 @@ describe('BinaryCoder', () => {
           name: 'c',
           isOptional: false,
           isArray: true,
-          type: {
+          coder: {
             type: Type.Object,
             fields: [
               {
                 name: 'd',
                 isOptional: true,
                 isArray: false,
-                type: {
+                coder: {
                   type: Type.String
                 }
               }
@@ -169,6 +183,30 @@ describe('BinaryCoder', () => {
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(1);
+  });
+
+  it('should match ids based on shape, but not keys', () => {
+    const coderA = new BinaryCoder({
+      abc: Type.UInt,
+      bef: Type.Int16,
+      ghi: [Type.String],
+    });
+    const coderB = new BinaryCoder({
+      xyz: Type.UInt,
+      yzx: Type.Int16,
+      zyx: [Type.String],
+    });
+    expect(coderA.Id).toBe(coderB.Id);
+
+    // Sanity check.
+    expect(coderA.Id).not.toBe(false);
+    expect(coderA.Id).not.toBe(
+      new BinaryCoder({
+        yzx: Type.Int16,
+        xyz: Type.UInt,
+        zyx: [Type.String],
+      }).Id
+    );
   });
 
   it('should throw TypeError when passed an invalid Id', () => {

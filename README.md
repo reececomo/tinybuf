@@ -13,8 +13,144 @@ Powerful, lightweight binary formats in TypeScript.
 </div>
 
 - Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
-- Similar to [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/), with zero dependencies.
+- Similar to [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/), but developer friendly (and with zero dependencies).
 - Hard-forked from the fantastic [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui).
+
+## 📣 When to use?
+
+TypeScript Binary is designed to be minimal, fast &amp; developer-friendly.
+
+You don't need to learn any other schemas, or set up any C++ compilers or external schema generators.
+
+|                                               | **TypeScript&nbsp;Binary** |                                         **FlatBuffers**                                          |                            **Protocol&nbsp;Buffers**                            |       **Raw&nbsp;JSON**        |
+| --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
+| **Serialization format**                      |           Binary           |                                              Binary                                              |                                     Binary                                      |             String             |
+| **Fast & efficient**                          |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🔴                |
+| **Reference data size<sup>†</sup>**           |          34 bytes          |                                             68 bytes                                             |                                    72 bytes                                     | 175&nbsp;bytes&nbsp;(minified) |
+| **Schema definition**                         |           Native           |  [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html)  | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) |             Native             |
+| **TypeScript Types**                          |           Native           |                                         Code generation                                          |                                 Code generation                                 |             Native             |
+| **External tooling dependencies**             |            None            | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) |                                None<sup>*</sup>                                 |              N/A               |
+| **16-bit floats**                             |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
+| **Boolean-packing**                           |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
+| **Arbitrary JSON**                            |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🟢                |
+| **Suitable for real-time data**               |             🟢              |                                                🟢                                                 |                                        🟡                                        |               🔴                |
+| **Suitable for web APIs**                     |             🟡              |                                                🟡                                                 |                                        🟢                                        |               🟢                |
+| **Supports HTML5 / Node.js**                  |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
+| **Supports other languages (Java, C#, etc.)** |             🔴              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
+
+<i><b>*</b>: if using `protobufjs`</i>
+<details>
+<summary><i><b>†</b>: Based on this reference data, formats and schemas</i></summary>
+
+**Sample data (Minified JSON):**
+```json
+{
+  "players": [
+    {
+      "id": 123,
+      "position": {
+        "x": 1.0,
+        "y": 2.0,
+        "z": 3.0
+      },
+      "velocity": {
+        "x": 1.0,
+        "y": 2.0,
+        "z": 3.0
+      },
+      "health": 1.00
+    },
+    {
+      "id": 456,
+      "position": {
+        "x": 1.0,
+        "y": 2.0,
+        "z": 3.0
+      },
+      "velocity": {
+        "x": 1.0,
+        "y": 2.0,
+        "y": 3.0
+      },
+      "health": 0.50
+    }
+  ]
+}
+```
+
+**TypeScript Binary**
+```ts
+const ExamplePacket = new BinaryCoder({
+  players: [
+    {
+      id: Type.UInt,
+      position: {
+        x: Type.Float16,
+        y: Type.Float16,
+        z: Type.Float16
+      },
+      velocity: {
+        x: Type.Float16,
+        y: Type.Float16,
+        y: Type.Float16
+      },
+      health: Type.UScalar
+    },
+  ],
+});
+```
+
+**FlatBuffers**
+```fbs
+// ExamplePacket.fbs
+
+namespace ExampleNamespace;
+
+table Vec3 {
+  x: float;
+  y: float;
+  z: float;
+}
+
+table Player {
+  id: uint;
+  position: Vec3;
+  velocity: Vec3;
+  health: float;
+}
+
+table ExamplePacket {
+  players: [Player];
+}
+
+root_type ExamplePacket;
+```
+
+**Protocol Buffers (Proto3)**
+```proto
+syntax = "proto3";
+
+package example;
+
+message Vec3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message Player {
+  uint32 id = 1;
+  Vec3 position = 2;
+  Vec3 velocity = 3;
+  float health = 4;
+}
+
+message ExamplePacket {
+  repeated Player players = 1;
+}
+```
+
+</details>
 
 ## Install
 
@@ -24,39 +160,40 @@ Powerful, lightweight binary formats in TypeScript.
 
 ## Usage
 
-Define a `BinaryCoder` like so:
+Define a `BinaryCoder`:
 
 ```js
 import { BinaryCoder, Type, Optional } from "typescript-binary";
 
-// Define
+// Defines a strongly-typed coder:
 const GameWorldData = new BinaryCoder({
   timeRemaining: Type.UInt,
   players: [
     {
       id: Type.String,
-      health: Type.UInt8,
-      isJumping: Type.Boolean,
       position: Optional({
-        x: Type.Float32,
-        y: Type.Float32,
+        x: Type.Float,
+        y: Type.Float
       }),
-      move: {
-        x: Type.Scalar,
-        y: Type.Scalar,
-      },
-    },
-  ],
+      health: Type.UInt8,
+      isJumping: Type.Boolean
+    }
+  ]
 });
+```
 
-// Encode
+Encode to binary buffer:
+```ts
 const binary = GameWorldData.encode(gameWorld.getState());
 
 binary.byteLength;
-// 22
+// 20
+```
 
-// Decode
+Decode back into JavaScript:
+```ts
 const data = GameWorldData.decode(binary);
+
 // {
 //   timeRemaining: number,
 //   players: {
@@ -66,16 +203,12 @@ const data = GameWorldData.decode(binary);
 //     position?: {
 //       x: number,
 //       y: number
-//     },
-//     move: {
-//       x: number,
-//       y: number
 //     }
 //   }[]
 // }
 ```
 
-### Handling multiple binary formats
+### Handle multiple formats
 
 #### 2-byte header
 
@@ -99,23 +232,20 @@ const binaryHandler = new BinaryFormatHandler()
 binaryHandler.processBuffer(binary);
 ```
 
-#### Typing methods
+#### Inferring decoded types
 
-Use `Infer<typeof MyBinaryCoder>` to add strong types to a method/handler:
+- `BinaryCoder` will automatically infer the types for `encode()` and `decode()` from the schema provided, as will handlers set in `BinaryFormatHandler.on<T>(any, (T) => any`.
+
+You can explicitly use own interfaces/types for `encode()` as long as the underlying type is compatible (e.g. TypeScript Enums).
+
+You can also use the `Infer<T>` helper type to retrieve the schema-inferred types in any custom method/handler you define:
 
 ```ts
 import { Infer } from "typescript-binary";
 
-function handleMyFormatA(data: Infer<typeof MyFormatA>) {
-  // implement
+function handleMyFormat(data: Infer<typeof GameWorldData>) {
+  // Access `data.players[0].position?.x` as `number`
 }
-```
-
-Alternatively, you can also force your own interfaces/types (i.e. you want to strongly map enums):
-
-```ts
-const binaryHandler = new BinaryFormatHandler()
-  .on(MyFormat, (data: MyFormatInterface) => handleMyFormat(data));
 ```
 
 ## Types

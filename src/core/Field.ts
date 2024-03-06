@@ -6,9 +6,11 @@ import { OptionalType, FieldDefinition } from './Type';
  */
 export class Field {
   public readonly name: string;
-  public readonly type: BinaryCoder<any>;
+  public readonly coder: BinaryCoder<any>;
   public readonly isOptional: boolean;
   public readonly isArray: boolean;
+
+  protected _format?: string;
 
   public constructor(name: string, rawType: FieldDefinition) {
     this.isOptional = rawType instanceof OptionalType;
@@ -29,7 +31,19 @@ export class Field {
       this.isArray = false;
     }
 
-    this.type = new BinaryCoder<any>(type);
+    this.coder = new BinaryCoder<any>(type);
+  }
+
+  /**
+   * @returns A string identifying the encoding format.
+   * @example "{str,uint16,bool}[]?"
+   */
+  public get format(): string {
+    if (this._format === undefined) {
+      this._format = `${this.coder.format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
+    }
+
+    return this._format;
   }
 }
 

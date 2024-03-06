@@ -14,22 +14,15 @@ export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer E
  * on a provided encoding format.
  *
  * @see {Id}
- * @see {hashCode}
  * @see {encode(data)}
  * @see {decode(binary)}
  */
 export declare class BinaryCoder<EncoderType extends EncoderDefinition> {
-    /**
-     * A 16-bit integer identifier, encoded as the first 2 bytes.
-     * @see {BinaryCoder.peek(...)}
-     */
-    readonly Id?: number;
-    /**
-     * A shape-based unique representation of the encoding format.
-     */
-    readonly hashCode: number;
     protected readonly type: Type;
     protected readonly fields: Field[];
+    protected _hash?: number;
+    protected _format?: string;
+    protected _id?: number | false;
     /**
      * @param encoderDefinition A defined encoding format.
      * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
@@ -44,6 +37,22 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition> {
      * @throws {RangeError} if buffer size < 2
      */
     static peekId(buffer: ArrayBuffer | ArrayBufferView): number;
+    /**
+     * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
+     *
+     * @see {BinaryCoder.peekId(...)}
+     * @see {BinaryCoder.hashCode}
+     */
+    get Id(): number | undefined;
+    /**
+     * @returns A hash code representing the encoding format. An unsigned 16-bit integer.
+     */
+    get hashCode(): number;
+    /**
+     * @returns A string describing the encoding format.
+     * @example "{uint8,str[]?}"
+     */
+    get format(): string;
     /**
      * Encode an object to binary.
      *
@@ -82,8 +91,20 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition> {
      */
     private read;
     /**
-     * Compile the decode method for this object.
+     * Generate read function code for this coder.
+     *
+     * @example
+     * // new Type({a:'int', 'b?':['string']}) would emit:
+     *
+     * `return {
+     *   a: this._readField(0, state),
+     *   b: this._readField(1, state),
+     * }`
      */
+    private generateObjectReadCode;
+    /** Read an individual field. */
+    private _readField;
+    /** Compile the decode method for this object. */
     private compileRead;
     /**
      * @param value

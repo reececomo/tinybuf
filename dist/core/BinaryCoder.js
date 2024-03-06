@@ -35,7 +35,6 @@ const Type_1 = require("./Type");
  * on a provided encoding format.
  *
  * @see {Id}
- * @see {hashCode}
  * @see {encode(data)}
  * @see {decode(binary)}
  */
@@ -65,8 +64,7 @@ class BinaryCoder {
         else {
             throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
         }
-        // Create a hash code
-        this.Id = Id === undefined && this.type === "{object}" /* Type.Object */ ? (0, hashCode_1.generateObjectShapeHashCode)(encoderDefinition) : typeof Id === 'number' ? Id : undefined;
+        this._id = Id;
     }
     // ----- Static methods: -----
     /**
@@ -80,6 +78,40 @@ class BinaryCoder {
     static peekId(buffer) {
         const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
         return dataView.getUint16(0);
+    }
+    // ----- Public accessors: -----
+    /**
+     * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
+     *
+     * @see {BinaryCoder.peekId(...)}
+     * @see {BinaryCoder.hashCode}
+     */
+    get Id() {
+        if (this._id === undefined) {
+            this._id = this.type === "{object}" /* Type.Object */ ? this.hashCode : false;
+        }
+        return this._id === false ? undefined : this._id;
+    }
+    /**
+     * @returns A hash code representing the encoding format. An unsigned 16-bit integer.
+     */
+    get hashCode() {
+        if (this._hash === undefined) {
+            this._hash = (0, hashCode_1.djb2HashUInt16)(this.format);
+        }
+        return this._hash;
+    }
+    /**
+     * @returns A string describing the encoding format.
+     * @example "{uint8,str[]?}"
+     */
+    get format() {
+        if (this._format === undefined) {
+            this._format = this.type === "{object}" /* Type.Object */
+                ? `{${this.fields.map(v => v.format).join(',')}}`
+                : `${this.type}`;
+        }
+        return this._format;
     }
     // ----- Public methods: -----
     /**
@@ -134,11 +166,11 @@ class BinaryCoder {
             }
             if (!field.isArray) {
                 // Scalar field
-                field.type.write(subValue, data, subpath);
+                field.coder.write(subValue, data, subpath);
                 continue;
             }
             // Array field
-            this._writeArray(subValue, data, subpath, field.type);
+            this._writeArray(subValue, data, subpath, field.coder);
         }
     }
     /**
@@ -189,39 +221,47 @@ class BinaryCoder {
      * @throws if fails
      */
     read(state) {
+        // This function will be executed only the first time to compile the read routine.
+        // After that, we'll compile the read routine and add it directly to the instance
+        // Update the read method implementation.
         this.read = this.compileRead();
         return this.read(state);
     }
     /**
-     * Compile the decode method for this object.
+     * Generate read function code for this coder.
+     *
+     * @example
+     * // new Type({a:'int', 'b?':['string']}) would emit:
+     *
+     * `return {
+     *   a: this._readField(0, state),
+     *   b: this._readField(1, state),
+     * }`
      */
+    generateObjectReadCode() {
+        const fieldsStr = this.fields
+            .map(({ name }, i) => `${name}:this.${this._readField.name}(${i},state)`)
+            .join(',');
+        return `return{${fieldsStr}}`;
+    }
+    /** Read an individual field. */
+    _readField(fieldIndex, state) {
+        const field = this.fields[fieldIndex];
+        if (field.isOptional && !this._readOptional(state)) {
+            return undefined;
+        }
+        if (field.isArray) {
+            return this._readArray(field.coder, state);
+        }
+        return field.coder.read(state);
+    }
+    /** Compile the decode method for this object. */
     compileRead() {
         if (this.type !== "{object}" /* Type.Object */ && this.type !== "[array]" /* Type.Array */) {
-            // Scalar type
-            // In this case, there is no need to write custom code
+            // Scalar type - in this case, there is no need to write custom code.
             return this.getCoder(this.type).read;
         }
-        // As an example, compiling code to new Type({a:'int', 'b?':['string']}) will result in:
-        // return {
-        //     a: this.fields[0].type.read(state),
-        //     b: this._readOptional(state) ? this._readArray(state, this.fields[1].type) : undefined
-        // }
-        let code = 'return {' + this.fields.map(function (field, i) {
-            let name = JSON.stringify(field.name), fieldStr = 'this.fields[' + i + ']', readCode, code;
-            if (field.isArray) {
-                readCode = 'this._readArray(' + fieldStr + '.type, state)';
-            }
-            else {
-                readCode = fieldStr + '.type.read(state)';
-            }
-            if (!field.isOptional) {
-                code = name + ': ' + readCode;
-            }
-            else {
-                code = name + ': this._readOptional(state) ? ' + readCode + ' : undefined';
-            }
-            return code;
-        }).join(',') + '}';
+        const code = this.generateObjectReadCode();
         return new Function('state', code);
     }
     /**
@@ -246,8 +286,8 @@ class BinaryCoder {
      * @throws if invalid data
      */
     _readArray(type, state) {
-        let arr = new Array(coders.uintCoder.read(state)), j;
-        for (j = 0; j < arr.length; j++) {
+        const arr = new Array(coders.uintCoder.read(state));
+        for (let j = 0; j < arr.length; j++) {
             arr[j] = type.read(state);
         }
         return arr;

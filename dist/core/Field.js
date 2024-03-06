@@ -21,7 +21,17 @@ class Field {
         else {
             this.isArray = false;
         }
-        this.type = new BinaryCoder_1.BinaryCoder(type);
+        this.coder = new BinaryCoder_1.BinaryCoder(type);
+    }
+    /**
+     * @returns A string identifying the encoding format.
+     * @example "{str,uint16,bool}[]?"
+     */
+    get format() {
+        if (this._format === undefined) {
+            this._format = `${this.coder.format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
+        }
+        return this._format;
     }
 }
 exports.Field = Field;

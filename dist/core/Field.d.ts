@@ -5,10 +5,16 @@ import { FieldDefinition } from './Type';
  */
 export declare class Field {
     readonly name: string;
-    readonly type: BinaryCoder<any>;
+    readonly coder: BinaryCoder<any>;
     readonly isOptional: boolean;
     readonly isArray: boolean;
+    protected _format?: string;
     constructor(name: string, rawType: FieldDefinition);
+    /**
+     * @returns A string identifying the encoding format.
+     * @example "{str,uint16,bool}[]?"
+     */
+    get format(): string;
 }
 export default Field;
 //# sourceMappingURL=Field.d.ts.map

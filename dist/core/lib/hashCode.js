@@ -1,14 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateObjectShapeHashCode = void 0;
-/**
- * Generate a hashcode for an object.
- * @returns 16-bit unsigned integer
- */
-function generateObjectShapeHashCode(obj) {
-    return djb2HashUInt16(JSON.stringify(obj));
-}
-exports.generateObjectShapeHashCode = generateObjectShapeHashCode;
+exports.djb2HashUInt16 = void 0;
 /**
  * DJB2 hash algorithm (modified for 16-bit uints).
  *
@@ -24,4 +16,5 @@ function djb2HashUInt16(str) {
     }
     return hash & 0xFFFF; // Ensure the result is a Uint16
 }
+exports.djb2HashUInt16 = djb2HashUInt16;
 //# sourceMappingURL=hashCode.js.map
