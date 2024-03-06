@@ -4,43 +4,47 @@
 
 # TypeScript Binary
 
-Powerful, lightweight binary formats in TypeScript.
+Powerful, lightweight, developer-friendly binary serialization in TypeScript.
 
 [![NPM version](https://img.shields.io/npm/v/typescript-binary.svg?style=flat-square)](https://www.npmjs.com/package/typescript-binary)
 [![test](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml)
 [![test](https://github.com/reececomo/typescript-binary/actions/workflows/lint.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/lint.yml)
 
+You don't need to learn any languages or third-party tools.
 </div>
 
-- Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
-- Similar to [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/), but developer friendly (and with zero dependencies).
-- Hard-forked from the fantastic [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui).
+- 🔌 Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
+- 🗜️ Smaller than [FlatBuffers](https://github.com/google/flatbuffers) and [Protocol Buffers](https://protobuf.dev/).
+- 🏋️‍♀️ Supports powerful features like **property mangling** and **16-bit floats**.
+- ⚡️ Based on the lightning-fast [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui).
 
 ## 📣 When to use?
 
-TypeScript Binary is designed to be minimal, fast &amp; developer-friendly.
+TypeScript Binary is an optimal choice for real-time HTML5 and Node.js applications and games.
 
-You don't need to learn any other schemas, or set up any C++ compilers or external schema generators.
-
-|                                               | **TypeScript&nbsp;Binary** |                                         **FlatBuffers**                                          |                            **Protocol&nbsp;Buffers**                            |       **Raw&nbsp;JSON**        |
+| | **TypeScript&nbsp;Binary** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
 | --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
-| **Serialization format**                      |           Binary           |                                              Binary                                              |                                     Binary                                      |             String             |
-| **Fast & efficient**                          |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🔴                |
-| **Reference data size<sup>†</sup>**           |          34 bytes          |                                             68 bytes                                             |                                    72 bytes                                     | 175&nbsp;bytes&nbsp;(minified) |
-| **Schema definition**                         |           Native           |  [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html)  | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) |             Native             |
-| **TypeScript Types**                          |           Native           |                                         Code generation                                          |                                 Code generation                                 |             Native             |
-| **External tooling dependencies**             |            None            | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) |                                None<sup>*</sup>                                 |              N/A               |
-| **16-bit floats**                             |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
-| **Boolean-packing**                           |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
-| **Arbitrary JSON**                            |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🟢                |
-| **Suitable for real-time data**               |             🟢              |                                                🟢                                                 |                                        🟡                                        |               🔴                |
-| **Suitable for web APIs**                     |             🟡              |                                                🟡                                                 |                                        🟢                                        |               🟢                |
-| **Supports HTML5 / Node.js**                  |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
-| **Supports other languages (Java, C#, etc.)** |             🔴              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
+| **Serialization format** | Binary | Binary | Binary | String |
+| **Schema definition** | Native | [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
+| **TypeScript Types** | Native | Code generation | Code generation | Native |
+| **External tooling dependencies** | None | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) | None<sup>*</sup> | N/A |
+| **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
+| **Fast & efficient** | 🟢 | 🟢 | 🟢 | 🔴 |
+| **16-bit floats** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Boolean-packing** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
+| **Property mangling** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Suitable for real-time data** | 🟢 | 🟢 | 🔴 | 🔴 |
+| **Suitable for web APIs** | 🔴 | 🔴 | 🟢 | 🟢 |
+| **Supports HTML5 / Node.js** | 🟢 | 🟢 | 🟢 | 🟢 |
+| **Cross-language (Java, C++, Python, etc.)** | 🔴 | 🟢 | 🟢 | 🟢 |
 
-<i><b>*</b>: if using `protobufjs`</i>
+<sup>†</sup>Based on the <i>Reference data</i> formats and schemas
+
+<sup>\*</sup>When using `protobufjs`
+
 <details>
-<summary><i><b>†</b>: Based on this reference data, formats and schemas</i></summary>
+<summary>See <i>Reference data</i></summary>
 
 **Sample data (Minified JSON):**
 ```json
@@ -160,92 +164,155 @@ message ExamplePacket {
 
 ## Usage
 
-Define a `BinaryCoder`:
+### Defining a format
 
-```js
+Describe the shape of your data by creating a `BinaryCoder` and specify the types of fields using `Type` (see `Types` below).
+
+All fields are required by default. Use the `Optional(...)` helper to mark a field as optional.
+
+```ts
 import { BinaryCoder, Type, Optional } from "typescript-binary";
 
-// Defines a strongly-typed coder:
 const GameWorldData = new BinaryCoder({
   timeRemaining: Type.UInt,
   players: [
     {
       id: Type.String,
-      position: Optional({
-        x: Type.Float,
-        y: Type.Float
-      }),
-      health: Type.UInt8,
-      isJumping: Type.Boolean
+      position: Optional({ x: Type.Float, y: Type.Float }),
+      isJumping: Type.Boolean,
+      health: Type.UInt8
     }
   ]
 });
 ```
 
-Encode to binary buffer:
-```ts
-const binary = GameWorldData.encode(gameWorld.getState());
+> Note: Arrays MUST specify exactly one array element, which describes the type of the array.
 
-binary.byteLength;
-// 20
+### Encoding
+
+Data is encoded using the `encode(...)` method.
+
+Types are enforced at compile-time.
+
+```ts
+const binary = GameWorldData.encode({
+  timeRemaining: 123,
+  players: [
+    {
+       id: 'player1',
+       position: { x: 110.5, y: -103.5 },
+       isJumping: false,
+       health: '95'
+            // ^ ❌ Type 'string' is not assignable to type 'number'. ts(2322)
+    }
+  ]
+});
 ```
 
-Decode back into JavaScript:
+> Note: You can use any interface/type as long as the underlying types are compatible (e.g. TypeScript Enums).
+
+### Decoding
+
+Data is decoded to an object with the `decode(...)` method. Again, types are implied at compile-time (unless you explicitly override the interface).
+
 ```ts
 const data = GameWorldData.decode(binary);
-
-// {
-//   timeRemaining: number,
-//   players: {
-//     id: string,
-//     health: number,
-//     isJumping: boolean,
-//     position?: {
-//       x: number,
-//       y: number
-//     }
-//   }[]
-// }
 ```
 
-### Handle multiple formats
+### About inferred types
 
-#### 2-byte header
+`BinaryCoder` will automatically infer the types for `encode()` and `decode()` from the schema provided (see the `Types` section below).
 
-By default, each `BinaryCoder` includes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCoder` constructor. You can also provide your own fixed identifier instead (i.e. an `Enum`).
-
-Read the identifer with the static function `BinaryCoder.peekId(...)`.
-
-#### BinaryFormatHandler
-
-Handle multiple binary formats at once with event listeners:
-
+For example, the type `T` for `GameWorldData.decode(...): T` would be inferred as:
 ```ts
-import { BinaryFormatHandler } from "typescript-binary";
-
-// Register formats
-const binaryHandler = new BinaryFormatHandler()
-  .on(MyFormatA, (data) => handleMyFormatA(data))
-  .on(MyFormatB, (data) => handleMyFormatB(data));
-
-// Trigger the relevant handler (or throw UnhandledBinaryDecodeError)
-binaryHandler.processBuffer(binary);
+{
+  timeRemaining: number,
+  players: {
+    id: string,
+    health: number,
+    isJumping: boolean,
+    position?: {
+      x: number,
+      y: number
+    }
+  }[]
+}
 ```
 
-#### Inferring decoded types
-
-- `BinaryCoder` will automatically infer the types for `encode()` and `decode()` from the schema provided, as will handlers set in `BinaryFormatHandler.on<T>(any, (T) => any`.
-
-You can explicitly use own interfaces/types for `encode()` as long as the underlying type is compatible (e.g. TypeScript Enums).
-
-You can also use the `Infer<T>` helper type to retrieve the schema-inferred types in any custom method/handler you define:
+You can also use the `Infer<T>` helper type to use inferred types in any custom method/handler:
 
 ```ts
 import { Infer } from "typescript-binary";
 
-function handleMyFormat(data: Infer<typeof GameWorldData>) {
-  // Access `data.players[0].position?.x` as `number`
+function updateGameWorld(data: Infer<typeof GameWorldData>) {
+  // e.g. Access `data.players[0].position?.x`
 }
+```
+
+## ✨ Handling formats
+
+By default, each format includes an unsigned 16-bit integer identifier (called `Id`). This is used to identify/decode data.
+
+You can explicitly override `Id` in the `BinaryCoder` constructor, or even disable it entirely by passing in `false`.
+
+### BinaryFormatHandler
+
+Handle multiple binary formats at once using a `BinaryFormatHandler`:
+
+```ts
+import { BinaryFormatHandler } from "typescript-binary";
+
+const binaryHandler = new BinaryFormatHandler()
+  .on(MyFormatA, (data) => handleMyFormatA(data))
+  .on(MyFormatB, (data) => handleMyFormatB(data));
+
+// Trigger handler (or throw UnhandledBinaryDecodeError)
+binaryHandler.processBuffer(binary);
+```
+
+> Note: Cannot be used with formats where `Id` is disabled.
+
+### Manual handling
+
+You can manually check the Id with the static helper `BinaryCoder.peekId(...)`, e.g. for use in a `switch` statement:
+
+```ts
+if (BinaryCoder.peekId(incomingBinary) === MyFormat.Id) {
+  // Do something special.
+}
+```
+
+### How is Id calculated?
+
+By default `Id` is based on the hash code of the encoding shape. So the following two formats would have identical:
+
+```ts
+const PersonCoder = new BinaryCoder({
+  firstName: Type.String,
+  lastName: Type.String
+});
+
+const FavoriteColorCoder = new BinaryCoder({
+  fullName: Type.String,
+  color: Type.String
+});
+
+NameCoder.Id === ColorCoder.Id
+  // true
+```
+
+If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers:
+
+```ts
+const PersonCoder = new BinaryCoder({
+  firstName: Type.String,
+  lastName: Type.String
+}, 1);
+
+const FavoriteColorCoder = new BinaryCoder({
+  fullName: Type.String,
+  color: Type.String
+}, 2);
 ```
 
 ## Types
@@ -289,6 +356,6 @@ Here are all the ready-to-use types:
 
 <sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
 
-## Encoding guide
+### Encoding guide
 
-See [docs/ENCODING.md](docs/ENCODING.md) for encoding guide.
+See [docs/ENCODING.md](docs/ENCODING.md) for an overview on how most formats are encoded (including the dynamically sized integer types).
