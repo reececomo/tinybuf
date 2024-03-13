@@ -13,8 +13,8 @@ Lightweight, developer-friendly binary serializers in TypeScript.
 </div>
 
 - 🔌 Compatible with [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io) and [peer.js](https://github.com/peers/peerjs).
-- 🗜️ Easier than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/) (and smaller too!)
-- 🏋️‍♀️ Support for powerful features like **property mangling** and **16-bit floats**.
+- 🗜️ Smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/).
+- 🏋️‍♀️ Support advanced features like property mangling and 16-bit floats.
 - ⚡️ Based on the lightning-fast [sitegui/js-binary](https://github.com/sitegui/js-binary) library, written by [Guilherme Souza](https://github.com/sitegui).
 
 ## 📣 When to use?
@@ -24,7 +24,7 @@ TypeScript Binary is an optimal choice for real-time HTML5 and Node.js applicati
 | | **TypeScript&nbsp;Binary** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
 | --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
 | **Serialization format** | Binary | Binary | Binary | String |
-| **Schema definition** | Native | [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
+| **Schema definition** | Native | [.fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [.proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
 | **TypeScript Types** | Native | Code generation | Code generation | Native |
 | **External tooling dependencies** | None | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) | None<sup>*</sup> | N/A |
 | **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
@@ -174,7 +174,7 @@ import { BinaryCoder, Type } from "typescript-binary";
 const GameWorldData = new BinaryCoder({
   time: Type.UInt,
   players: [{
-    id: Type.String,
+    id: Type.UInt,
     isJumping: Type.Boolean,
     position: {
       x: Type.Float,
@@ -182,21 +182,14 @@ const GameWorldData = new BinaryCoder({
     }
   }]
 });
-```
 
-> Note: Arrays are declared as `[Type]` or `[{ ... }]`
-
-### Encoding
-
-Data is encoded using the `encode(...)` method.
-
-```ts
-const binary = GameWorldData.encode({
+// Encode:
+const bytes = GameWorldData.encode({
   time: 123,
   players: [
     {
-       id: 'player1',
-       isJumping: 'yes',  
+       id: 44,
+       isJumping: true,  
        position: {
          x: 110.57345,
          y: -93.5366
@@ -204,19 +197,15 @@ const binary = GameWorldData.encode({
     }
   ]
 });
+
+bytes.byteLength
+// 14
+
+// Decode:
+const data = GameWorldData.decode(bytes);
 ```
 
-> Note: You can use any interface/type as long as the underlying types are compatible (e.g. TypeScript Enums).
-
-### Decoding
-
-Data is decoded to an object with the `decode(...)` method. Again, types are implied at compile-time (unless you explicitly override the interface).
-
-```ts
-const data = GameWorldData.decode(binary);
-```
-
-### About inferred types
+### Inferred types
 
 `BinaryCoder` will automatically infer the types for `encode()` and `decode()` from the schema provided (see the `Types` section below).
 
@@ -246,11 +235,11 @@ function updateGameWorld(data: Infer<typeof GameWorldData>) {
 }
 ```
 
-## ✨ Handling formats
+## ✨ Receiving multiple formats
 
-By default, each format includes an unsigned 16-bit integer identifier (called `Id`). This is used to identify/decode data.
+By default, each format includes a 2-byte identifier (called `Id`). This is used to identify/decode data.
 
-You can explicitly override `Id` in the `BinaryCoder` constructor, or even disable it entirely by passing in `false`.
+You can explicitly override `Id` in the `BinaryCoder` constructor, or disable entirely by passing `false`.
 
 ### BinaryFormatHandler
 
