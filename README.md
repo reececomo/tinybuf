@@ -235,22 +235,13 @@ function updateGameWorld(data: Infer<typeof GameWorldData>) {
 }
 ```
 
-## ✨ Receiving multiple formats
+## ✨ Parsing formats
 
-By default, each `BinaryCoder` encodes a 2-byte identifier (a `uint16`).
+By default, each `BinaryCoder` encodes a 2-byte identifier based on the shape of the data.
 
-You can explicitly override `Id` in the `BinaryCoder` constructor (or disable entirely by passing `false`).
-  
+You can explicitly set `Id` in the `BinaryCoder` constructor to any 2-byte string or unsigned integer (or disable entirely by passing `false`).
 
-```ts
-// Manually set a 2-byte header here (string or unsigned integer),
-// i.e. you may want to do this for debugging, or to assign an enum value.
-const Hello = new BinaryCoder({ /* ... */ }, 'HI');
-```
-
-You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`).
-
-### BinaryFormatHandler
+### Use BinaryFormatHandler
 
 Handle multiple binary formats at once using a `BinaryFormatHandler`:
 
@@ -269,25 +260,25 @@ binaryHandler.processBuffer(binary);
 
 ### Manual handling
 
-You can manually check the Id with the static helper `BinaryCoder.peekId(...)`, e.g. for use in a `switch` statement:
+You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`):
 
 ```ts
-if (BinaryCoder.peekId(incomingBinary) === MyFormat.Id) {
+if (BinaryCoder.peekStrId(incomingBinary) === MyMessageFormat.Id) {
   // Do something special.
 }
 ```
 
-### How is Id calculated?
+### 💥 Id Collisions
 
-By default `Id` is based on the hash code of the encoding shape. So the following two formats would have identical:
+By default `Id` is based on a hash code of the encoding format. So the following two messages would have identical Ids:
 
 ```ts
-const PersonCoder = new BinaryCoder({
+const Person = new BinaryCoder({
   firstName: Type.String,
   lastName: Type.String
 });
 
-const FavoriteColorCoder = new BinaryCoder({
+const FavoriteColor = new BinaryCoder({
   fullName: Type.String,
   color: Type.String
 });
@@ -296,18 +287,18 @@ NameCoder.Id === ColorCoder.Id
   // true
 ```
 
-If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers:
+If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers.
 
 ```ts
-const PersonCoder = new BinaryCoder({
+const Person = new BinaryCoder({
   firstName: Type.String,
   lastName: Type.String
-}, 1);
+}, "PE");
 
-const FavoriteColorCoder = new BinaryCoder({
+const FavoriteColor = new BinaryCoder({
   fullName: Type.String,
   color: Type.String
-}, 2);
+}, "FC");
 ```
 
 ## Types
