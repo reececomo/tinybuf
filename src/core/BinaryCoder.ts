@@ -1,6 +1,10 @@
 import * as coders from './lib/coders';
 import { Field } from './Field';
-import { djb2HashUInt16 } from './lib/hashCode';
+import {
+  djb2HashUInt16,
+  hashCodeTo2CharStr,
+  strToHashCode
+} from './lib/hashCode';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import {
@@ -27,13 +31,13 @@ export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer E
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-export class BinaryCoder<EncoderType extends EncoderDefinition> {
+export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends string | number = number> {
   protected readonly type: Type;
   protected readonly fields: Field[];
 
   protected _hash?: number;
   protected _format?: string;
-  protected _id?: number | false;
+  protected _id?: IdType;
 
   /**
    * @param encoderDefinition A defined encoding format.
@@ -41,14 +45,14 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
    */
   public constructor(
     encoderDefinition: EncoderType,
-    Id?: number | false
+    Id?: IdType | false
   ) {
     if (
-      Id !== undefined
-      && Id !== false
-      && !(typeof Id === 'number' && Id >= 0 && Id <= 65_535 && Math.floor(Id) === Id)
+      (typeof Id === 'number' && (Math.floor(Id) !== Id || Id < 0 || Id > 65_535))
+      || (typeof Id === 'string' && new TextEncoder().encode(Id).byteLength !== 2)
+      || (Id !== undefined && Id !== false && !['string', 'number'].includes(typeof Id))
     ) {
-      throw new TypeError('Id must be uint16 or `false`');
+      throw new TypeError(`Id must be an unsigned 16-bit integer, a 2-byte string, or \`false\`. Received: ${Id}`);
     }
     else if (encoderDefinition instanceof OptionalType) {
       throw new TypeError("Invalid type given. Root object must not be an Optional.");
@@ -66,22 +70,42 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
       throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
     }
 
-    this._id = Id;
+    if (Id === false) {
+      this._id = undefined;
+    }
+    else if (Id === undefined && this.type === Type.Object) {
+      this._id = this.hashCode as IdType;
+    }
+    else {
+      this._id = Id;
+    }
   }
 
   // ----- Static methods: -----
 
   /**
-   * Read the first two bytes of a buffer.
+   * Read the first two bytes of a buffer as an unsigned 16-bit integer.
    *
    * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
    *
    * @see {BinaryCoder.Id}
    * @throws {RangeError} if buffer size < 2
    */
-  public static peekId(buffer: ArrayBuffer | ArrayBufferView): number {
+  public static peekIntId(buffer: ArrayBuffer | ArrayBufferView): number {
     const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
     return dataView.getUint16(0);
+  }
+
+  /**
+   * Read the first two bytes of a buffer as a 2-character string.
+   *
+   * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
+   *
+   * @see {BinaryCoder.Id}
+   * @throws {RangeError} if buffer size < 2
+   */
+  public static peekStrId(buffer: ArrayBuffer | ArrayBufferView): string {
+    return hashCodeTo2CharStr(this.peekIntId(buffer));
   }
 
   // ----- Public accessors: -----
@@ -89,15 +113,12 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
   /**
    * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
    *
-   * @see {BinaryCoder.peekId(...)}
+   * @see {BinaryCoder.peekIntId(...)}
+   * @see {BinaryCoder.peekStrId(...)}
    * @see {BinaryCoder.hashCode}
    */
-  public get Id(): number | undefined {
-    if (this._id === undefined) {
-      this._id = this.type === Type.Object ? this.hashCode : false;
-    }
-
-    return this._id === false ? undefined : this._id;
+  public get Id(): IdType | undefined {
+    return this._id;
   }
 
   /**
@@ -160,24 +181,22 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
    * @throws if the value is invalid
    */
   protected write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string): void {
-    let field: Field, subpath: any, subValue: any;
-
     if (this.type !== Type.Object) {
       return this.getCoder(this.type).write(value, data, path);
     }
 
     // Check for object type
     if (!value || typeof value !== 'object') {
-      throw new TypeError('Expected an object at ' + path);
+      throw new TypeError(`Expected an object at ${path}`);
     }
 
     // Write each field
-    for (let i = 0, len = this.fields.length; i < len; i++) {
-      field = this.fields[i];
-      subpath = path ? path + '.' + field.name : field.name;
-      subValue = value[field.name];
+    for (const field of this.fields) {
+      const subpath = path ? `${path}.${field.name}` : field.name;
+      const subValue = value[field.name];
 
       if (field.isOptional) {
+
         // Add 'presence' flag
         if (subValue === undefined || subValue === null) {
           coders.booleanCoder.write(false, data);
@@ -207,7 +226,8 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
       return;
     }
 
-    coders.uint16Coder.write(this.Id, mutableArrayBuffer, '');
+    const idInt16 = typeof this.Id === 'string' ? strToHashCode(this.Id) : this.Id as number;
+    coders.uint16Coder.write(idInt16, mutableArrayBuffer, '');
   }
 
   /**
@@ -313,7 +333,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition> {
    * @param type
    * @throws if the value is invalid
    */
-  private _writeArray(value: string | any[], data: any, path: string, type: BinaryCoder<any>): void {
+  private _writeArray(value: string | any[], data: any, path: string, type: BinaryCoder<any, any>): void {
     let i: string | number, len: number;
     if (!Array.isArray(value)) {
       throw new coders.WriteTypeError(`Array<${type.type}>`, data, path);

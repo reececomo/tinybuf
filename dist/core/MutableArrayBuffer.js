@@ -8,7 +8,7 @@ const float16_1 = require("./lib/float16");
  * If you use beyond the byte limit of the underlying buffer, it will be dynamically resized.
  */
 class MutableArrayBuffer {
-    constructor(initialBytes = 128, maxAutoResizeIncrementBytes = 1024) {
+    constructor(initialBytes = 256, maxAutoResizeIncrementBytes = 1024) {
         this.maxAutoResizeIncrementBytes = maxAutoResizeIncrementBytes;
         this._length = 0;
         const arrayBuffer = new ArrayBuffer(initialBytes);
@@ -31,10 +31,10 @@ class MutableArrayBuffer {
     // ----- Writers: -----
     /* eslint-disable disable-autofix/jsdoc/require-jsdoc */
     appendBuffer(data) {
-        const dataView = new DataView(data);
+        const dataView = new Uint8Array(data);
         this._alloc(dataView.byteLength);
         for (let i = 0; i < data.byteLength; i++) {
-            this._dataView.setUint8(this._length + i, dataView.getUint8(i));
+            this._dataView.setUint8(this._length + i, dataView[i]);
         }
         this._length += data.byteLength;
     }

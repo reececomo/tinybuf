@@ -13,17 +13,17 @@ export const toFloat16 = (function() {
   // This method is faster than the OpenEXR implementation (very often
   // used, eg. in Ogre), with the additional benefit of rounding, inspired
   // by James Tursa's half-precision code.
-  return function toHalf(doubleFloat: number): number {
-    if (Number.isNaN(doubleFloat)) {
-      return 0b0111110000000001;
+  return function toHalf(v: number): number {
+    if (Number.isNaN(v)) {
+      return 0b0111110000000001; // Float 16 NaN
     }
 
-    floatView[0] = doubleFloat;
+    floatView[0] = v;
     const x = int32View[0];
 
-    let bits = (x >> 16) & 0x8000; /* Get the sign */
-    let m = (x >> 12) & 0x07ff; /* Keep one extra bit for rounding */
-    const e = (x >> 23) & 0xff; /* Using int is faster here */
+    let bits = (x >> 16) & 0b1000000000000000;
+    let m = (x >> 12) & 0b0000011111111111;
+    const e = (x >> 23) & 0b0000000011111111;
 
     // If zero, or denormal, or exponent underflows too much for a denormal
     // half, return signed zero.
@@ -62,14 +62,14 @@ export const toFloat16 = (function() {
 /**
  * Convert a UInt16 bitmask of a 16-bit half precision float representation into a normal double precision float (number).
  *
- * @param halfPrecisionBits A UInt16 bitmask representation of a half precision float.
+ * @param b A UInt16 bitmask representation of a half precision float.
  * @returns A number (standard 64-bit double precision representation).
  */
-export function fromFloat16(halfPrecisionBits: number): number {
+export function fromFloat16(b: number): number {
   // Extract sign, exponent, and significand bits
-  let sign = ((halfPrecisionBits & 0b1000000000000000) >> 15) === 0 ? 1 : -1;
-  let exponent = (halfPrecisionBits & 0b111110000000000) >> 10;
-  let significand = halfPrecisionBits & 0b000001111111111;
+  let sign = ((b & 0b1000000000000000) >> 15) === 0 ? 1 : -1;
+  let exponent = (b & 0b111110000000000) >> 10;
+  let significand = b & 0b000001111111111;
 
   // Handle special cases: zero, denormal, infinity, NaN
   if (exponent === 0) {

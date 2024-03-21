@@ -6,14 +6,14 @@
  *
  * @see https://stackoverflow.com/a/32633586
  */
-export declare const toFloat16: (doubleFloat: number) => number;
+export declare const toFloat16: (v: number) => number;
 /**
  * Convert a UInt16 bitmask of a 16-bit half precision float representation into a normal double precision float (number).
  *
- * @param halfPrecisionBits A UInt16 bitmask representation of a half precision float.
+ * @param b A UInt16 bitmask representation of a half precision float.
  * @returns A number (standard 64-bit double precision representation).
  */
-export declare function fromFloat16(halfPrecisionBits: number): number;
+export declare function fromFloat16(b: number): number;
 /**
  * The fround16() method returns the nearest 16-bit half precision float representation of a number.
  *

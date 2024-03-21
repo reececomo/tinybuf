@@ -9,7 +9,7 @@ export class MutableArrayBuffer {
   private _dataView: DataView;
   private _length: number = 0;
 
-  public constructor(initialBytes: number = 128, private maxAutoResizeIncrementBytes = 1024) {
+  public constructor(initialBytes: number = 256, private maxAutoResizeIncrementBytes = 1024) {
     const arrayBuffer = new ArrayBuffer(initialBytes);
     this._dataView = new DataView(arrayBuffer);
   }
@@ -36,11 +36,11 @@ export class MutableArrayBuffer {
   /* eslint-disable disable-autofix/jsdoc/require-jsdoc */
 
   public appendBuffer(data: ArrayBuffer): void {
-    const dataView = new DataView(data);
+    const dataView = new Uint8Array(data);
 
     this._alloc(dataView.byteLength);
     for (let i = 0; i < data.byteLength; i++) {
-      this._dataView.setUint8(this._length + i, dataView.getUint8(i));
+      this._dataView.setUint8(this._length + i, dataView[i]);
     }
     this._length += data.byteLength;
   }

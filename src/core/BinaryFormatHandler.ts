@@ -1,5 +1,6 @@
 import BinaryCoder from "./BinaryCoder";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
+import { hashCodeTo2CharStr, strToHashCode } from "./lib/hashCode";
 
 type BinaryCoderId = number;
 type BinaryCoderOnDataHandler = (data: InferredDecodedType<any>) => any;
@@ -13,10 +14,10 @@ export class BinaryCoderIdCollisionError extends Error {}
  * It provides a central handler for encoding, decoding and routing.
  */
 export class BinaryFormatHandler {
-  private coders = new Map<BinaryCoderId, [BinaryCoder<any>, BinaryCoderOnDataHandler]>();
+  private coders = new Map<BinaryCoderId, [BinaryCoder<any, any>, BinaryCoderOnDataHandler]>();
 
   /** All available coders. */
-  public get available(): Set<BinaryCoder<any>> {
+  public get available(): Set<BinaryCoder<any, any>> {
     return new Set([...this.coders.values()].map(v => v[0]));
   }
 
@@ -24,18 +25,20 @@ export class BinaryFormatHandler {
    * Register a binary coder for encoding and decoding.
    */
   public on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(
-    coder: BinaryCoder<EncoderType>,
+    coder: BinaryCoder<EncoderType, string | number>,
     onDataHandler: (data: DecodedType) => any
   ): this {
     if (coder.Id === undefined) {
-      throw new TypeError('Cannot register a BinaryCoder that has Id disabled.');
+      throw new TypeError('Cannot register a BinaryCoder with Id disabled.');
     }
 
-    if (this.coders.has(coder.Id)) {
+    const intId = typeof coder.Id === 'string' ? strToHashCode(coder.Id) : coder.Id;
+
+    if (this.coders.has(intId)) {
       throw new BinaryCoderIdCollisionError(`Coder was already registered with matching Id: ${coder.Id}`);
     }
 
-    this.coders.set(coder.Id, [coder, onDataHandler]);
+    this.coders.set(intId, [coder, onDataHandler]);
 
     return this;
   }
@@ -49,11 +52,12 @@ export class BinaryFormatHandler {
    * @throws {RangeError} If buffer has < 2 bytes.
    */
   public processBuffer(buffer: ArrayBuffer | ArrayBufferView): void {
-    const id: number = BinaryCoder.peekId(buffer);
+    const id: number = BinaryCoder.peekIntId(buffer);
     const tuple = this.coders.get(id);
 
     if (!tuple) {
-      throw new UnhandledBinaryDecodeError(`No handler registered for: '0b${id.toString(2)}'`);
+      const strId = hashCodeTo2CharStr(id);
+      throw new UnhandledBinaryDecodeError(`Failed to process buffer with Id ${id} ('${strId}').`);
     }
 
     const [coder, onDataHandler] = tuple;

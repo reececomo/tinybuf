@@ -4,7 +4,7 @@
 
 # TypeScript Binary
 
-Powerful, lightweight binary formats in TypeScript.
+Powerful, lightweight binary messages in TypeScript.
 
 [![NPM version](https://img.shields.io/npm/v/typescript-binary.svg?style=flat-square)](https://www.npmjs.com/package/typescript-binary)
 [![test](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml)
@@ -22,21 +22,21 @@ TypeScript Binary is designed to be minimal, fast &amp; developer-friendly.
 
 You don't need to learn any other schemas, or set up any C++ compilers or external schema generators.
 
-|                                               | **TypeScript&nbsp;Binary** |                                         **FlatBuffers**                                          |                            **Protocol&nbsp;Buffers**                            |       **Raw&nbsp;JSON**        |
+| | **TypeScript&nbsp;Binary** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
 | --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
-| **Serialization format**                      |           Binary           |                                              Binary                                              |                                     Binary                                      |             String             |
-| **Fast & efficient**                          |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🔴                |
-| **Reference data size<sup>†</sup>**           |          34 bytes          |                                             68 bytes                                             |                                    72 bytes                                     | 175&nbsp;bytes&nbsp;(minified) |
-| **Schema definition**                         |           Native           |  [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html)  | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) |             Native             |
-| **TypeScript Types**                          |           Native           |                                         Code generation                                          |                                 Code generation                                 |             Native             |
-| **External tooling dependencies**             |            None            | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) |                                None<sup>*</sup>                                 |              N/A               |
-| **16-bit floats**                             |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
-| **Boolean-packing**                           |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🔴                |
-| **Arbitrary JSON**                            |             🟢              |                                                🔴                                                 |                                        🔴                                        |               🟢                |
-| **Suitable for real-time data**               |             🟢              |                                                🟢                                                 |                                        🟡                                        |               🔴                |
-| **Suitable for web APIs**                     |             🟡              |                                                🟡                                                 |                                        🟢                                        |               🟢                |
-| **Supports HTML5 / Node.js**                  |             🟢              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
-| **Supports other languages (Java, C#, etc.)** |             🔴              |                                                🟢                                                 |                                        🟢                                        |               🟢                |
+| **Serialization format** | Binary | Binary | Binary | String |
+| **Fast & efficient** | 🟢 | 🟢 | 🟢 | 🔴 |
+| **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
+| **Schema definition** | Native | [FlatBuffers Schema .fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [Proto3 Language .proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
+| **TypeScript Types** | Native | Code generation | Code generation | Native |
+| **External tooling dependencies** | None | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) | None<sup>*</sup> | N/A |
+| **16-bit floats** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Boolean-packing** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
+| **Suitable for real-time data** | 🟢 | 🟢 | 🟡 | 🔴 |
+| **Suitable for web APIs** | 🟡 | 🟡 | 🟢 | 🟢 |
+| **Supports HTML5 / Node.js** | 🟢 | 🟢 | 🟢 | 🟢 |
+| **Supports other languages (Java, C#, etc.)** | 🔴 | 🟢 | 🟢 | 🟢 |
 
 <i><b>*</b>: if using `protobufjs`</i>
 <details>
@@ -80,7 +80,7 @@ You don't need to learn any other schemas, or set up any C++ compilers or extern
 
 **TypeScript Binary**
 ```ts
-const ExamplePacket = new BinaryCoder({
+const ExampleMessage = new BinaryCoder({
   players: [
     {
       id: Type.UInt,
@@ -102,7 +102,7 @@ const ExamplePacket = new BinaryCoder({
 
 **FlatBuffers**
 ```fbs
-// ExamplePacket.fbs
+// ExampleMessage.fbs
 
 namespace ExampleNamespace;
 
@@ -119,11 +119,11 @@ table Player {
   health: float;
 }
 
-table ExamplePacket {
+table ExampleMessage {
   players: [Player];
 }
 
-root_type ExamplePacket;
+root_type ExampleMessage;
 ```
 
 **Protocol Buffers (Proto3)**
@@ -145,7 +145,7 @@ message Player {
   float health = 4;
 }
 
-message ExamplePacket {
+message ExampleMessage {
   repeated Player players = 1;
 }
 ```
@@ -212,9 +212,15 @@ const data = GameWorldData.decode(binary);
 
 #### 2-byte header
 
-By default, each `BinaryCoder` includes a 2-byte `UInt16` identifier. This can be disabled by setting `Id` as `false` in the `BinaryCoder` constructor. You can also provide your own fixed identifier instead (i.e. an `Enum`).
+By default, each `BinaryCoder` encodes a 2-byte identifier (a `uint16`). This can be disabled by setting `Id` as `false` in the `BinaryCoder` constructor. You can also provide your own 2-byte identifier instead (e.g. a string, or an `Enum`).
 
-Read the identifer with the static function `BinaryCoder.peekId(...)`.
+```ts
+// Manually set a 2-byte header here (string or unsigned integer),
+// i.e. you may want to do this for debugging, or to assign an enum value.
+const Hello = new BinaryCoder({ /* ... */ }, 'HI');
+```
+
+You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`).
 
 #### BinaryFormatHandler
 

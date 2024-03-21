@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BinaryFormatHandler = exports.BinaryCoderIdCollisionError = exports.UnhandledBinaryDecodeError = void 0;
 const BinaryCoder_1 = __importDefault(require("./BinaryCoder"));
+const hashCode_1 = require("./lib/hashCode");
 class UnhandledBinaryDecodeError extends Error {
 }
 exports.UnhandledBinaryDecodeError = UnhandledBinaryDecodeError;
@@ -29,12 +30,13 @@ class BinaryFormatHandler {
      */
     on(coder, onDataHandler) {
         if (coder.Id === undefined) {
-            throw new TypeError('Cannot register a BinaryCoder that has Id disabled.');
+            throw new TypeError('Cannot register a BinaryCoder with Id disabled.');
         }
-        if (this.coders.has(coder.Id)) {
+        const intId = typeof coder.Id === 'string' ? (0, hashCode_1.strToHashCode)(coder.Id) : coder.Id;
+        if (this.coders.has(intId)) {
             throw new BinaryCoderIdCollisionError(`Coder was already registered with matching Id: ${coder.Id}`);
         }
-        this.coders.set(coder.Id, [coder, onDataHandler]);
+        this.coders.set(intId, [coder, onDataHandler]);
         return this;
     }
     /**
@@ -46,10 +48,11 @@ class BinaryFormatHandler {
      * @throws {RangeError} If buffer has < 2 bytes.
      */
     processBuffer(buffer) {
-        const id = BinaryCoder_1.default.peekId(buffer);
+        const id = BinaryCoder_1.default.peekIntId(buffer);
         const tuple = this.coders.get(id);
         if (!tuple) {
-            throw new UnhandledBinaryDecodeError(`No handler registered for: '0b${id.toString(2)}'`);
+            const strId = (0, hashCode_1.hashCodeTo2CharStr)(id);
+            throw new UnhandledBinaryDecodeError(`Failed to process buffer with Id ${id} ('${strId}').`);
         }
         const [coder, onDataHandler] = tuple;
         const data = coder.decode(buffer);
