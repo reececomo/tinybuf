@@ -12,11 +12,11 @@ export declare class BinaryCoderIdCollisionError extends Error {
 export declare class BinaryFormatHandler {
     private coders;
     /** All available coders. */
-    get available(): Set<BinaryCoder<any>>;
+    get available(): Set<BinaryCoder<any, any>>;
     /**
      * Register a binary coder for encoding and decoding.
      */
-    on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(coder: BinaryCoder<EncoderType>, onDataHandler: (data: DecodedType) => any): this;
+    on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(coder: BinaryCoder<EncoderType, string | number>, onDataHandler: (data: DecodedType) => any): this;
     /**
      * Decode an array buffer and trigger the relevant data handler.
      *

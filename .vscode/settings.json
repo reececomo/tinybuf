@@ -16,4 +16,7 @@
     },
     "typescript.preferences.importModuleSpecifier": "relative",
     "workbench.tree.indent": 20,
+    "[markdown]": {
+        "editor.formatOnSave": false,
+    }
 }

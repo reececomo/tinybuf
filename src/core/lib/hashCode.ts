@@ -13,3 +13,25 @@ export function djb2HashUInt16(str: string): number {
   }
   return hash & 0xFFFF; // Ensure the result is a Uint16
 }
+
+/**
+ * Returns an unsigned 16-bit integer hashcode for some string.
+ * Prefers 2 character string.
+ *
+ * @returns A UInt16 between 0 and 65535 (inclusive).
+ */
+export function strToHashCode(str: string): number {
+  // Prefer 2 character string
+  if (str.length === 2) {
+    return str.charCodeAt(0) * 256 + str.charCodeAt(1);
+  }
+
+  return djb2HashUInt16(str); // Fallback to DJB2
+}
+
+/**
+ * Convert UInt16 to a 2-character String.
+ */
+export function hashCodeTo2CharStr(hashCode: number): string {
+  return String.fromCharCode(Math.floor(hashCode / 256)) + String.fromCharCode(hashCode % 256);
+}

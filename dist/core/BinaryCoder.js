@@ -44,10 +44,10 @@ class BinaryCoder {
      * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
      */
     constructor(encoderDefinition, Id) {
-        if (Id !== undefined
-            && Id !== false
-            && !(typeof Id === 'number' && Id >= 0 && Id <= 65535 && Math.floor(Id) === Id)) {
-            throw new TypeError('Id must be uint16 or `false`');
+        if ((typeof Id === 'number' && (Math.floor(Id) !== Id || Id < 0 || Id > 65535))
+            || (typeof Id === 'string' && new TextEncoder().encode(Id).byteLength !== 2)
+            || (Id !== undefined && Id !== false && !['string', 'number'].includes(typeof Id))) {
+            throw new TypeError(`Id must be an unsigned 16-bit integer, a 2-byte string, or \`false\`. Received: ${Id}`);
         }
         else if (encoderDefinition instanceof Type_1.OptionalType) {
             throw new TypeError("Invalid type given. Root object must not be an Optional.");
@@ -64,33 +64,50 @@ class BinaryCoder {
         else {
             throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
         }
-        this._id = Id;
+        if (Id === false) {
+            this._id = undefined;
+        }
+        else if (Id === undefined && this.type === "{object}" /* Type.Object */) {
+            this._id = this.hashCode;
+        }
+        else {
+            this._id = Id;
+        }
     }
     // ----- Static methods: -----
     /**
-     * Read the first two bytes of a buffer.
+     * Read the first two bytes of a buffer as an unsigned 16-bit integer.
      *
      * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
      *
      * @see {BinaryCoder.Id}
      * @throws {RangeError} if buffer size < 2
      */
-    static peekId(buffer) {
+    static peekIntId(buffer) {
         const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
         return dataView.getUint16(0);
+    }
+    /**
+     * Read the first two bytes of a buffer as a 2-character string.
+     *
+     * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
+     *
+     * @see {BinaryCoder.Id}
+     * @throws {RangeError} if buffer size < 2
+     */
+    static peekStrId(buffer) {
+        return (0, hashCode_1.hashCodeTo2CharStr)(this.peekIntId(buffer));
     }
     // ----- Public accessors: -----
     /**
      * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
      *
-     * @see {BinaryCoder.peekId(...)}
+     * @see {BinaryCoder.peekIntId(...)}
+     * @see {BinaryCoder.peekStrId(...)}
      * @see {BinaryCoder.hashCode}
      */
     get Id() {
-        if (this._id === undefined) {
-            this._id = this.type === "{object}" /* Type.Object */ ? this.hashCode : false;
-        }
-        return this._id === false ? undefined : this._id;
+        return this._id;
     }
     /**
      * @returns A hash code representing the encoding format. An unsigned 16-bit integer.
@@ -141,19 +158,17 @@ class BinaryCoder {
      * @throws if the value is invalid
      */
     write(value, data, path) {
-        let field, subpath, subValue;
         if (this.type !== "{object}" /* Type.Object */) {
             return this.getCoder(this.type).write(value, data, path);
         }
         // Check for object type
         if (!value || typeof value !== 'object') {
-            throw new TypeError('Expected an object at ' + path);
+            throw new TypeError(`Expected an object at ${path}`);
         }
         // Write each field
-        for (let i = 0, len = this.fields.length; i < len; i++) {
-            field = this.fields[i];
-            subpath = path ? path + '.' + field.name : field.name;
-            subValue = value[field.name];
+        for (const field of this.fields) {
+            const subpath = path ? `${path}.${field.name}` : field.name;
+            const subValue = value[field.name];
             if (field.isOptional) {
                 // Add 'presence' flag
                 if (subValue === undefined || subValue === null) {
@@ -180,7 +195,8 @@ class BinaryCoder {
         if (this.Id === undefined) {
             return;
         }
-        coders.uint16Coder.write(this.Id, mutableArrayBuffer, '');
+        const idInt16 = typeof this.Id === 'string' ? (0, hashCode_1.strToHashCode)(this.Id) : this.Id;
+        coders.uint16Coder.write(idInt16, mutableArrayBuffer, '');
     }
     /**
      * Helper to get the right coder.

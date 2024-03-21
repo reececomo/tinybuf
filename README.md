@@ -4,7 +4,7 @@
 
 # TypeScript Binary
 
-Lightweight, developer-friendly binary serializers in TypeScript.
+Powerful, lightweight binary messages in TypeScript.
 
 [![NPM version](https://img.shields.io/npm/v/typescript-binary.svg?style=flat-square)](https://www.npmjs.com/package/typescript-binary)
 [![test](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml)
@@ -83,7 +83,7 @@ TypeScript Binary is an optimal choice for real-time HTML5 and Node.js applicati
 
 **TypeScript Binary**
 ```ts
-const ExamplePacket = new BinaryCoder({
+const ExampleMessage = new BinaryCoder({
   players: [
     {
       id: Type.UInt,
@@ -105,7 +105,7 @@ const ExamplePacket = new BinaryCoder({
 
 **FlatBuffers**
 ```fbs
-// ExamplePacket.fbs
+// ExampleMessage.fbs
 
 namespace ExampleNamespace;
 
@@ -122,11 +122,11 @@ table Player {
   health: float;
 }
 
-table ExamplePacket {
+table ExampleMessage {
   players: [Player];
 }
 
-root_type ExamplePacket;
+root_type ExampleMessage;
 ```
 
 **Protocol Buffers (Proto3)**
@@ -148,7 +148,7 @@ message Player {
   float health = 4;
 }
 
-message ExamplePacket {
+message ExampleMessage {
   repeated Player players = 1;
 }
 ```
@@ -237,9 +237,18 @@ function updateGameWorld(data: Infer<typeof GameWorldData>) {
 
 ## ✨ Receiving multiple formats
 
-By default, each format includes a 2-byte identifier (called `Id`). This is used to identify/decode data.
+By default, each `BinaryCoder` encodes a 2-byte identifier (a `uint16`).
 
-You can explicitly override `Id` in the `BinaryCoder` constructor, or disable entirely by passing `false`.
+You can explicitly override `Id` in the `BinaryCoder` constructor (or disable entirely by passing `false`).
+  
+
+```ts
+// Manually set a 2-byte header here (string or unsigned integer),
+// i.e. you may want to do this for debugging, or to assign an enum value.
+const Hello = new BinaryCoder({ /* ... */ }, 'HI');
+```
+
+You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`).
 
 ### BinaryFormatHandler
 

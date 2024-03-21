@@ -1,3 +1,4 @@
+import { strToHashCode } from '../src/core/lib/hashCode';
 import { BinaryCoder, Type, Optional } from '../src/index';
 
 describe('BinaryCoder', () => {
@@ -209,8 +210,31 @@ describe('BinaryCoder', () => {
     );
   });
 
+  it('should allow string ids ', () => {
+    const coderA = new BinaryCoder({
+      abc: Type.UInt,
+      bef: Type.Int16,
+      ghi: [Type.String],
+    }, 'AB');
+
+    const coderB = new BinaryCoder({
+      xyz: Type.UInt,
+      yzx: Type.Int16,
+      zyx: [Type.String],
+    }, 'ab');
+
+    // Sanity check.
+    expect(coderA.Id).not.toBe(coderB.Id);
+
+    // Check
+    expect(coderA.Id).toBe('AB');
+    expect(typeof coderA.Id).toBe('string');
+
+    const data = coderA.encode({ abc: 1, bef: 2, ghi: ['lorem'] });
+    expect(BinaryCoder.peekStrId(data)).toBe('AB');
+  });
+
   it('should throw TypeError when passed an invalid Id', () => {
-    expect(() => new BinaryCoder({ data: Type.UInt }, 'AB' as any)).toThrow(TypeError);
     expect(() => new BinaryCoder({ data: Type.UInt }, true as any)).toThrow(TypeError);
     expect(() => new BinaryCoder({ data: Type.UInt }, -1)).toThrow(TypeError);
     expect(() => new BinaryCoder({ data: Type.UInt }, 65_536)).toThrow(TypeError);

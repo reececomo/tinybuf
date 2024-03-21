@@ -17,33 +17,43 @@ export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer E
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-export declare class BinaryCoder<EncoderType extends EncoderDefinition> {
+export declare class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends string | number = number> {
     protected readonly type: Type;
     protected readonly fields: Field[];
     protected _hash?: number;
     protected _format?: string;
-    protected _id?: number | false;
+    protected _id?: IdType;
     /**
      * @param encoderDefinition A defined encoding format.
      * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
      */
-    constructor(encoderDefinition: EncoderType, Id?: number | false);
+    constructor(encoderDefinition: EncoderType, Id?: IdType | false);
     /**
-     * Read the first two bytes of a buffer.
+     * Read the first two bytes of a buffer as an unsigned 16-bit integer.
      *
      * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
      *
      * @see {BinaryCoder.Id}
      * @throws {RangeError} if buffer size < 2
      */
-    static peekId(buffer: ArrayBuffer | ArrayBufferView): number;
+    static peekIntId(buffer: ArrayBuffer | ArrayBufferView): number;
+    /**
+     * Read the first two bytes of a buffer as a 2-character string.
+     *
+     * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
+     *
+     * @see {BinaryCoder.Id}
+     * @throws {RangeError} if buffer size < 2
+     */
+    static peekStrId(buffer: ArrayBuffer | ArrayBufferView): string;
     /**
      * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
      *
-     * @see {BinaryCoder.peekId(...)}
+     * @see {BinaryCoder.peekIntId(...)}
+     * @see {BinaryCoder.peekStrId(...)}
      * @see {BinaryCoder.hashCode}
      */
-    get Id(): number | undefined;
+    get Id(): IdType | undefined;
     /**
      * @returns A hash code representing the encoding format. An unsigned 16-bit integer.
      */

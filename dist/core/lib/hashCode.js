@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.djb2HashUInt16 = void 0;
+exports.hashCodeTo2CharStr = exports.strToHashCode = exports.djb2HashUInt16 = void 0;
 /**
  * DJB2 hash algorithm (modified for 16-bit uints).
  *
@@ -17,4 +17,25 @@ function djb2HashUInt16(str) {
     return hash & 0xFFFF; // Ensure the result is a Uint16
 }
 exports.djb2HashUInt16 = djb2HashUInt16;
+/**
+ * Returns an unsigned 16-bit integer hashcode for some string.
+ * Prefers 2 character string.
+ *
+ * @returns A UInt16 between 0 and 65535 (inclusive).
+ */
+function strToHashCode(str) {
+    // Prefer 2 character string
+    if (str.length === 2) {
+        return str.charCodeAt(0) * 256 + str.charCodeAt(1);
+    }
+    return djb2HashUInt16(str); // Fallback to DJB2
+}
+exports.strToHashCode = strToHashCode;
+/**
+ * Convert UInt16 to a 2-character String.
+ */
+function hashCodeTo2CharStr(hashCode) {
+    return String.fromCharCode(Math.floor(hashCode / 256)) + String.fromCharCode(hashCode % 256);
+}
+exports.hashCodeTo2CharStr = hashCodeTo2CharStr;
 //# sourceMappingURL=hashCode.js.map
