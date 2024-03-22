@@ -8,7 +8,7 @@ import { InferredDecodedType, EncoderDefinition, Type } from './Type';
  * @example
  * let onData = (data: Infer<typeof MyBinaryCoder>) => {...};
  */
-export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType> ? InferredDecodedType<EncoderType> : never;
+export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
 /**
  * BinaryCoder is a utility class for encoding and decoding binary data based
  * on a provided encoding format.

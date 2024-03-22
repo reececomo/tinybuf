@@ -21,7 +21,7 @@ import {
  * @example
  * let onData = (data: Infer<typeof MyBinaryCoder>) => {...};
  */
-export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType> ? InferredDecodedType<EncoderType> : never;
+export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
 
 /**
  * BinaryCoder is a utility class for encoding and decoding binary data based
@@ -349,7 +349,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
   /**
    * @throws if invalid data
    */
-  private _readArray<T extends EncoderDefinition>(type: BinaryCoder<T>, state: any): Array<T> {
+  private _readArray<T extends EncoderDefinition>(type: BinaryCoder<T, any>, state: any): Array<T> {
     const arr = new Array(coders.uintCoder.read(state));
     for (let j = 0; j < arr.length; j++) {
       arr[j] = type.read(state);
