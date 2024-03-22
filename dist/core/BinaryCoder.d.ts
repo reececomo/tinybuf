@@ -1,7 +1,7 @@
 import * as coders from './lib/coders';
 import { Field } from './Field';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
-import { InferredDecodedType, EncoderDefinition, Type } from './Type';
+import { InferredDecodedType, EncoderDefinition, Type, InferredTransformConfig, InferredValidationConfig, ValidationFn, Transforms } from './Type';
 /**
  * Infer the decoded type of a BinaryCoder.
  *
@@ -23,6 +23,8 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition, IdType e
     protected _hash?: number;
     protected _format?: string;
     protected _id?: IdType;
+    protected _transforms?: Transforms<any> | undefined;
+    protected _validationFn?: ValidationFn<any> | undefined;
     /**
      * @param encoderDefinition A defined encoding format.
      * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
@@ -76,6 +78,17 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition, IdType e
      */
     decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType;
     /**
+     * Set additional transform functions to apply before encoding and after decoding.
+     */
+    setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this;
+    /**
+     * Set additional validation rules which are applied on encode() and decode().
+     *
+     * - Validation functions should throw an error, return an error, or return boolean false.
+     * - Anything else is treated as successfully passing validation.
+     */
+    setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
+    /**
      * @param value
      * @param data
      * @param path
@@ -92,6 +105,8 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition, IdType e
      * Helper to get the right coder.
      */
     protected getCoder(type: Type): coders.BinaryTypeCoder<any>;
+    private _preEncode;
+    private _postDecode;
     /**
      * This function will be executed only the first time
      * After that, we'll compile the read routine and add it directly to the instance
@@ -114,7 +129,8 @@ export declare class BinaryCoder<EncoderType extends EncoderDefinition, IdType e
     private generateObjectReadCode;
     /** Read an individual field. */
     private _readField;
-    /** Compile the decode method for this object. */
+    private readMeAsValueType;
+    /** Compile the decode() method for this object. */
     private compileRead;
     /**
      * @param value

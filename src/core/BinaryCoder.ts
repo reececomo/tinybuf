@@ -12,7 +12,11 @@ import {
   EncoderDefinition,
   Type,
   OptionalType,
-  ValidValueTypes
+  ValidValueTypes,
+  InferredTransformConfig,
+  InferredValidationConfig,
+  ValidationFn,
+  Transforms
 } from './Type';
 
 /**
@@ -38,6 +42,9 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
   protected _hash?: number;
   protected _format?: string;
   protected _id?: IdType;
+
+  protected _transforms?: Transforms<any> | undefined;
+  protected _validationFn?: ValidationFn<any> | undefined;
 
   /**
    * @param encoderDefinition A defined encoding format.
@@ -154,10 +161,13 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    * @throws if the value is invalid
    */
   public encode<DecodedType extends InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer {
-    const data = new MutableArrayBuffer();
-    this.writeId(data);
-    this.write(value, data, '');
-    return data.toArrayBuffer();
+    const safeValue = this._preEncode(value);
+    const buffer = new MutableArrayBuffer();
+
+    this.writeId(buffer);
+    this.write(safeValue, buffer, '');
+
+    return buffer.toArrayBuffer();
   }
 
   /**
@@ -166,10 +176,61 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
   public decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType {
-    return this.read(new ReadState(
+    const decoded: any = this.read(new ReadState(
       arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
       this.Id === undefined ? 0 : 2
-    )) as any;
+    ));
+
+    return this._postDecode(decoded);
+  }
+
+  /**
+   * Set additional transform functions to apply before encoding and after decoding.
+   */
+  public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
+    if (transforms instanceof Function) {
+      this._transforms = transforms;
+    }
+    else if (Array.isArray(transforms) && transforms[0] instanceof Function) {
+      this._transforms = transforms[0];
+    }
+    else {
+      for (const name of Object.keys(transforms)) {
+        const field = this.fields.find(f => f.name === name);
+        if (!field) {
+          throw new TypeError(`Failed to set transforms for field '${name}'`);
+        }
+
+        // Set validation for object.
+        field.coder.setTransforms(transforms[name]);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Set additional validation rules which are applied on encode() and decode().
+   *
+   * - Validation functions should throw an error, return an error, or return boolean false.
+   * - Anything else is treated as successfully passing validation.
+   */
+  public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
+    if (validations instanceof Function) {
+      this._validationFn = validations;
+    }
+    else {
+      for (const name of Object.keys(validations)) {
+        const field = this.fields.find(f => f.name === name);
+        if (!field) {
+          throw new TypeError(`Failed to set validation function for field '${name}'`);
+        }
+
+        field.coder.setValidation(validations[name]);
+      }
+    }
+
+    return this;
   }
 
   // ----- Implementation: -----
@@ -182,7 +243,9 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    */
   protected write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string): void {
     if (this.type !== Type.Object) {
-      return this.getCoder(this.type).write(value, data, path);
+      const safeValue = (this._validationFn || this._transforms) ? this._preEncode(value) : value;
+
+      return this.getCoder(this.type).write(safeValue, data, path);
     }
 
     // Check for object type
@@ -263,6 +326,33 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
 
   // ----- Private methods: -----
 
+  private _preEncode<T extends Record<string, any>>(data: T): T {
+    if (this._validationFn && this._validationFn(data) === false) {
+      throw new Error('custom validation failed');
+    }
+
+    if (this._transforms instanceof Function) {
+      return this._transforms(data);
+    }
+    else if (Array.isArray(this._transforms) && this._transforms[0] instanceof Function) {
+      return this._transforms[0](data);
+    }
+
+    return data;
+  }
+
+  private _postDecode<T extends Record<string, any>>(data: T): T {
+    if (Array.isArray(this._transforms) && this._transforms[1] instanceof Function) {
+      data = this._transforms[1](data);
+    }
+
+    if (this._validationFn instanceof Function) {
+      this._validationFn(data);
+    }
+
+    return data;
+  }
+
   /**
    * This function will be executed only the first time
    * After that, we'll compile the read routine and add it directly to the instance
@@ -314,11 +404,15 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
     return field.coder.read(state);
   }
 
-  /** Compile the decode method for this object. */
+  private readMeAsValueType(state: ReadState): EncoderType {
+    return this._postDecode(this.getCoder(this.type).read(state));
+  }
+
+  /** Compile the decode() method for this object. */
   private compileRead(): (state: ReadState) => EncoderType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type - in this case, there is no need to write custom code.
-      return this.getCoder(this.type).read;
+      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readMeAsValueType : this.getCoder(this.type).read;
     }
 
     const code = this.generateObjectReadCode();

@@ -1,5 +1,9 @@
-import { strToHashCode } from '../src/core/lib/hashCode';
-import { BinaryCoder, Type, Optional } from '../src/index';
+import {
+  BinaryCoder,
+  Type,
+  Optional,
+  Infer
+} from '../src/index';
 
 describe('BinaryCoder', () => {
   const MyBinaryCoder = new BinaryCoder({
@@ -338,6 +342,144 @@ describe('BinaryCoder', () => {
       f: 'two'
     }];
     expect(objArray.decode(objArray.encode({ data }))).toEqual({ data });
+  });
+});
+
+describe('transforms and validation', () => {
+  it('should handle basic case', () => {
+    const MyCoder = new BinaryCoder({
+      id: Type.UInt
+    })
+      .setTransforms({
+        id: x => Math.min(x, 100)
+      })
+      .setValidation({
+        id: x => x > 20,
+      });
+
+    const data = MyCoder.encode({
+      id: 1000,
+    });
+
+    const decoded = MyCoder.decode(data);
+    expect(decoded.id).toBe(100);
+
+    expect(() => MyCoder.encode({ id: 21 })).not.toThrow();
+    expect(() => MyCoder.encode({ id: 19 })).toThrow();
+  });
+
+  it('should handle advanced case', () => {
+    const MyCoder = new BinaryCoder({
+      id: Type.UInt,
+      names: Optional([Type.String]),
+      dates: [Type.Date],
+      myOptionalObject: Optional({
+        myDate: Type.Date,
+      }),
+      myObject: {
+        myNestedArray: [{
+          myFloat16: Type.Float16,
+        }]
+      }
+    })
+      .setTransforms({
+        names: x => x.toLowerCase(),
+        myObject: {
+          myNestedArray: {
+            myFloat16: [x => x * 2, x => x]
+          }
+        }
+      })
+      .setValidation({
+        id: x => x >= 1,
+        names: x => !/[0-9]/.test(x),
+        myOptionalObject: {
+          myDate: x => x.getFullYear() > 1994,
+        }
+      });
+
+    const date = new Date();
+
+    expect(() => MyCoder.encode({
+      id: 21,
+      names: ['a', 'b'],
+      dates: [date],
+      myOptionalObject: {
+        myDate: date
+      },
+      myObject: {
+        myNestedArray: [
+          { myFloat16: 1 },
+          { myFloat16: 2 },
+        ]
+      }
+    })).not.toThrow();
+
+    expect(() => MyCoder.encode({
+      id: 21,
+      names: ['a', 'b'],
+      dates: [date],
+      myOptionalObject: undefined, // test optional
+      myObject: {
+        myNestedArray: [
+          { myFloat16: 1 },
+          { myFloat16: 2 },
+        ]
+      }
+    })).not.toThrow();
+
+    expect(() => MyCoder.encode({
+      id: 21,
+      names: ['a', '0'],
+      dates: [date],
+      myOptionalObject: undefined,
+      myObject: {
+        myNestedArray: [
+          { myFloat16: 1 },
+          { myFloat16: 2 },
+        ]
+      }
+    })).toThrow();
+
+    const oldDate = new Date();
+    oldDate.setFullYear(1885);
+    expect(() => MyCoder.encode({
+      id: 21,
+      names: ['a', 'b'],
+      dates: [date],
+      myOptionalObject: {
+        myDate: oldDate // old date
+      },
+      myObject: {
+        myNestedArray: [
+          { myFloat16: 1 },
+          { myFloat16: 2 },
+        ]
+      }
+    })).toThrow();
+
+    // decode
+    const preEncoded: Infer<typeof MyCoder> = {
+      id: 21,
+      names: ['a', 'b'],
+      dates: [date],
+      myOptionalObject: {
+        myDate: date
+      },
+      myObject: {
+        myNestedArray: [
+          { myFloat16: 1 },
+          { myFloat16: 2 },
+        ]
+      }
+    };
+
+    const encoded = MyCoder.encode(preEncoded);
+    const decoded = MyCoder.decode(encoded);
+
+    // Make sure the decode transforms are applied.
+    expect(preEncoded.myObject.myNestedArray[0].myFloat16).toBe(1);
+    expect(decoded.myObject.myNestedArray[0].myFloat16).toBe(2);
   });
 });
 
