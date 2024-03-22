@@ -368,6 +368,21 @@ describe('transforms and validation', () => {
     expect(() => MyCoder.encode({ id: 19 })).toThrow();
   });
 
+  it('can use transforms to improve accuracy of lossy types', () => {
+    let MyCoder = new BinaryCoder({ ball: { rotation: Type.Float16 } });
+
+    const input = { ball: { rotation: 3.1419 }};
+    expect(MyCoder.decode(MyCoder.encode(input)).ball.rotation).toBe(3.142578125);
+
+    MyCoder = new BinaryCoder({ ball: { rotation: Type.Float16 } })
+      .setTransforms({
+        ball: { rotation: [ x => x * 1_000, x => x * 0.001 ] }
+      });
+
+    expect(input.ball.rotation).toBe(3.1419);
+    expect(MyCoder.decode(MyCoder.encode(input)).ball.rotation).toBe(3.142);
+  });
+
   it('should handle advanced case', () => {
     const MyCoder = new BinaryCoder({
       id: Type.UInt,

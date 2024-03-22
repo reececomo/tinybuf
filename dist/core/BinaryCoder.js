@@ -149,18 +149,14 @@ class BinaryCoder {
      * @throws if fails (e.g. binary data is incompatible with schema).
      */
     decode(arrayBuffer) {
-        const decoded = this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer, this.Id === undefined ? 0 : 2));
-        return this._postDecode(decoded);
+        return this.read(new ReadState_1.ReadState(arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer, this.Id === undefined ? 0 : 2));
     }
     /**
      * Set additional transform functions to apply before encoding and after decoding.
      */
     setTransforms(transforms) {
-        if (transforms instanceof Function) {
+        if (transforms instanceof Function || (Array.isArray(transforms) && transforms[0] instanceof Function)) {
             this._transforms = transforms;
-        }
-        else if (Array.isArray(transforms) && transforms[0] instanceof Function) {
-            this._transforms = transforms[0];
         }
         else {
             for (const name of Object.keys(transforms)) {
@@ -325,6 +321,7 @@ class BinaryCoder {
         const fieldsStr = this.fields
             .map(({ name }, i) => `${name}:this.${this._readField.name}(${i},state)`)
             .join(',');
+        // return `return this.${this._postDecode.name}({${fieldsStr}})`;
         return `return{${fieldsStr}}`;
     }
     /** Read an individual field. */

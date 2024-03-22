@@ -176,23 +176,18 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
   public decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType {
-    const decoded: any = this.read(new ReadState(
+    return this.read(new ReadState(
       arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
       this.Id === undefined ? 0 : 2
     ));
-
-    return this._postDecode(decoded);
   }
 
   /**
    * Set additional transform functions to apply before encoding and after decoding.
    */
   public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
-    if (transforms instanceof Function) {
+    if (transforms instanceof Function || (Array.isArray(transforms) && transforms[0] instanceof Function)) {
       this._transforms = transforms;
-    }
-    else if (Array.isArray(transforms) && transforms[0] instanceof Function) {
-      this._transforms = transforms[0];
     }
     else {
       for (const name of Object.keys(transforms)) {
@@ -360,7 +355,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    * @returns
    * @throws if fails
    */
-  private read(state: ReadState): EncoderType {
+  private read<DecodedType = InferredDecodedType<EncoderType>>(state: ReadState): DecodedType {
     // This function will be executed only the first time to compile the read routine.
     // After that, we'll compile the read routine and add it directly to the instance
 
@@ -386,6 +381,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
       .map(({ name }, i) => `${name}:this.${this._readField.name}(${i},state)`)
       .join(',');
 
+    // return `return this.${this._postDecode.name}({${fieldsStr}})`;
     return `return{${fieldsStr}}`;
   }
 
@@ -404,12 +400,12 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
     return field.coder.read(state);
   }
 
-  private readMeAsValueType(state: ReadState): EncoderType {
+  private readMeAsValueType<DecodedType = InferredDecodedType<EncoderType>>(state: ReadState): DecodedType {
     return this._postDecode(this.getCoder(this.type).read(state));
   }
 
   /** Compile the decode() method for this object. */
-  private compileRead(): (state: ReadState) => EncoderType {
+  private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: ReadState) => DecodedType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type - in this case, there is no need to write custom code.
       return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readMeAsValueType : this.getCoder(this.type).read;
