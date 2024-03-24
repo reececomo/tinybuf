@@ -1,3 +1,19 @@
+const FLOAT16_EXPONENT_BITS = 5;
+const FLOAT16_EXPONENT_BIAS = 15;
+const FLOAT16_SIGNIFICAND_BITS = 10;
+const FLOAT16_EXPONENT_MASK = 0x1F;
+const FLOAT16_SIGNIFICAND_MASK = 0x3FF;
+const FLOAT16_PRECALCULATE_SUBNORMAL = Math.pow(2, -24);
+
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+class F16 {
+  /**
+   * Precomputed table of the conversion factors for each possible
+   * combination of exponent and significand bits. Unsigned.
+   */
+  public static readonly t = _initFloat16LookupTable(); // lazy init
+}
+
 /**
  * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
  *
@@ -14,10 +30,6 @@ export const toFloat16 = (function() {
   // used, eg. in Ogre), with the additional benefit of rounding, inspired
   // by James Tursa's half-precision code.
   return function toHalf(v: number): number {
-    if (Number.isNaN(v)) {
-      return 0b0111110000000001; // Float 16 NaN
-    }
-
     floatView[0] = v;
     const x = int32View[0];
 
@@ -33,6 +45,10 @@ export const toFloat16 = (function() {
 
     // If NaN, return NaN. If Inf or exponent overflow, return Inf.
     if (e > 142) {
+      if (isNaN(v)) {
+        return 0b0111110000000001; // Float 16 NaN
+      }
+
       bits |= 0x7c00;
       // If exponent was 0xff and one significand bit was set, it means NaN,
       // not Inf, so make sure we set one significand bit too.
@@ -59,6 +75,7 @@ export const toFloat16 = (function() {
   };
 }());
 
+
 /**
  * Convert a UInt16 bitmask of a 16-bit half precision float representation into a normal double precision float (number).
  *
@@ -66,34 +83,11 @@ export const toFloat16 = (function() {
  * @returns A number (standard 64-bit double precision representation).
  */
 export function fromFloat16(b: number): number {
-  // Extract sign, exponent, and significand bits
-  let sign = ((b & 0b1000000000000000) >> 15) === 0 ? 1 : -1;
-  let exponent = (b & 0b111110000000000) >> 10;
-  let significand = b & 0b000001111111111;
+  const sign = (b & 0x8000) === 0 ? 1 : -1;
+  const exponent = (b >> FLOAT16_SIGNIFICAND_BITS) & FLOAT16_EXPONENT_MASK;
+  const significand = b & FLOAT16_SIGNIFICAND_MASK;
 
-  // Handle special cases: zero, denormal, infinity, NaN
-  if (exponent === 0) {
-    // Subnormal or zero
-    if (significand === 0) {
-      return sign * 0; // Signed zero
-    }
-    else {
-      return sign * Math.pow(2, -14) * (significand / 1024); // Subnormal
-    }
-  }
-  else if (exponent === 0b11111) {
-    // Infinity or NaN
-    if (significand === 0) {
-      return sign * Infinity; // Infinity
-    }
-    else {
-      return NaN; // NaN
-    }
-  }
-
-  // Normalized number
-  exponent -= 15; // Adjust exponent bias
-  return sign * Math.pow(2, exponent) * (1 + significand / 1024);
+  return (sign) * F16.t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand];
 }
 
 /**
@@ -104,4 +98,36 @@ export function fromFloat16(b: number): number {
  */
 export function fround16(doubleFloat: number): number {
   return fromFloat16(toFloat16(doubleFloat));
+}
+
+// ----- Precalculated table: -----
+
+function _initFloat16LookupTable(): number[] {
+  const t = [];
+  for (let exponent = 0; exponent < 1 << FLOAT16_EXPONENT_BITS; exponent++) {
+    for (let significand = 0; significand < 1 << FLOAT16_SIGNIFICAND_BITS; significand++) {
+      const value = fromFloat16Helper(exponent, significand);
+      t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand] = value;
+    }
+  }
+  return t;
+}
+
+
+// Helper function used to precalculate the value for a given exponent and significand
+function fromFloat16Helper(exponent: number, significand: number): number {
+  if (exponent === 0) {
+    // Subnormal or zero
+    if (significand === 0) {
+      return 0;
+    }
+    return FLOAT16_PRECALCULATE_SUBNORMAL * (significand / 1024); // Subnormal
+  }
+  if (exponent === 0x1F) {
+    // Infinity or NaN
+    return significand === 0 ? Infinity : NaN;
+  }
+  // Normalized number
+  exponent -= FLOAT16_EXPONENT_BIAS; // Adjust exponent bias
+  return Math.pow(2, exponent) * (1 + significand / 1024);
 }
