@@ -1,23 +1,34 @@
-<img align="right" src="docs/hero.png" alt="TypeScript Binary Icon showing binary peeking out from behind a square." height="106">
+# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![test](https://github.com/reececomo/tinybuf/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/test.yml) [![test](https://github.com/reececomo/tinybuf/actions/workflows/lint.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/lint.yml)
 
-# 🔌 typescript-binary [![NPM version](https://img.shields.io/npm/v/typescript-binary.svg?style=flat-square)](https://www.npmjs.com/package/typescript-binary) [![test](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/test.yml) [![test](https://github.com/reececomo/typescript-binary/actions/workflows/lint.yml/badge.svg)](https://github.com/reececomo/typescript-binary/actions/workflows/lint.yml)
+<img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
-**TypeScript Binary** – encode typed data to and from binary, with advanced compression, natively in JavaScript.
+Compressed, statically-typed binary buffers in HTML5 / Node.js
 
-- 🚀 Designed for use in real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io))
-- 🗜️ Lossless and lossy compression, 50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) and [protobuf](https://protobuf.dev/)
-- ✨ Supports boolean-packing & 16-bit floats
-- 🚦 Compile time and runtime validation
-- 💪 0 dependencies
+- 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io) or [socket.io](https://github.com/socketio/socket.io))
+- 🗜️ Lossless and lossy compression, up to ~50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/)
+- ✨ Out-of-the-box boolean packing, 16-bit floating-point numbers, and 8-bit scalars
+- 🚦 Automatic TypeScript types: Compile-time safety & runtime validation
 
-> **TypeScript Binary** is also compatible with property mangling & code obfuscation tools.
+> **tinybuf** is suitable for use with property mangling & code minification tooling like [terser](https://terser.org/).
+
+## Why?
+
+**🔌 tinybuf** is optimized for speed & size — but also developer productivity too.
+
+[Protocol Buffers](https://protobuf.dev/) and [FlatBuffers](https://github.com/google/flatbuffers) are heavy, language-neutral libraries that rely on custom definition languages, generated code, and versioned schemas to service support for tasks like _Schema Evolution_, _Cross-Platform Language Support_, and _Custom Memory Management_.
+
+Unfortunately, despite all these features, they have limited encoding options (i.e. no `float16` or `scalar`), require heavy third-party tooling, and are tedious to use.
+
+> See [Comparison Table](#-comparison-table) for more.
 
 ## Sample Usage
 *Easily encode and decode data to binary formats*
 
 ```ts
-// Define a message coder
-const PlayerMessage = new BinaryCoder({
+import { encoder, decoder, Type } from 'tinybuf';
+
+// Define binary formats:
+const PlayerMessage = encoder({
   id: Type.UInt,
   health: Type.UInt8,
   position: {
@@ -26,23 +37,35 @@ const PlayerMessage = new BinaryCoder({
   }
 });
 
-// Encode data to binary
-const bufferBytes = PlayerMessage.encode(myPlayer);
+// Encode to bytes:
+const buffer = PlayerMessage.encode(myPlayer);
 
-// Decode data (with inferred types ✨)
-const data = PlayerMessage.decode(bufferBytes);
+// (Optional) Decode:
+const data = PlayerMessage.encode(myPlayer, buffer);
 ```
 
-## Getting Started with TypeScript Binary
+**Decoding many:**
+
+```ts
+// Create a decoder:
+const myDecoder = decoder()
+  .register(PlayerMessage, data => handlePlayerMessage(data))
+  .register(OtherMessage, data => handleOtherMessage(data));
+
+// Handle many formats:
+myDecoder.processBuffer(bufferBytes);
+```
+
+## Getting Started
 *Everything you need to quickly encode/decode binary.*
 
-**TypeScript Binary** is based off the idiomatic and expressive [**Protocol Buffers**](https://protobuf.dev/), providing JavaScript with first-class support for encoding and decoding strongly-typed message formats that are optimized.
+**tinybuf** provides the ability to quickly encode and decode strongly-typed message formats.
 
 The core concepts are:
 
-1. **[BinaryCoder](#define-formats):** _Custom, strongly-typed message formats that provides compression, runtime validation and compile-time type-safety_
+1. **[encoder](#define-formats):** _Custom, strongly-typed formats that provide binary compression, compile-time type-safety, and runtime validation_
 2. **[Types](#types):** _25+ supported encoding formats that map to ~7 JavaScript types_
-3. **[BinaryFormatHandler](#use-binaryformathandler):** _Incoming message handler that processes multiple formats at once_
+3. **[decoder](#use-decoder):** _A parser for binary buffers that routes data to handlers_
 
 > _See also: [Validation / Transforms](#-validation--transforms) for setting additional pre or post-processing rules on coders._
 
@@ -50,23 +73,23 @@ The core concepts are:
 
 ```sh
 # npm
-npm install typescript-binary -D
+npm install tinybuf -D
 
 # yarn
-yarn add typescript-binary --dev
+yarn add tinybuf --dev
 ```
 
 ## Usage
 
 ### Define formats
 
-Create a `BinaryCoder` like so:
+Create an encoding format like so:
 
 ```ts
-import { BinaryCoder, Type } from "typescript-binary";
+import { encoder, Type } from 'tinybuf';
 
 // Define your format:
-const GameWorldData = new BinaryCoder({
+const GameWorldData = encoder({
   time: Type.UInt,
   players: [{
     id: Type.UInt,
@@ -77,7 +100,11 @@ const GameWorldData = new BinaryCoder({
     }
   }]
 });
+```
 
+Then call `encode()` to turn it into binary (as `ArrayBuffer`).
+
+```ts
 // Encode:
 const bytes = GameWorldData.encode({
   time: 123,
@@ -95,14 +122,18 @@ const bytes = GameWorldData.encode({
 
 bytes.byteLength
 // 14
+```
 
+And you can also decode it directly from the encoding type.
+
+```
 // Decode:
 const data = GameWorldData.decode(bytes);
 ```
 
 ### Inferred types
 
-`BinaryCoder` will automatically infer the types for `encode()` and `decode()` from the schema provided (see the `Types` section below).
+The encoder will automatically infer the types for `encode()` and `decode()` from the schema provided (see the `Types` section below).
 
 For example, the type `T` for `GameWorldData.decode(...): T` would be inferred as:
 ```ts
@@ -120,12 +151,12 @@ For example, the type `T` for `GameWorldData.decode(...): T` would be inferred a
 }
 ```
 
-You can also use the `Infer<T>` helper type to use inferred types in any custom method/handler:
+You can also use the `Decoded<T>` helper type to get inferred types in any custom method/handler:
 
 ```ts
-import { Infer } from "typescript-binary";
+import { Decoded } from 'tinybuf';
 
-function updateGameWorld(data: Infer<typeof GameWorldData>) {
+function updateGameWorld(data: Decoded<typeof GameWorldData>) {
   // e.g. Access `data.players[0].position?.x`
 }
 ```
@@ -170,13 +201,144 @@ function updateGameWorld(data: Infer<typeof GameWorldData>) {
 
 <sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
 
+## ✨ Parsing formats
+
+By default, each encoder encodes a 2-byte identifier based on the shape of the data.
+
+You can explicitly set `Id` in the `encoder(Id, definition)` to any 2-byte string or unsigned integer (or disable entirely by passing `false`).
+
+### Use Decoder
+
+Handle multiple binary formats at once using a `decoder`:
+
+```ts
+import { decoder } from 'tinybuf';
+
+const myDecoder = decoder()
+  .on(MyFormatA, data => onMessageA(data))
+  .on(MyFormatB, data => onMessageB(data));
+
+// Trigger handler (or throw UnhandledBinaryDecodeError)
+myDecoder.processBuffer(binary);
+```
+
+> Note: Cannot be used with formats where `Id` was disabled.
+
+### Manual handling
+
+You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`):
+
+```ts
+if (BinaryCoder.peekStrId(incomingBinary) === MyMessageFormat.Id) {
+  // Do something special.
+}
+```
+
+### 💥 Id Collisions
+
+By default `Id` is based on a hash code of the encoding format. So the following two messages would have identical Ids:
+
+```ts
+const Person = encoder({
+  firstName: Type.String,
+  lastName: Type.String
+});
+
+const FavoriteColor = encoder({
+  fullName: Type.String,
+  color: Type.String
+});
+
+NameCoder.Id === ColorCoder.Id
+  // true
+```
+
+If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers.
+
+```ts
+const Person = encoder(1, {
+  firstName: Type.String,
+  lastName: Type.String
+});
+
+const FavoriteColor = encoder(2, {
+  fullName: Type.String,
+  color: Type.String
+});
+```
+
+> Identifiers can either be a 2-byte string (e.g. `'AB'`), an unsigned integer (0 -> 65,535).
+
+## ✨ Validation / Transforms
+
+### Validation
+
+The great thing about binary encoders is that data is implicitly type-validated, however, you can also add custom
+validation rules using `setValidation()`:
+
+```ts
+const UserMessage = encoder({
+  uuid: Type.String,
+  // ...
+})
+.setValidation({
+  uuid: (x) => {
+    if (!isValidUUIDv4(x)) {
+      throw new Error('Invalid UUIDv4: ' + x);
+    }
+  }
+});
+```
+
+### Transforms
+
+You can also apply additional encode/decode transforms.
+
+Here is an example where we're stripping out all whitespace:
+
+```ts
+const PositionMessage = encoder({ name: Type.String })
+  .setTransforms({ name: a => a.replace(/\s+/g, '') });
+
+let binary = PositionMessage.encode({ name: 'Hello  There' })
+let data = PositionMessage.decode(binary);
+
+data.name
+  // "HelloThere"
+```
+
+Unlike validation, transforms are applied asymmetrically.
+
+The transform function is only applied on **encode()**, but you can provide two transform functions.
+
+Here is an example which cuts the number of bytes required from `10` to `5`:
+
+```ts
+const PercentMessage = encoder({ value: Type.String }, false)
+  .setTransforms({
+    value: [
+      (before) => before.replace(/\$|USD/g, '').trim(),
+      (after) => '$' + after + ' USD'
+    ]
+  });
+
+let binary = PercentMessage.encode({ value: ' $45.53 USD' })
+let data = PercentMessage.decode(binary);
+
+binary.byteLength
+  // 5
+
+data.value
+  // "$45.53 USD"
+```
+
 ## 🏓 Comparison Table
 
-*TypeScript Binary is an ideal choice for real-time HTML5 / Node.js applications and games.*
+*Choosing for real-time HTML5 / Node.js applications and games.*
 
 Here are some use cases stacked uup.
 
-| | **TypeScript&nbsp;Binary** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
+| | **tinybuf** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
 | --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
 | **Serialization format** | Binary | Binary | Binary | String |
 | **Schema definition** | Native | [.fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [.proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
@@ -236,9 +398,9 @@ Here are some use cases stacked uup.
 }
 ```
 
-**TypeScript Binary**
+**tinybuf**
 ```ts
-const ExampleMessage = new BinaryCoder({
+const ExampleMessage = encoder({
   players: [
     {
       id: Type.UInt,
@@ -310,139 +472,10 @@ message ExampleMessage {
 
 </details>
 
-## ✨ Parsing formats
-
-By default, each `BinaryCoder` encodes a 2-byte identifier based on the shape of the data.
-
-You can explicitly set `Id` in the `BinaryCoder` constructor to any 2-byte string or unsigned integer (or disable entirely by passing `false`).
-
-### Use BinaryFormatHandler
-
-Handle multiple binary formats at once using a `BinaryFormatHandler`:
-
-```ts
-import { BinaryFormatHandler } from "typescript-binary";
-
-const binaryHandler = new BinaryFormatHandler()
-  .on(MyFormatA, (data) => handleMyFormatA(data))
-  .on(MyFormatB, (data) => handleMyFormatB(data));
-
-// Trigger handler (or throw UnhandledBinaryDecodeError)
-binaryHandler.processBuffer(binary);
-```
-
-> Note: Cannot be used with formats where `Id` is disabled.
-
-### Manual handling
-
-You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`):
-
-```ts
-if (BinaryCoder.peekStrId(incomingBinary) === MyMessageFormat.Id) {
-  // Do something special.
-}
-```
-
-### 💥 Id Collisions
-
-By default `Id` is based on a hash code of the encoding format. So the following two messages would have identical Ids:
-
-```ts
-const Person = new BinaryCoder({
-  firstName: Type.String,
-  lastName: Type.String
-});
-
-const FavoriteColor = new BinaryCoder({
-  fullName: Type.String,
-  color: Type.String
-});
-
-NameCoder.Id === ColorCoder.Id
-  // true
-```
-
-If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers.
-
-```ts
-const Person = new BinaryCoder({
-  firstName: Type.String,
-  lastName: Type.String
-}, "PE");
-
-const FavoriteColor = new BinaryCoder({
-  fullName: Type.String,
-  color: Type.String
-}, "FC");
-```
-
-## ✨ Validation / Transforms
-
-### Validation
-
-The great thing about binary encoders is that data is implicitly type-validated, however, you can also add custom
-validation rules using `setValidation()`:
-
-```ts
-const UserMessage = new BinaryCoder({
-  uuid: Type.String,
-  // ...
-})
-.setValidation({
-  uuid: (x) => {
-    if (!isValidUUIDv4(x)) {
-      throw new Error('Invalid UUIDv4: ' + x);
-    }
-  }
-});
-```
-
-### Transforms
-
-You can also apply additional encode/decode transforms.
-
-Here is an example where we're stripping out all whitespace:
-
-```ts
-const PositionMessage = new BinaryCoder({ name: Type.String })
-  .setTransforms({ name: a => a.replace(/\s+/g, '') });
-
-let binary = PositionMessage.encode({ name: 'Hello  There' })
-let data = PositionMessage.decode(binary);
-
-data.name
-  // "HelloThere"
-```
-
-Unlike validation, transforms are applied asymmetrically.
-
-The transform function is only applied on **encode()**, but you can provide two transform functions.
-
-Here is an example which cuts the number of bytes required from `10` to `5`:
-
-```ts
-const PercentMessage = new BinaryCoder({ value: Type.String }, false)
-  .setTransforms({
-    value: [
-      (before) => before.replace(/\$|USD/g, '').trim(),
-      (after) => '$' + after + ' USD'
-    ]
-  });
-
-let binary = PercentMessage.encode({ value: ' $45.53 USD' })
-let data = PercentMessage.decode(binary);
-
-binary.byteLength
-  // 5
-
-data.value
-  // "$45.53 USD"
-```
-
 ### Encoding guide
 
 See [docs/ENCODING.md](docs/ENCODING.md) for an overview on how most formats are encoded (including the dynamically sized integer types).
 
 ## Credits
 
-Forked from [js-binary](https://github.com/sitegui/js-binary)
+Developed from a hard-fork of Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).

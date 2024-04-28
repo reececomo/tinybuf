@@ -25,7 +25,9 @@ import {
  * @example
  * let onData = (data: Infer<typeof MyBinaryCoder>) => {...};
  */
-export type Infer<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+export type Decoded<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+/** @deprecated use Decoded<T> */
+export type Infer<T> = Decoded<T>;
 
 /**
  * BinaryCoder is a utility class for encoding and decoding binary data based
@@ -48,18 +50,18 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
 
   /**
    * @param encoderDefinition A defined encoding format.
-   * @param Id Defaults to hash code. Set `false` to disable. Must be a 16-bit unsigned integer.
+   * @param Id Defaults to hash code. Set `null` to disable. Must be a 16-bit unsigned integer.
    */
   public constructor(
     encoderDefinition: EncoderType,
-    Id?: IdType | false
+    Id?: IdType | null
   ) {
     if (
       (typeof Id === 'number' && (Math.floor(Id) !== Id || Id < 0 || Id > 65_535))
       || (typeof Id === 'string' && new TextEncoder().encode(Id).byteLength !== 2)
-      || (Id !== undefined && Id !== false && !['string', 'number'].includes(typeof Id))
+      || (Id !== undefined && Id !== null && !['string', 'number'].includes(typeof Id))
     ) {
-      throw new TypeError(`Id must be an unsigned 16-bit integer, a 2-byte string, or \`false\`. Received: ${Id}`);
+      throw new TypeError(`Id must be an unsigned 16-bit integer, a 2-byte string, or \`null\`. Received: ${Id}`);
     }
     else if (encoderDefinition instanceof OptionalType) {
       throw new TypeError("Invalid type given. Root object must not be an Optional.");
@@ -77,7 +79,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
       throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
     }
 
-    if (Id === false) {
+    if (Id === null) {
       this._id = undefined;
     }
     else if (Id === undefined && this.type === Type.Object) {
@@ -143,7 +145,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
    * @returns A string describing the encoding format.
    * @example "{uint8,str[]?}"
    */
-  public get format(): string {
+  protected get format(): string {
     if (this._format === undefined) {
       this._format = this.type === Type.Object
         ? `{${this.fields.map(v => v.format).join(',')}}`

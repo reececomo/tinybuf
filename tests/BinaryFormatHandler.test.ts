@@ -3,7 +3,8 @@ import {
   BinaryCoderIdCollisionError,
   BinaryFormatHandler,
   Type,
-  UnhandledBinaryDecodeError
+  UnhandledBinaryDecodeError,
+  decoder
 } from "../src";
 
 describe('BinaryCoderInterpreter', () => {
@@ -95,13 +96,13 @@ describe('BinaryCoderInterpreter', () => {
   describe('on()', () => {
     it('throws RangeError if there are not enough peek bytes', () => {
       const binaryHandler = new BinaryFormatHandler();
-      const format = new BinaryCoder({ a: [Type.String] }, false);
+      const format = new BinaryCoder({ a: [Type.String] }, null);
 
       expect(() => binaryHandler.on(format, () => {})).toThrow(TypeError);
     });
 
     it('throws BinaryCoderIdCollisionError if registering the same format twice', () => {
-      const binaryHandler = new BinaryFormatHandler()
+      const binaryHandler = decoder()
         .on(new BinaryCoder({ a: [Type.String] }), () => {});
 
       const identicalFormat = new BinaryCoder({ a: [Type.String] });

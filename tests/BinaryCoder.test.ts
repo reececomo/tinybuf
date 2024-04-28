@@ -2,7 +2,8 @@ import {
   BinaryCoder,
   Type,
   Optional,
-  Infer
+  Decoded,
+  encoder
 } from '../src/index';
 
 describe('BinaryCoder', () => {
@@ -29,7 +30,7 @@ describe('BinaryCoder', () => {
   };
 
   it('should encode all types', () => {
-    const MyCoder = new BinaryCoder({
+    const MyCoder = encoder({
       myBinary: Type.Binary,
       myBoolean: Type.Boolean,
       myBooleanTuple: Type.BooleanTuple,
@@ -120,7 +121,7 @@ describe('BinaryCoder', () => {
     expect(after).toStrictEqual(before);
 
     // eslint-disable-next-line max-len
-    expect(MyCoder.format).toEqual('{binary,bool,booltuple,uscalar,scalar,int,int16,int32,int8,json,regex,str,str[]?,{uint,uint16,uint32,uint8,{float16,float32,float64}[]},{date,bitmask16,bitmask32,bitmask8}?}');
+    expect((MyCoder as any).format).toEqual('{binary,bool,booltuple,uscalar,scalar,int,int16,int32,int8,json,regex,str,str[]?,{uint,uint16,uint32,uint8,{float16,float32,float64}[]},{date,bitmask16,bitmask32,bitmask8}?}');
   });
 
   it('should correctly parse a type', () => {
@@ -183,7 +184,7 @@ describe('BinaryCoder', () => {
   });
 
   it('should encode no Id when Id is false', () => {
-    const coder = new BinaryCoder({ a: Type.UInt }, false);
+    const coder = new BinaryCoder({ a: Type.UInt }, null);
     expect(coder.Id).toBe(undefined);
 
     const data = coder.encode({ a: 0 });
@@ -474,7 +475,7 @@ describe('transforms and validation', () => {
     })).toThrow();
 
     // decode
-    const preEncoded: Infer<typeof MyCoder> = {
+    const preEncoded: Decoded<typeof MyCoder> = {
       id: 21,
       names: ['a', 'b'],
       dates: [date],
@@ -600,7 +601,7 @@ describe('Id', () => {
     const format = {
       name: Type.String,
     };
-    const MyNakedCoder = new BinaryCoder(format as any, false);
+    const MyNakedCoder = new BinaryCoder(format as any, null);
     const MyClothedCoder = new BinaryCoder(format as any);
 
     expect(MyNakedCoder.Id).toBe(undefined);

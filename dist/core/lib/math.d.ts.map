@@ -1,1 +1,0 @@
-{"version":3,"file":"math.d.ts","sourceRoot":"","sources":["../../../src/core/lib/math.ts"],"names":[],"mappings":"AAAA,iCAAiC;AACjC,wBAAgB,KAAK,CAAC,KAAK,EAAE,MAAM,EAAE,GAAG,EAAE,MAAM,EAAE,GAAG,EAAE,MAAM,GAAG,MAAM,CAErE;AAED,wBAAwB;AACxB,wBAAgB,GAAG,CAAC,CAAC,EAAE,MAAM,GAAG,MAAM,CAErC;AACD,sBAAsB;AACtB,wBAAgB,GAAG,CAAC,CAAC,EAAE,MAAM,GAAG,MAAM,CAErC"}

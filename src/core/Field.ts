@@ -40,7 +40,7 @@ export class Field {
    */
   public get format(): string {
     if (this._format === undefined) {
-      this._format = `${this.coder.format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
+      this._format = `${(this.coder as any).format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
     }
 
     return this._format;
