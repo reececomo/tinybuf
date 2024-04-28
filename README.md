@@ -19,7 +19,7 @@ Both _Protocol Buffers_ and _FlatBuffers_ are heavy, language-agnostic options t
 *Easily encode to and from binary formats*
 
 ```ts
-import { encoder, decoder, Type } from 'tinybuf';
+import { encoder, Type } from 'tinybuf';
 
 // Define format:
 const PlayerMessage = encoder({
