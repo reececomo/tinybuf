@@ -13,7 +13,7 @@ Compressed, static-typed binary buffers in HTML5 / Node.js
 
 ## Why?
 
-Both _Protocol Buffers_ and _FlatBuffers_ are heavy, language-agnostic options that have limited encoding options and rely on clunky external tooling. **tinybuf** is optimized for speed & performance, ✨ plus developer productivity. See [comparison table](#-comparison-table) for more.
+_FlatBuffers_ and _Protocol Buffers_ are heavy, cross-platform libraries that have limited encodings, and depend on clumsy external tooling. **tinybuf** is optimized for speed, performance, and ✨ developer productivity. See [comparison table](#-comparison-table) for more.
 
 ## Sample Usage
 *Easily encode to and from binary formats*
