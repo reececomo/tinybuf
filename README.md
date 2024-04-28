@@ -2,32 +2,26 @@
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
-Compressed, statically-typed binary buffers in HTML5 / Node.js
+Compressed, static-typed binary buffers in HTML5 / Node.js
 
 - 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io) or [socket.io](https://github.com/socketio/socket.io))
 - 🗜️ Lossless and lossy compression, up to ~50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/)
-- ✨ Out-of-the-box boolean packing, 16-bit floats, 8-bit scalars, and much more
-- 🚦 Automatic TypeScript types: Compile-time safety & runtime validation
+- ✨ Out-of-the-box boolean packing, 16-bit floats, 8-bit scalars, and more
+- 🚦 Compile-time safety & runtime validation
 
-> ✅ **tinybuf** is also suitable for use with property mangling & code minification tools like [terser](https://terser.org/)
+> **tinybuf** is safe for use with property mangling & code minification like [terser](https://terser.org/)
 
 ## Why?
 
-**🔌 tinybuf** is optimized for speed & size — _as well as developer productivity_ ✨
-
-[Protocol Buffers](https://protobuf.dev/) and [FlatBuffers](https://github.com/google/flatbuffers) are heavier, language-neutral libraries that rely on custom definition languages, generated code, and versioned schemas to service support for tasks like _Schema Evolution_, _Cross-Platform Language Support_, and _Custom Memory Management_.
-
-Unfortunately, the encoding options are extremely limited (i.e. no `float16` or `scalar`), the serialization is not particularly fast, the third-party code generation is clumsy, and they are slow &amp; tedious to develop HTML5 games with.
-
-> See [comparison table](#-comparison-table) for a full breakdown.
+Both _Protocol Buffers_ and _FlatBuffers_ are heavy, language-agnostic options that have limited encoding options and rely on clunky external tooling. **tinybuf** is optimized for speed & performance, ✨ plus developer productivity. See [comparison table](#-comparison-table) for more.
 
 ## Sample Usage
-*Easily encode and decode data to binary formats*
+*Easily encode to and from binary formats*
 
 ```ts
 import { encoder, decoder, Type } from 'tinybuf';
 
-// Define binary formats:
+// Define format:
 const PlayerMessage = encoder({
   id: Type.UInt,
   health: Type.UInt8,
@@ -37,37 +31,34 @@ const PlayerMessage = encoder({
   }
 });
 
-// Encode to bytes:
-const buffer = PlayerMessage.encode(myPlayer);
-
-// (Optional) Decode:
-const data = PlayerMessage.encode(myPlayer, buffer);
+// Encode:
+const bytes = PlayerMessage.encode(myPlayer);
 ```
 
-**Decoding many:**
+**Decoding many formats:**
 
 ```ts
+import { decoder } from 'tinybuf';
+
 // Create a decoder:
 const myDecoder = decoder()
   .on(PlayerMessage, data => handlePlayerMessage(data))
   .on(OtherMessage, data => handleOtherMessage(data));
 
-// Handle many formats:
-myDecoder.processBuffer(bufferBytes);
+// Trigger handler (or throw UnhandledBinaryDecodeError):
+myDecoder.processBuffer(bytes);
 ```
 
 ## Getting Started
-*Everything you need to quickly encode/decode binary.*
-
-**tinybuf** provides the ability to quickly encode and decode strongly-typed message formats.
+***tinybuf** provides the ability to quickly encode and decode strongly-typed message formats.*
 
 The core concepts are:
 
-1. **[encoder](#define-formats):** _Custom, strongly-typed formats that provide binary compression, compile-time type-safety, and runtime validation_
-2. **[Types](#types):** _25+ supported encoding formats that map to ~7 JavaScript types_
-3. **[decoder](#use-decoder):** _A parser for binary buffers that routes data to handlers_
+1. **[encoder](#define-formats):** _Flexible, static-typed binary encoding formats_
+2. **[Types](#types):** _25+ built-in encoding formats_
+3. **[decoder](#use-decoder):** _A parser for processing multiple binary buffer formats_
 
-> _See also: [Validation / Transforms](#-validation--transforms) for setting additional pre or post-processing rules on coders._
+> For more information on additional pre/post-processing rules, check out [Validation and Transforms](#-validation--transforms).
 
 ## Installation
 
