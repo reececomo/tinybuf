@@ -6,20 +6,20 @@ Compressed, statically-typed binary buffers in HTML5 / Node.js
 
 - 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io) or [socket.io](https://github.com/socketio/socket.io))
 - 🗜️ Lossless and lossy compression, up to ~50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/)
-- ✨ Out-of-the-box boolean packing, 16-bit floating-point numbers, and 8-bit scalars
+- ✨ Out-of-the-box boolean packing, 16-bit floats, 8-bit scalars, and much more
 - 🚦 Automatic TypeScript types: Compile-time safety & runtime validation
 
-> **tinybuf** is suitable for use with property mangling & code minification tooling like [terser](https://terser.org/).
+> ✅ **tinybuf** is also suitable for use with property mangling & code minification tools like [terser](https://terser.org/)
 
 ## Why?
 
-**🔌 tinybuf** is optimized for speed & size — but also developer productivity too.
+**🔌 tinybuf** is optimized for speed & size — _as well as developer productivity_ ✨
 
-[Protocol Buffers](https://protobuf.dev/) and [FlatBuffers](https://github.com/google/flatbuffers) are heavy, language-neutral libraries that rely on custom definition languages, generated code, and versioned schemas to service support for tasks like _Schema Evolution_, _Cross-Platform Language Support_, and _Custom Memory Management_.
+[Protocol Buffers](https://protobuf.dev/) and [FlatBuffers](https://github.com/google/flatbuffers) are heavier, language-neutral libraries that rely on custom definition languages, generated code, and versioned schemas to service support for tasks like _Schema Evolution_, _Cross-Platform Language Support_, and _Custom Memory Management_.
 
-Unfortunately, despite all these features, they have limited encoding options (i.e. no `float16` or `scalar`), require heavy third-party tooling, and are tedious to use.
+Unfortunately, the encoding options are extremely limited (i.e. no `float16` or `scalar`), the serialization is not particularly fast, the third-party code generation is clumsy, and they are slow &amp; tedious to develop HTML5 games with.
 
-> See [Comparison Table](#-comparison-table) for more.
+> See [comparison table](#-comparison-table) for a full breakdown.
 
 ## Sample Usage
 *Easily encode and decode data to binary formats*
@@ -229,6 +229,8 @@ myDecoder.processBuffer(binary);
 You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`):
 
 ```ts
+import { BinaryCoder } from 'tinybuf';
+
 if (BinaryCoder.peekStrId(incomingBinary) === MyMessageFormat.Id) {
   // Do something special.
 }
