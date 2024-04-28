@@ -272,6 +272,7 @@ validation rules using `setValidation()`:
 ```ts
 const UserMessage = encoder({
   uuid: Type.String,
+  name: Optional(Type.String),
   // ...
 })
 .setValidation({
