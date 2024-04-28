@@ -49,8 +49,8 @@ const data = PlayerMessage.encode(myPlayer, buffer);
 ```ts
 // Create a decoder:
 const myDecoder = decoder()
-  .register(PlayerMessage, data => handlePlayerMessage(data))
-  .register(OtherMessage, data => handleOtherMessage(data));
+  .on(PlayerMessage, data => handlePlayerMessage(data))
+  .on(OtherMessage, data => handleOtherMessage(data));
 
 // Handle many formats:
 myDecoder.processBuffer(bufferBytes);
