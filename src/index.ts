@@ -1,4 +1,4 @@
-import BinaryCoder, { Decoded } from './core/BinaryCoder';
+import BinaryCoder from './core/BinaryCoder';
 import { BinaryFormatHandler } from './core/BinaryFormatHandler';
 import { EncoderDefinition } from './core/Type';
 
@@ -71,7 +71,7 @@ export function encoder<T extends EncoderDefinition, IdType extends string | num
  * let MyFormat = encoder(null, { ... });
  */
 export function encoder<T extends EncoderDefinition, IdType extends string | number = number>(a?: IdType | T, b?: T): BinaryCoder<T, IdType> {
-  return typeof a === 'object'
-    ? new BinaryCoder<T, IdType>(a)
-    : new BinaryCoder<T, IdType>(b, a);
+  return a !== null && typeof a === 'object'
+    ? new BinaryCoder<T, IdType>(a as T)
+    : new BinaryCoder<T, IdType>(b as T, a as IdType);
 }

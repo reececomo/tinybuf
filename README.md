@@ -196,7 +196,7 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 
 By default, each encoder encodes a 2-byte identifier based on the shape of the data.
 
-You can explicitly set `Id` in the `encoder(Id, definition)` to any 2-byte string or unsigned integer (or disable entirely by passing `false`).
+You can explicitly set `Id` in the `encoder(Id, definition)` to any 2-byte string or unsigned integer (or disable entirely by passing `null`).
 
 ### Use Decoder
 
@@ -308,7 +308,7 @@ The transform function is only applied on **encode()**, but you can provide two 
 Here is an example which cuts the number of bytes required from `10` to `5`:
 
 ```ts
-const PercentMessage = encoder({ value: Type.String }, false)
+const PercentMessage = encoder(null, { value: Type.String })
   .setTransforms({
     value: [
       (before) => before.replace(/\$|USD/g, '').trim(),
