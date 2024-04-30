@@ -66,7 +66,7 @@ Then all you need is:
 
 1. **[encoder](#define-formats)** (+[types](#types)): _Define flexible, static-typed encoding formats_
 2. **[decoder](#use-decoder)**: _Parse incoming binary in registered formats_
-3. **[Compression/serialization](#-compression-and-serialization)**: _Various tips &amp; techniques for making data small_
+3. **[Compression/serialization](#%EF%B8%8F-compression-and-serialization)**: _Various tips &amp; techniques for making data small_
 
 > For more information on additional pre/post-processing rules, check out [Validation and Transforms](#-validation--transforms).
 
@@ -203,9 +203,9 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 <sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
 
 ## 🗜️ Compression and Serialization
-***tinybuf** comes with powerful encoding types & transforms that make packets tiny*
+***tinybuf** comes with powerful encoding types & transforms to make data tiny*
 
-It is [strongly advised](https://xkcd.com/1691/) you don't start with optimizing compression right away, as 80% of the win will come just from binary encoding in the first place. Come back as your project matures.
+It is [strongly advised](https://xkcd.com/1691/) that you don't start with optimizing compression right away. 80% of the win comes just from binary encoding in the first place. Consider revisiting as needed only.
 
 > It is highly recommended to read the materials by Glenn Fiedler on [Serialization Strategies: Serializing Floating Point Values](https://gafferongames.com/post/serialization_strategies/#serializing_floating_point_values) and [State Synchronization: Quantize Both Sides](https://gafferongames.com/post/state_synchronization/#quantize_both_sides).
 
@@ -213,32 +213,13 @@ It is [strongly advised](https://xkcd.com/1691/) you don't start with optimizing
 
 In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers (or "floats"). These take up a whopping **8 bytes** each!
 
-Most of the meaningful gains will come out of compressing floats, including those in 2D or 3D vectors and quaternions. You can compress all visual-only quantities without issue - i.e. if you are using [Snapshot Compression Netcode](https://gafferongames.com/post/snapshot_compression/)), or updating elements of a [HUD](https://en.wikipedia.org/wiki/Head-up_display).
+Most of the meaningful gains will come out of compressing floats, including those in 2D or 3D vectors and quaternions. You can compress all visual-only quantities without issue - i.e. if you are using [Snapshot Compression Netcode](https://gafferongames.com/post/snapshot_compression/), or updating elements of a [HUD](https://en.wikipedia.org/wiki/Head-up_display).
 
-### Quantization
+### Quantizing Physics
 
-If you are running a deterministic physics simulation (i.e. [State Synchronization / Rollback Netcode](https://gafferongames.com/post/state_synchronization/), you will likely need to apply the same quantization to your physics simulation to avoid desynchronization.
+If you are running a deterministic physics simulation (i.e. [State Synchronization / Rollback Netcode](https://gafferongames.com/post/state_synchronization/)), you may need to apply the same quantization to your physics simulation to avoid desynchronization issues or rollback "pops".
 
-On every phyiscs `update()`, you would either apply the same quantize functions directly to the relevant code:
-
-```ts
-update() {
-  // Do physics updates...
-
-  // Quantize:
-  quantize();
-}
-
-/** Quantize floats for all physics values. */
-quantize() {
-  for (const worldObject of this.worldObjects) {
-    worldObject.position.set( Math.fround(player.position.x), Math.fround(player.position.y) );
-    worldObject.velocity.set( Math.fround(player.velocity.x), Math.fround(player.velocity.y) );
-  }
-}
-```
-
-Or as Glenn Fiedler suggests, apply the deserialized state as if it had come over the network:
+Or as Glenn Fiedler suggests, apply the deserialized state on every phyiscs `update()` as if it had come over the network:
 
 ```ts
 update() {
@@ -251,16 +232,35 @@ update() {
 }
 ```
 
-For reference here are the is a list of the various quantize functions for each number type:
+Or for simple cases, you can apply the rounding function to the physics simulation:
+
+```ts
+update() {
+  // Do physics updates...
+
+  // Quantize:
+  quantize();
+}
+
+quantize() {
+  for (const entity of this.worldEntities) {
+    // Round everything to the nearest 32-bit representation:
+    entity.position.set( Math.fround(player.position.x), Math.fround(player.position.y) );
+    entity.velocity.set( Math.fround(player.velocity.x), Math.fround(player.velocity.y) );
+  }
+}
+```
+
+For reference here are the is a list of the various quantization (rounding) functions for each number type:
 
 | **Type** | **Bytes** | **Quantization function** | **Use Cases** |
 | --- | :-: | --- | --- |
 | `Type.Float64` | **8** | _n/a_ | Physics values. |
-| `Type.Float32` | **4** | `Math.fround(x)` (built-in) | Visual values, physics values. |
+| `Type.Float32` | **4** | `Math.fround(x)` | Visual values, physics values. |
 | `Type.Float16` | **2** | `fround16(x)` | Limited visual values, limited physics values - i.e. safe for numbers in the range ±65,504, with the smallest precision ±0.00011839976. |
 | `Type.Scalar` | **1** | `scalarRound(x)` | Player inputs - e.g. _analog player input (joystick)_. Values from -1.00 to 1.00. |
 | `Type.UScalar` | **1** | `uScalarRound(x)` | Visual values - e.g. _a health bar_. Values from 0.00 to 1.00. |
-| `Type.Int` | **1-2**<sup>\*</sup> | `Math.round(x)` (built-in) | Visual values. \*Up to 4-8 bytes for larger values (see [Types](#types)). |
+| `Type.Int` | **1-2**<sup>\*</sup> | `Math.round(x)` | Visual values. \*Up to 4-8 bytes for larger values (see [Types](#types)). |
 
 ### Custom Transforms
 
