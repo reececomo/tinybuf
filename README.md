@@ -266,20 +266,20 @@ For reference here are the is a list of the various quantization (rounding) func
 
 You can combine the above built-ins with **[transforms (see Transforms)](#transforms)** to acheive really meaningful compression.
 
-In the folling example, we have a `myRotation` value which is given in absolute radians between 0 and 2π (~6.28319). If we tried to send this as a plain 16-bit float, we would lose a \*LOT\* of precision, and the rotation would come out visually jerky on the other end.
+In the following example, we have a `myRotation` value which is given in absolute radians between 0 and 2π (~6.28319). If we tried to send this as a plain 16-bit float, we would lose a \*LOT\* of precision, and the rotation would come out visually jerky on the other end.
 
-What we could do instead is apply a custom [transforms](#transforms) that maximizes the safe 16-bit float range (-65,000 to +65,000):
+What we could do instead is set custom [transforms](#transforms) that utilize much more of the safe range for 16-bit floats (±65,504):
 
 ```ts
-// Example transform functions that convert radians from the range
-// 0 -> 2π, into the safe range -62,832.0 -> +62,832.0
-const to62832 = x => (x * 20_000) - 62_832;
-const from62832 = x => (x + 62_832) / 20_000;
+// Example transform functions that boosts precision by x20,000 by putting
+// values into the range ±~62,832, prior to serializing as a 16-bit float.
+const toSpecialRange = x => (x * 20_000) - 62_832;
+const fromSpecialRange = x => (x + 62_832) / 20_000;
 
 const MyState = encoder({
   myRotation: Type.Float16
 })
-  .setTransforms({ myRotation: [ to62832, from62832 ]});
+  .setTransforms({ myRotation: [ toSpecialRange, fromSpecialRange ]});
 ```
 
 ## ✨ Parsing formats
