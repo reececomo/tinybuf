@@ -4,7 +4,7 @@
 
 Compressed, static-typed binary buffers in HTML5 / Node.js
 
-- 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io) or [socket.io](https://github.com/socketio/socket.io))
+- 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io), [peer.js](https://github.com/peers/peerjs) or [socket.io](https://github.com/socketio/socket.io))
 - 🗜️ Lossless and lossy compression, up to ~50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/)
 - ✨ Out-of-the-box boolean packing, 16-bit floats, 8-bit scalars, and more
 - 🚦 Compile-time safety & runtime validation
@@ -13,50 +13,60 @@ Compressed, static-typed binary buffers in HTML5 / Node.js
 
 ## Why?
 
-_FlatBuffers_ and _Protocol Buffers_ are heavy, cross-platform libraries that have limited encodings, and depend on clumsy external tooling. **tinybuf** is optimized for speed, performance, and ✨ developer productivity. See [comparison table](#-comparison-table) for more.
+**tinybuf** is small, fast and extensible. Unlike _FlatBuffers_ and _Protocol Buffers_ - which focus on cross-platform languages, limited encoding choices, and generated code - **tinybuf** is focused soley on fast, native serialization to compressed formats.  See [comparison table](#-comparison-table).
 
 ## Sample Usage
-*Easily encode to and from binary formats*
+*Easily send and receive custom binary formats.*
+
+**Define formats:**
 
 ```ts
 import { encoder, Type } from 'tinybuf';
 
-// Define format:
-const PlayerMessage = encoder({
-  id: Type.UInt,
-  health: Type.UInt8,
-  position: {
-    x: Type.Float32,
-    y: Type.Float32
-  }
+const GameWorldState = encoder({
+  time: Type.UInt,
+  players: [{ /* ... */ }]
 });
-
-// Encode:
-const bytes = PlayerMessage.encode(myPlayer);
 ```
 
-**Decoding many formats:**
+**Sending:**
+
+```ts
+// Encode:
+const bytes = GameWorldState.encode(myWorld);
+```
+
+**Receiving:**
+
+```ts
+// Decode:
+const myWorldData = GameWorldState.decode(bytes);
+```
+
+**Receiving (many):**
 
 ```ts
 import { decoder } from 'tinybuf';
 
 // Create a decoder:
 const myDecoder = decoder()
-  .on(PlayerMessage, data => handlePlayerMessage(data))
-  .on(OtherMessage, data => handleOtherMessage(data));
+  .on(GameWorldState, (data) => myWorld.update(data))
+  .on(ChatMessage, (data) => myHud.onChatMessage(data));
 
-// Trigger handler (or throw UnhandledBinaryDecodeError):
+// Handle incoming:
 myDecoder.processBuffer(bytes);
 ```
 
 ## Getting Started
-***tinybuf** provides the ability to quickly encode and decode strongly-typed message formats.*
+*Everything you need to quickly encode and decode strongly-typed message formats.*
 
-The core concepts are:
+The only requirement for **tinybuf** is that encoding formats are known by clients, servers and/or peers. You should define encoding formats in some shared module.
 
-1. **[encoder](#define-formats):** _Flexible, static-typed binary encoding formats_
-2. **[Types](#types):** _25+ built-in encoding formats_
-3. **[decoder](#use-decoder):** _A parser for processing multiple binary buffer formats_
+Then all you need is:
+
+1. **[encoder](#define-formats)** (+[types](#types)): _Define flexible, static-typed encoding formats_
+2. **[decoder](#use-decoder)**: _Parse incoming binary in registered formats_
+3. **[Compression/serialization](#-compression-and-serialization)**: _Various tips &amp; techniques for making data small_
 
 > For more information on additional pre/post-processing rules, check out [Validation and Transforms](#-validation--transforms).
 
@@ -77,7 +87,7 @@ yarn add tinybuf
 Create an encoding format like so:
 
 ```ts
-import { encoder, Type } from 'tinybuf';
+import { encoder, Type, Optional } from 'tinybuf';
 
 // Define your format:
 const GameWorldData = encoder({
@@ -85,10 +95,10 @@ const GameWorldData = encoder({
   players: [{
     id: Type.UInt,
     isJumping: Type.Boolean,
-    position: {
+    position: Optional({
       x: Type.Float,
       y: Type.Float
-    }
+    })
   }]
 });
 ```
@@ -126,23 +136,23 @@ const data = GameWorldData.decode(bytes);
 
 The encoder will automatically infer the types for `encode()` and `decode()` from the schema provided (see the `Types` section below).
 
-For example, the type `T` for `GameWorldData.decode(...): T` would be inferred as:
+For example, the return type of `GameWorldData.decode(...)` from the above example, is:
 ```ts
+// data:
 {
-  timeRemaining: number,
-  players: {
+  time: number,
+  players: Array<{
     id: string,
     health: number,
     isJumping: boolean,
-    position?: {
-      x: number,
-      y: number
-    }
-  }[]
+    position?: { x: number, y: number } | undefined
+  }>
 }
 ```
 
-You can also use the `Decoded<T>` helper type to get inferred types in any custom method/handler:
+#### Using 
+
+You can also use the `Decoded<typeof T>` helper to add inferred types to any custom method/handler:
 
 ```ts
 import { Decoded } from 'tinybuf';
@@ -192,18 +202,85 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 
 <sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
 
-### Float32, Float16, Scalar & UScalar
+## 🗜️ Compression and Serialization
+***tinybuf** comes with powerful encoding types & transforms that make packets tiny*
 
-In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers.
+It is [strongly advised](https://xkcd.com/1691/) you don't start with optimizing compression right away, as 80% of the win will come just from binary encoding in the first place. Come back as your project matures.
 
-When you serialize to any number type - including Int/UInt types - your numbers are transformed (or "quantized") to a raw binary representation for transit.
+> It is highly recommended to read the materials by Glenn Fiedler on [Serialization Strategies: Serializing Floating Point Values](https://gafferongames.com/post/serialization_strategies/#serializing_floating_point_values) and [State Synchronization: Quantize Both Sides](https://gafferongames.com/post/state_synchronization/#quantize_both_sides).
 
-This is OK for any visual-only quantities, but if you are running a physics simulation, you will likely need to apply the same quantization to your engine on each tick too.
+### Serializing Floats
 
-| **Type** | **Quantization func** | **Import required?** |
-| :-- | :-- | :-- |
-| `Type.Float32` | `Math.fround()` | _JavaScript built-in_ |
-| `Type.Float16` | `fround16()` | _Import from **tinybuf**_ |
+In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers (or "floats"). These take up a whopping **8 bytes** each!
+
+Most of the meaningful gains will come out of compressing floats, including those in 2D or 3D vectors and quaternions. You can compress all visual-only quantities without issue - i.e. if you are using [Snapshot Compression Netcode](https://gafferongames.com/post/snapshot_compression/)), or updating elements of a [HUD](https://en.wikipedia.org/wiki/Head-up_display).
+
+### Quantization
+
+If you are running a deterministic physics simulation (i.e. [State Synchronization / Rollback Netcode](https://gafferongames.com/post/state_synchronization/), you will likely need to apply the same quantization to your physics simulation to avoid desynchronization.
+
+On every phyiscs `update()`, you would either apply the same quantize functions directly to the relevant code:
+
+```ts
+update() {
+  // Do physics updates...
+
+  // Quantize:
+  quantize();
+}
+
+/** Quantize floats for all physics values. */
+quantize() {
+  for (const worldObject of this.worldObjects) {
+    worldObject.position.set( Math.fround(player.position.x), Math.fround(player.position.y) );
+    worldObject.velocity.set( Math.fround(player.velocity.x), Math.fround(player.velocity.y) );
+  }
+}
+```
+
+Or as Glenn Fiedler suggests, apply the deserialized state as if it had come over the network:
+
+```ts
+update() {
+  // Do physics updates...
+
+  // Quantize:
+  const serialized = GameWorldFormat.encode(this.getState());
+  const deserialized = GameWorldFormat.decode(serialized);
+  this.setState(deserialized);
+}
+```
+
+For reference here are the is a list of the various quantize functions for each number type:
+
+| **Type** | **Bytes** | **Quantization function** | **Use Cases** |
+| --- | :-: | --- | --- |
+| `Type.Float64` | **8** | _n/a_ | Physics values. |
+| `Type.Float32` | **4** | `Math.fround(x)` (built-in) | Visual values, physics values. |
+| `Type.Float16` | **2** | `fround16(x)` | Limited visual values, limited physics values - i.e. safe for numbers in the range ±65,504, with the smallest precision ±0.00011839976. |
+| `Type.Scalar` | **1** | `scalarRound(x)` | Player inputs - e.g. _analog player input (joystick)_. Values from -1.00 to 1.00. |
+| `Type.UScalar` | **1** | `uScalarRound(x)` | Visual values - e.g. _a health bar_. Values from 0.00 to 1.00. |
+| `Type.Int` | **1-2**<sup>\*</sup> | `Math.round(x)` (built-in) | Visual values. \*Up to 4-8 bytes for larger values (see [Types](#types)). |
+
+### Custom Transforms
+
+You can combine the above built-ins with **[transforms (see Transforms)](#transforms)** to acheive really meaningful compression.
+
+In the folling example, we have a `myRotation` value which is given in absolute radians between 0 and 2π (~6.28319). If we tried to send this as a plain 16-bit float, we would lose a \*LOT\* of precision, and the rotation would come out visually jerky on the other end.
+
+What we could do instead is apply a custom [transforms](#transforms) that maximizes the safe 16-bit float range (-65,000 to +65,000):
+
+```ts
+// Example transform functions that convert radians from the range
+// 0 -> 2π, into the safe range -62,832.0 -> +62,832.0
+const to62832 = x => (x * 20_000) - 62_832;
+const from62832 = x => (x + 62_832) / 20_000;
+
+const MyState = encoder({
+  myRotation: Type.Float16
+})
+  .setTransforms({ myRotation: [ to62832, from62832 ]});
+```
 
 ## ✨ Parsing formats
 
