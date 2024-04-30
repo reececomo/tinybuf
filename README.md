@@ -64,10 +64,10 @@ The core concepts are:
 
 ```sh
 # npm
-npm install tinybuf -D
+npm install tinybuf
 
 # yarn
-yarn add tinybuf --dev
+yarn add tinybuf
 ```
 
 ## Usage
@@ -191,6 +191,19 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 <sup>†</sup>Length of payload bytes as a `UInt`. Typically 1 byte, but could be 2-8 bytes for very large payloads.
 
 <sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
+
+### Float32, Float16, Scalar & UScalar
+
+In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers.
+
+When you serialize to any number type - including Int/UInt types - your numbers are transformed (or "quantized") to a raw binary representation for transit.
+
+This is OK for any visual-only quantities, but if you are running a physics simulation, you will likely need to apply the same quantization to your engine on each tick too.
+
+| **Type** | **Quantization func** | **Import required?** |
+| :-- | :-- | :-- |
+| `Type.Float32` | `Math.fround()` | _JavaScript built-in_ |
+| `Type.Float16` | `fround16()` | _Import from **tinybuf**_ |
 
 ## ✨ Parsing formats
 
