@@ -78,7 +78,7 @@ parser.processBuffer(bytes)
 **tinybuf** achieves its tiny size by serializing to a schemaless encoding format; This means both the client and server
 (or peers) must share common encoding definitions. You might typically put these into some common, shared module.
 
-Use te following
+See the following guides for more:
 
 1. **[defineFormat](#define-formats)**: _Define flexible, static-typed encoding formats_
 2. **[bufferParser](#use-decoder)**: _Parse incoming binary in registered formats_
