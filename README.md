@@ -2,73 +2,90 @@
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
-Compressed, static-typed binary buffers in HTML5 / Node.js
+Fast, tiny binary serialization for Node.js and HTML5 &ndash; based on [js-binary](https://www.npmjs.com/package/js-binary)
 
-- 🚀 Designed for real-time HTML5 games (via [geckos.io](https://github.com/geckosio/geckos.io), [peer.js](https://github.com/peers/peerjs) or [socket.io](https://github.com/socketio/socket.io))
-- 🗜️ Lossless and lossy compression, up to ~50% smaller than [FlatBuffers](https://github.com/google/flatbuffers) or [Protocol Buffers](https://protobuf.dev/)
-- ✨ Out-of-the-box boolean packing, 16-bit floats, 8-bit scalars, and more
-- 🚦 Compile-time safety & runtime validation
+- 🚀 Suitable for real-time HTML5 games (e.g. [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io), [peer.js](https://github.com/peers/peerjs))
+- ✨ Inferred typings, built-in validation and transforms
+- 🗜️ Fast, highly-compressed encoding: ~50% smaller than [FlatBuffers/protobuf](#-comparison-table)
+- 🚦 Headerless encodings, safe for property mangling (e.g. [terser](https://terser.org/))
 
-> **tinybuf** is safe for use with property mangling & code minification like [terser](https://terser.org/)
+## Basic Usage
 
-## Why?
-
-**tinybuf** is small, fast and extensible. Unlike _FlatBuffers_ and _Protocol Buffers_ - which focus on cross-platform languages, limited encoding choices, and generated code - **tinybuf** is focused soley on fast, native serialization to compressed formats.  See [comparison table](#-comparison-table).
-
-## Sample Usage
-*Easily send and receive custom binary formats.*
-
-**Define formats:**
+**Define encoding formats:**
 
 ```ts
-import { encoder, Type } from 'tinybuf';
+import { defineFormat, optional, Type } from 'tinybuf';
 
-const GameWorldState = encoder({
-  time: Type.UInt,
-  players: [{ /* ... */ }]
+
+const GameWorldData = defineFormat({
+  world: {
+    seqNo: Type.UInt,
+    time: Type.Float16,
+  },
+  players: [{
+    id: Type.UInt,
+    inputs: Type.Bools, // [up, left, down, right]
+    position: optional({
+      x: Type.Float32,
+      y: Type.Float32,
+    }),
+  }]
 });
 ```
 
-**Sending:**
+> [!NOTE]
+> **Objects** are flat-encoded, so additional nesting incurs a 0 byte overhead. **Arrays** incur a negligible (1 byte)
+> overhead.
+
+**Serialize:**
 
 ```ts
-// Encode:
-const bytes = GameWorldState.encode(myWorld);
+// encode
+const bytes = GameWorldData.encode(myGameWorld)
+
+bytes.byteLength
+// 16
 ```
 
-**Receiving:**
+**Deserialize:**
 
 ```ts
-// Decode:
-const myWorldData = GameWorldState.decode(bytes);
+// decode
+const data = GameWorldData.decode(bytes)
+
+// {
+//   world: { seqNo: number, time: number },
+//   players: Array<{ id: number, inputs: boolean[], position?: { x: number, y: number } }>
+// }
 ```
 
-**Receiving (many):**
+**Deserialize multiple formats:**
 
 ```ts
-import { decoder } from 'tinybuf';
+import { bufferParser } from 'tinybuf'
 
-// Create a decoder:
-const myDecoder = decoder()
+// subscribe to formats
+const parser = bufferParser()
   .on(GameWorldState, (data) => myWorld.update(data))
-  .on(ChatMessage, (data) => myHud.onChatMessage(data));
+  .on(ChatMessage, (data) => myHud.onChatMessage(data))
 
-// Handle incoming:
-myDecoder.processBuffer(bytes);
+// process incoming data
+parser.processBuffer(bytes)
 ```
 
-## Getting Started
-*Everything you need to quickly encode and decode strongly-typed message formats.*
+## Get Started
 
-The only requirement for **tinybuf** is that encoding formats are known by clients, servers and/or peers. You should define encoding formats in some shared module.
+**tinybuf** achieves its tiny size by serializing to a schemaless encoding format; This means both the client and server
+(or peers) must share common encoding definitions. You might typically put these into some common, shared module.
 
-Then all you need is:
+Use te following
 
-1. **[encoder](#define-formats)** (+[types](#types)): _Define flexible, static-typed encoding formats_
-2. **[decoder](#use-decoder)**: _Parse incoming binary in registered formats_
-3. **[Compression/serialization](#%EF%B8%8F-compression-and-serialization)**: _Various tips &amp; techniques for making data small_
+1. **[defineFormat](#define-formats)**: _Define flexible, static-typed encoding formats_
+2. **[bufferParser](#use-decoder)**: _Parse incoming binary in registered formats_
+3. **[Compression/serialization](#%EF%B8%8F-compression-and-serialization)**: _Various tips &amp techniques for making data small_
 
-> For more information on additional pre/post-processing rules, check out [Validation and Transforms](#-validation--transforms).
+> [!TIP]
+> For additional validation and post-processing, see [Validation and Transforms](#-validation--transforms)
 
 ## Installation
 
@@ -87,23 +104,31 @@ yarn add tinybuf
 Create an encoding format like so:
 
 ```ts
-import { encoder, Type, Optional } from 'tinybuf';
+import { encoder, Type, Optional } from 'tinybuf'
 
-// Define your format:
-const GameWorldData = encoder({
-  time: Type.UInt,
-  players: [{
-    id: Type.UInt,
-    isJumping: Type.Boolean,
-    position: Optional({
-      x: Type.Float,
-      y: Type.Float
-    })
-  }]
-});
+// define reusable snippets with `as const`
+const Vec2 = {
+  x: Type.Float32,
+  y: Type.Float32,
+} as const
+
+const Player = {
+  id: Type.UInt,
+  inputs: Type.Bools,
+  position: Vec2,
+  velocity: Vec2,
+} as const
+
+const GameWorldData = defineFormat({
+  world: {
+    seqNo: Type.UInt,
+    time: Type.Float16
+  },
+  players: [Player],
+})
 ```
 
-Then call `encode()` to turn it into binary (as `ArrayBuffer`).
+Use `encode(data)` to serialize to binary (as `ArrayBuffer`).
 
 ```ts
 // Encode:
@@ -116,10 +141,14 @@ const bytes = GameWorldData.encode({
        position: {
          x: 110.57345,
          y: -93.5366
+       },
+       velocity: {
+         x: 11,
+         y: 22.12
        }
     }
   ]
-});
+})
 
 bytes.byteLength
 // 14
@@ -129,7 +158,7 @@ And you can also decode it directly from the encoding type.
 
 ```
 // Decode:
-const data = GameWorldData.decode(bytes);
+const data = GameWorldData.decode(bytes)
 ```
 
 ### Inferred types
@@ -155,7 +184,7 @@ For example, the return type of `GameWorldData.decode(...)` from the above examp
 You can also use the `Decoded<typeof T>` helper to add inferred types to any custom method/handler:
 
 ```ts
-import { Decoded } from 'tinybuf';
+import { Decoded } from 'tinybuf'
 
 function updateGameWorld(data: Decoded<typeof GameWorldData>) {
   // e.g. Access `data.players[0].position?.x`
@@ -166,7 +195,7 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 *Serialize data as a number of lossless (and lossy!) data types*
 
 | **Type** | **Inferred JavaScript Type** | **Bytes** | **About** |
-| :-----------------: | :-----------------: | :---------------------------------------: | ------------------------------------------------------------------------------------------------------------------- |
+| :----------------- | :-----------------: | :---------------------------------------: | ------------------------------------------------------------------------------------------------------------------- |
 | `Type.Int` | `number` | 1-8<sup>\*</sup> | Integer between `-Number.MAX_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`. |
 | `Type.Int8` | `number` | 1 | Integer between -127 to 128. |
 | `Type.Int16` | `number` | 2 | Integer between -32,767 to 32,767. |
@@ -180,17 +209,17 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 | `Type.Float64` / `Type.Double` | `number` | 8 | Default JavaScript `number` type. A 64-bit "double" precision floating point number. |
 | `Type.Float32` / `Type.Float` | `number` | 4 | A 32-bit "single" precision floating point number. |
 | `Type.Float16` / `Type.Half` | `number` | 2 | A 16-bit "half" precision floating point number.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
+| `Type.Bool` | `boolean` | 1 | A single boolean. |
+| `Type.Bools` | `boolean[]` | 1<sup>¶</sup> | Variable-length array of boolean values packed into 1<sup>¶</sup> byte. |
+| `Type.Bools8` | `boolean[]` | 1 | Array of 1 - 8 booleans. |
+| `Type.Bools16` | `boolean[]` | 2 | Array of 1 - 16 booleans. |
+| `Type.Bools32` | `boolean[]` | 4 | Array of 1 - 32 booleans. |
+| `Type.Buffer` | `ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | JavaScript `ArrayBuffer` data. |
 | `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
-| `Type.Boolean` | `boolean` | 1 | A single boolean. |
-| `Type.BooleanTuple` | `boolean[]` | 1<sup>¶</sup> | Variable-length array/tuple of boolean values packed into 1<sup>¶</sup> byte. |
-| `Type.Bitmask8` | `boolean[]` | 1 | 8 booleans. |
-| `Type.Bitmask16` | `boolean[]` | 2 | 16 booleans. |
-| `Type.Bitmask32` | `boolean[]` | 4 | 32 booleans. |
 | `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Arbitrary [JSON](http://json.org/) data, encoded as a UTF-8 string. |
-| `Type.Binary` | `ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | JavaScript `ArrayBuffer` data. |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup>&nbsp;+&nbsp;n&nbsp;+&nbsp;1 | JavaScript `RegExp` object. |
 | `Type.Date` | `Date` | 8 | JavaScript `Date` object. |
-| `Optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(...)` helper. Array elements cannot be optional. |
+| `optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(...)` helper. Array elements cannot be optional. |
 | `[T]` | `Array<T>` | 1<sup>†</sup>&nbsp;+&nbsp;n | Use array syntax. Any array. |
 | `{}` | `object` | _none_ | Use object syntax. No overhead to using object types. Buffers are ordered, flattened structures. |
 
@@ -215,48 +244,29 @@ In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers 
 
 Most of the meaningful gains will come out of compressing floats, including those in 2D or 3D vectors and quaternions. You can compress all visual-only quantities without issue - i.e. if you are using [Snapshot Compression Netcode](https://gafferongames.com/post/snapshot_compression/), or updating elements of a [HUD](https://en.wikipedia.org/wiki/Head-up_display).
 
-### Quantizing Physics
+#### Quantizing Physics
 
-If you are running a deterministic physics simulation (i.e. [State Synchronization / Rollback Netcode](https://gafferongames.com/post/state_synchronization/)), you may need to apply the same quantization to your physics simulation to avoid desynchronization issues or rollback "pops".
+If you are running a deterministic physics simulation (e.g. [State Synchronization / Rollback Netcode](https://gafferongames.com/post/state_synchronization/)),
+you may need to _quantize_ your floating-point numbers before comparing them.
 
-Or as Glenn Fiedler suggests, apply the deserialized state on every phyiscs `update()` as if it had come over the network:
+As [Glenn Fiedler](https://gafferongames.com) suggests, you could simply apply the deserialized state on every phyiscs `update()` as if it had come over the network:
 
 ```ts
-update() {
-  // Do physics updates...
+updateLoop() {
+  // do physics here ...
 
-  // Quantize:
-  const serialized = GameWorldFormat.encode(this.getState());
-  const deserialized = GameWorldFormat.decode(serialized);
-  this.setState(deserialized);
+  // quantize
+  const encoded = GameWorldFormat.encode(world)
+  world.update(GameWorldFormat.decode(encoded))
 }
 ```
 
-Or for simple cases, you can apply the rounding function to the physics simulation:
-
-```ts
-update() {
-  // Do physics updates...
-
-  // Quantize:
-  quantize();
-}
-
-quantize() {
-  for (const entity of this.worldEntities) {
-    // Round everything to the nearest 32-bit representation:
-    entity.position.set( Math.fround(player.position.x), Math.fround(player.position.y) );
-    entity.velocity.set( Math.fround(player.velocity.x), Math.fround(player.velocity.y) );
-  }
-}
-```
-
-For reference here are the is a list of the various quantization (rounding) functions for each number type:
+For more manual approaches, here are the is a list of the various quantization (rounding) functions for each number type:
 
 | **Type** | **Bytes** | **Quantization function** | **Use Cases** |
 | --- | :-: | --- | --- |
 | `Type.Float64` | **8** | _n/a_ | Physics values. |
-| `Type.Float32` | **4** | `Math.fround(x)` | Visual values, physics values. |
+| `Type.Float32` | **4** | `Math.fround(x)` (built-in) | Visual values, physics values. |
 | `Type.Float16` | **2** | `fround16(x)` | Limited visual values, limited physics values - i.e. safe for numbers in the range ±65,504, with the smallest precision ±0.00011839976. |
 | `Type.Scalar` | **1** | `scalarRound(x)` | Player inputs - e.g. _analog player input (joystick)_. Values from -1.00 to 1.00. |
 | `Type.UScalar` | **1** | `uScalarRound(x)` | Visual values - e.g. _a health bar_. Values from 0.00 to 1.00. |
@@ -273,84 +283,108 @@ What we could do instead is set custom [transforms](#transforms) that utilize mu
 ```ts
 // Example transform functions that boosts precision by x20,000 by putting
 // values into the range ±~62,832, prior to serializing as a 16-bit float.
-const toSpecialRange = x => (x * 20_000) - 62_832;
-const fromSpecialRange = x => (x + 62_832) / 20_000;
+const toSpecialRange = x => (x * 20_000) - 62_832
+const fromSpecialRange = x => (x + 62_832) / 20_000
 
-const MyState = encoder({
+const MyState = defineFormat({
   myRotation: Type.Float16
 })
-  .setTransforms({ myRotation: [ toSpecialRange, fromSpecialRange ]});
+  .setTransforms({ myRotation: [ toSpecialRange, fromSpecialRange ]})
 ```
 
 ## ✨ Parsing formats
 
-By default, each encoder encodes a 2-byte identifier based on the shape of the data.
+By default, each encoding includes a 2-byte identifier based on the shape of the data which is used to decode the packet.
 
-You can explicitly set `Id` in the `encoder(Id, definition)` to any 2-byte string or unsigned integer (or disable entirely by passing `null`).
+These identifiers are shape-based, so they will collide for identical-shaped encodings.
 
-### Use Decoder
+You can explicitly set the header to any 2-byte string or u16 integer in the `defineFormat({ header: 'Ab' }, definition)`.
 
-Handle multiple binary formats at once using a `decoder`:
+### bufferParser()
+
+Handle multiple binary formats at once using a `bufferParser`:
 
 ```ts
-import { decoder } from 'tinybuf';
+import { bufferParser } from 'tinybuf'
 
-const myDecoder = decoder()
+const myDecoder = bufferParser()
   .on(MyFormatA, data => onMessageA(data))
-  .on(MyFormatB, data => onMessageB(data));
+  .on(MyFormatB, data => onMessageB(data))
 
 // Trigger handler (or throw UnhandledBinaryDecodeError)
-myDecoder.processBuffer(binary);
+myDecoder.processBuffer(binary)
 ```
 
-> Note: Cannot be used with formats where `Id` was disabled.
+> Note: Cannot be used with headerless formats.
 
 ### Manual handling
 
-You can manually read message identifers from incoming buffers with the static function `BinaryCoder.peekIntId(...)` (or `BinaryCoder.peekStrId(...)`):
+You can check headers on raw buffers using `peekHeader(): number` and `peekHeaderStr(): string`:
 
 ```ts
-import { BinaryCoder } from 'tinybuf';
+import { peekHeader } from 'tinybuf'
 
-if (BinaryCoder.peekStrId(incomingBinary) === MyMessageFormat.Id) {
+if (peekHeader(incomingBinary) === MyMessageFormat.header) {
   // Do something special.
 }
 ```
 
-### 💥 Id Collisions
+### 💥 Header Collisions
 
-By default `Id` is based on a hash code of the encoding format. So the following two messages would have identical Ids:
-
-```ts
-const Person = encoder({
-  firstName: Type.String,
-  lastName: Type.String
-});
-
-const FavoriteColor = encoder({
-  fullName: Type.String,
-  color: Type.String
-});
-
-NameCoder.Id === ColorCoder.Id
-  // true
-```
-
-If two identical formats with different handlers is a requirement, you can explicitly set unique identifiers.
+The default `header` is based on the shape of the encoding format, so the following two formats would have identical headers:
 
 ```ts
-const Person = encoder(1, {
-  firstName: Type.String,
-  lastName: Type.String
-});
+const User = defineFormat({
+  name: Type.String,
+  age: Type.UInt
+})
 
-const FavoriteColor = encoder(2, {
-  fullName: Type.String,
-  color: Type.String
-});
+const Color = defineFormat({
+  name: Type.String,
+  hex: Type.UInt
+})
+
+User.header === Color.header
+// true
 ```
 
-> Identifiers can either be a 2-byte string (e.g. `'AB'`), an unsigned integer (0 -> 65,535).
+You can explicitly set unique headers, as an integer 0 -> 65,535, or a 2-byte string (e.g. `'AB'`).
+
+```ts
+const User = defineFormat(123, {
+  name: Type.String,
+  age: Type.UInt
+})
+
+const Color = defineFormat('Co', {
+  name: Type.String,
+  hex: Type.UInt
+})
+
+User.header === Color.header
+// false
+```
+
+e.g. using a `const enum`:
+
+```ts
+const enum Formats {
+  User,
+  Color,
+}
+
+const User = defineFormat(Formats.User, {
+  name: Type.String,
+  age: Type.UInt
+})
+
+const Color = defineFormat(Formats.Color, {
+  name: Type.String,
+  hex: Type.UInt
+})
+```
+
+> 
 
 ## ✨ Validation / Transforms
 
@@ -360,7 +394,7 @@ The great thing about binary encoders is that data is implicitly type-validated,
 validation rules using `setValidation()`:
 
 ```ts
-const UserMessage = encoder({
+const UserMessage = defineFormat({
   uuid: Type.String,
   name: Optional(Type.String),
   // ...
@@ -368,10 +402,10 @@ const UserMessage = encoder({
 .setValidation({
   uuid: (x) => {
     if (!isValidUUIDv4(x)) {
-      throw new Error('Invalid UUIDv4: ' + x);
+      throw new Error('Invalid UUIDv4: ' + x)
     }
   }
-});
+})
 ```
 
 ### Transforms
@@ -381,11 +415,11 @@ You can also apply additional encode/decode transforms.
 Here is an example where we're stripping out all whitespace:
 
 ```ts
-const PositionMessage = encoder({ name: Type.String })
-  .setTransforms({ name: a => a.replace(/\s+/g, '') });
+const PositionMessage = defineFormat({ name: Type.String })
+  .setTransforms({ name: a => a.replace(/\s+/g, '') })
 
 let binary = PositionMessage.encode({ name: 'Hello  There' })
-let data = PositionMessage.decode(binary);
+let data = PositionMessage.decode(binary)
 
 data.name
   // "HelloThere"
@@ -398,16 +432,16 @@ The transform function is only applied on **encode()**, but you can provide two 
 Here is an example which cuts the number of bytes required from `10` to `5`:
 
 ```ts
-const PercentMessage = encoder(null, { value: Type.String })
+const PercentMessage = defineFormat(null, { value: Type.String })
   .setTransforms({
     value: [
       (before) => before.replace(/\$|USD/g, '').trim(),
       (after) => '$' + after + ' USD'
     ]
-  });
+  })
 
 let binary = PercentMessage.encode({ value: ' $45.53 USD' })
-let data = PercentMessage.decode(binary);
+let data = PercentMessage.decode(binary)
 
 binary.byteLength
   // 5
@@ -431,7 +465,7 @@ Here are some use cases stacked uup.
 | **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
 | **Fast & efficient** | 🟢 | 🟢 | 🟢 | 🔴 |
 | **16-bit floats** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Boolean-packing** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Packed booleans** | 🟢 | 🔴 | 🔴 | 🔴 |
 | **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
 | **Property mangling** | 🟢 | 🔴 | 🔴 | 🔴 |
 | **Suitable for real-time data** | 🟢 | 🟢 | 🔴 | 🔴 |
@@ -484,7 +518,7 @@ Here are some use cases stacked uup.
 
 **tinybuf**
 ```ts
-const ExampleMessage = encoder({
+const ExampleMessage = defineFormat({
   players: [
     {
       id: Type.UInt,
@@ -501,56 +535,56 @@ const ExampleMessage = encoder({
       health: Type.UScalar
     },
   ],
-});
+})
 ```
 
 **FlatBuffers**
 ```fbs
 // ExampleMessage.fbs
 
-namespace ExampleNamespace;
+namespace ExampleNamespace
 
 table Vec3 {
-  x: float;
-  y: float;
-  z: float;
+  x: float
+  y: float
+  z: float
 }
 
 table Player {
-  id: uint;
-  position: Vec3;
-  velocity: Vec3;
-  health: float;
+  id: uint
+  position: Vec3
+  velocity: Vec3
+  health: float
 }
 
 table ExampleMessage {
-  players: [Player];
+  players: [Player]
 }
 
-root_type ExampleMessage;
+root_type ExampleMessage
 ```
 
 **Protocol Buffers (Proto3)**
 ```proto
-syntax = "proto3";
+syntax = "proto3"
 
-package example;
+package example
 
 message Vec3 {
-  float x = 1;
-  float y = 2;
-  float z = 3;
+  float x = 1
+  float y = 2
+  float z = 3
 }
 
 message Player {
-  uint32 id = 1;
-  Vec3 position = 2;
-  Vec3 velocity = 3;
-  float health = 4;
+  uint32 id = 1
+  Vec3 position = 2
+  Vec3 velocity = 3
+  float health = 4
 }
 
 message ExampleMessage {
-  repeated Player players = 1;
+  repeated Player players = 1
 }
 ```
 
@@ -562,4 +596,4 @@ See [docs/ENCODING.md](docs/ENCODING.md) for an overview on how most formats are
 
 ## Credits
 
-Developed from a hard-fork of Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).
+Hard-forked from Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).

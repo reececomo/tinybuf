@@ -1,9 +1,9 @@
 import {
   BinaryCoder,
   Type,
-  Optional,
   Decoded,
-  encoder
+  optional,
+  defineFormat
 } from '../src/index';
 
 describe('BinaryCoder', () => {
@@ -11,7 +11,7 @@ describe('BinaryCoder', () => {
     a: Type.Int,
     b: [Type.Int],
     c: [{
-      d: Optional(Type.String)
+      d: optional(Type.String)
     }],
   });
 
@@ -30,10 +30,10 @@ describe('BinaryCoder', () => {
   };
 
   it('should encode all types', () => {
-    const MyCoder = encoder({
+    const MyCoder = defineFormat({
       myBinary: Type.Binary,
       myBoolean: Type.Boolean,
-      myBooleanTuple: Type.BooleanTuple,
+      myBools: Type.Bools,
       myUScalar: Type.UScalar,
       myScalar: Type.Scalar,
       myInt: Type.Int,
@@ -43,7 +43,7 @@ describe('BinaryCoder', () => {
       myJSON: Type.JSON,
       myRegExp: Type.RegExp,
       myString: Type.String,
-      myOptional: Optional([Type.String]),
+      myOptional: optional([Type.String]),
       myObject: {
         myUInt: Type.UInt,
         myUInt16: Type.UInt16,
@@ -55,18 +55,18 @@ describe('BinaryCoder', () => {
           myFloat64: Type.Float64,
         }]
       },
-      myOptionalObject: Optional({
+      myOptionalObject: optional({
         myDate: Type.Date,
-        myBitmask16: Type.Bitmask16,
-        myBitmask32: Type.Bitmask32,
-        myBitmask8: Type.Bitmask8,
+        myBools16: Type.Bools16,
+        myBools32: Type.Bools32,
+        myBools8: Type.Bools8,
       })
     });
 
     const before = {
       myBinary: new TextEncoder().encode('binary').buffer,
       myBoolean: true,
-      myBooleanTuple: [false, true],
+      myBools: [false, true],
       myUScalar: 0.5,
       myScalar: -0.5,
       myInt: 1,
@@ -99,14 +99,14 @@ describe('BinaryCoder', () => {
       },
       myOptionalObject: {
         myDate: new Date(),
-        myBitmask8: [
+        myBools8: [
           true, false, true, false, true, false, true, false
         ],
-        myBitmask16: [
+        myBools16: [
           true, false, true, false, true, false, true, false,
           true, false, true, false, true, false, true, false
         ],
-        myBitmask32: [
+        myBools32: [
           true, false, true, false, true, false, true, false,
           true, false, true, false, true, false, true, false,
           true, false, true, false, true, false, true, false,
@@ -252,7 +252,7 @@ describe('BinaryCoder', () => {
   });
 
   it('should throw TypeError when root object is optional', () => {
-    expect(() => new BinaryCoder(Optional({ a: Type.UInt }) as any)).toThrow(TypeError);
+    expect(() => new BinaryCoder(optional({ a: Type.UInt }) as any)).toThrow(TypeError);
   });
 
   it('should throw TypeError when root object is unknown coder type', () => {
@@ -265,15 +265,15 @@ describe('BinaryCoder', () => {
       objectArray: [{
         str: Type.String,
         uint: Type.UInt8,
-        optionalObject: Optional({
+        optionalObject: optional({
           x: Type.Float,
           y: Type.Float
         }),
         boolean: Type.Boolean
       }],
-      optionalArray: Optional([Type.String]),
-      booleanTuple: Type.BooleanTuple,
-      bitmask8: Type.Bitmask8,
+      optionalArray: optional([Type.String]),
+      booleanTuple: Type.Bools,
+      bools8: Type.Bools8,
     });
 
     const binary = Example.encode({
@@ -290,7 +290,7 @@ describe('BinaryCoder', () => {
         }
       ],
       booleanTuple: [true, false, true],
-      bitmask8: [false, false, true, false, false, false, false, true],
+      bools8: [false, false, true, false, false, false, false, true],
     });
 
     expect(binary.byteLength).toBe(23);
@@ -387,9 +387,9 @@ describe('transforms and validation', () => {
   it('should handle advanced case', () => {
     const MyCoder = new BinaryCoder({
       id: Type.UInt,
-      names: Optional([Type.String]),
+      names: optional([Type.String]),
       dates: [Type.Date],
-      myOptionalObject: Optional({
+      myOptionalObject: optional({
         myDate: Type.Date,
       }),
       myObject: {
@@ -503,7 +503,7 @@ describe('transforms and validation', () => {
 describe('BOOLEAN_ARRAY', () => {
   const MyCoder = new BinaryCoder({
     name: Type.String,
-    coolBools: Type.BooleanTuple,
+    coolBools: Type.Bools,
   });
 
   it('should encode less than 8', () => {
@@ -557,7 +557,7 @@ describe('BOOLEAN_ARRAY', () => {
 describe('BITMASK_8', () => {
   const MyCoder = new BinaryCoder({
     name: Type.String,
-    coolBools: Type.Bitmask8,
+    coolBools: Type.Bools8,
   });
 
   it('should encode all booleans below the minimum allowed', () => {
@@ -614,10 +614,10 @@ describe('Id', () => {
   });
 });
 
-describe('Bitmask16', () => {
+describe('Bools16', () => {
   const MyCoder = new BinaryCoder({
     name: Type.String,
-    coolBools: Type.Bitmask16,
+    coolBools: Type.Bools16,
   });
 
   it('should encode all booleans below the minimum allowed', () => {
@@ -641,11 +641,11 @@ describe('Bitmask16', () => {
   });
 });
 
-describe('Bitmask32', () => {
+describe('Bools32', () => {
   const MyCoder = new BinaryCoder({
     name: Type.String,
-    coolBools: Type.Bitmask32,
-    other: Optional(Type.String),
+    coolBools: Type.Bools32,
+    other: optional(Type.String),
   });
 
   it('should encode all booleans below the minimum allowed', () => {

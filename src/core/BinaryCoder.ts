@@ -1,10 +1,6 @@
 import * as coders from './lib/coders';
-import { Field } from './Field';
-import {
-  djb2HashUInt16,
-  hashCodeTo2CharStr,
-  strToHashCode
-} from './lib/hashCode';
+import { djb2HashUInt16, strToHashCode } from './lib/hashCode';
+import { peekHeader, peekHeaderStr } from './lib/peek';
 import { MutableArrayBuffer } from './MutableArrayBuffer';
 import { ReadState } from './ReadState';
 import {
@@ -16,16 +12,18 @@ import {
   InferredTransformConfig,
   InferredValidationConfig,
   ValidationFn,
-  Transforms
+  Transforms,
+  FieldDefinition
 } from './Type';
 
+export type BinaryCoderHeader = string | number;
+
 /**
- * Infer the decoded type of a BinaryCoder.
- *
- * @example
- * let onData = (data: Infer<typeof MyBinaryCoder>) => {...};
+ * Decoded type of a binary encoding.
+ * @example let onData = (data: Decoded<typeof MyBinaryCoder>) => {...};
  */
 export type Decoded<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+
 /** @deprecated use Decoded<T> */
 export type Infer<T> = Decoded<T>;
 
@@ -33,35 +31,39 @@ export type Infer<T> = Decoded<T>;
  * BinaryCoder is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
  *
- * @see {Id}
+ * @see {header}
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends string | number = number> {
+export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType extends BinaryCoderHeader = number> {
+  /**
+   * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
+   *
+   * @see {peekHeader(...)}
+   * @see {peekHeaderStr(...)}
+   * @see {BinaryCoder.hashCode}
+   */
+  public readonly header?: HeaderType;
+
   protected readonly type: Type;
   protected readonly fields: Field[];
 
   protected _hash?: number;
   protected _format?: string;
-  protected _id?: IdType;
 
   protected _transforms?: Transforms<any> | undefined;
   protected _validationFn?: ValidationFn<any> | undefined;
 
-  /**
-   * @param encoderDefinition A defined encoding format.
-   * @param Id Defaults to hash code. Set `null` to disable. Must be a 16-bit unsigned integer.
-   */
   public constructor(
     encoderDefinition: EncoderType,
-    Id?: IdType | null
+    header?: HeaderType | null
   ) {
     if (
-      (typeof Id === 'number' && (Math.floor(Id) !== Id || Id < 0 || Id > 65_535))
-      || (typeof Id === 'string' && new TextEncoder().encode(Id).byteLength !== 2)
-      || (Id !== undefined && Id !== null && !['string', 'number'].includes(typeof Id))
+      (typeof header === 'number' && (Math.floor(header) !== header || header < 0 || header > 65_535))
+      || (typeof header === 'string' && new TextEncoder().encode(header).byteLength !== 2)
+      || (header !== undefined && header !== null && !['string', 'number'].includes(typeof header))
     ) {
-      throw new TypeError(`Id must be an unsigned 16-bit integer, a 2-byte string, or \`null\`. Received: ${Id}`);
+      throw new TypeError(`header must be an unsigned 16-bit integer, a 2-byte string, or \`null\`. Received: ${header}`);
     }
     else if (encoderDefinition instanceof OptionalType) {
       throw new TypeError("Invalid type given. Root object must not be an Optional.");
@@ -79,60 +81,51 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
       throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
     }
 
-    if (Id === null) {
-      this._id = undefined;
+    if (header === null) {
+      // explicitly disabled
+      this.header = undefined;
     }
-    else if (Id === undefined && this.type === Type.Object) {
-      this._id = this.hashCode as IdType;
+    else if (header === undefined && this.type === Type.Object) {
+      // automatic
+      this.header = this.hashCode as HeaderType;
     }
     else {
-      this._id = Id;
+      // explicitly set
+      this.header = header;
     }
   }
 
   // ----- Static methods: -----
 
   /**
-   * Read the first two bytes of a buffer as an unsigned 16-bit integer.
+   * Read the header of a buffer as a number.
    *
-   * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
-   *
-   * @see {BinaryCoder.Id}
+   * @see {BinaryCoder.header}
    * @throws {RangeError} if buffer size < 2
    */
-  public static peekIntId(buffer: ArrayBuffer | ArrayBufferView): number {
-    const dataView = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer);
-    return dataView.getUint16(0);
-  }
+  public static peekHeader = peekHeader;
 
   /**
-   * Read the first two bytes of a buffer as a 2-character string.
+   * Read the header of a buffer as a string.
    *
-   * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
-   *
-   * @see {BinaryCoder.Id}
+   * @see {BinaryCoder.header}
    * @throws {RangeError} if buffer size < 2
    */
-  public static peekStrId(buffer: ArrayBuffer | ArrayBufferView): string {
-    return hashCodeTo2CharStr(this.peekIntId(buffer));
-  }
+  public static peekHeaderStr = peekHeaderStr;
+
+  /** @deprecated Use peekHeader */
+  public static peekIntId = peekHeader;
+  /** @deprecated Use peekHeader */
+  public static peekStrId = peekHeaderStr;
 
   // ----- Public accessors: -----
 
-  /**
-   * A unique identifier as an unsigned 16-bit integer. Encoded as the first 2 bytes.
-   *
-   * @see {BinaryCoder.peekIntId(...)}
-   * @see {BinaryCoder.peekStrId(...)}
-   * @see {BinaryCoder.hashCode}
-   */
-  public get Id(): IdType | undefined {
-    return this._id;
+  /** @deprecated use .header */
+  public get Id(): HeaderType | undefined {
+    return this.header;
   }
 
-  /**
-   * @returns A hash code representing the encoding format. An unsigned 16-bit integer.
-   */
+  /** A uint16 number representing the shape of the encoded format */
   public get hashCode(): number {
     if (this._hash === undefined) {
       this._hash = djb2HashUInt16(this.format);
@@ -166,7 +159,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
     const safeValue = this._preEncode(value);
     const buffer = new MutableArrayBuffer();
 
-    this.writeId(buffer);
+    this.writeHeader(buffer);
     this.write(safeValue, buffer, '');
 
     return buffer.toArrayBuffer();
@@ -180,7 +173,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
   public decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType {
     return this.read(new ReadState(
       arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
-      this.Id === undefined ? 0 : 2
+      this.header === undefined ? 0 : 2
     ));
   }
 
@@ -279,14 +272,14 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
   }
 
   /**
-   * Writes @see {Id} as the prefix of the buffer.
+   * Writes @see {header} as the prefix of the buffer.
    */
-  protected writeId(mutableArrayBuffer: MutableArrayBuffer): void {
-    if (this.Id === undefined) {
+  protected writeHeader(mutableArrayBuffer: MutableArrayBuffer): void {
+    if (this.header === undefined) {
       return;
     }
 
-    const idInt16 = typeof this.Id === 'string' ? strToHashCode(this.Id) : this.Id as number;
+    const idInt16 = typeof this.header === 'string' ? strToHashCode(this.header) : this.header as number;
     coders.uint16Coder.write(idInt16, mutableArrayBuffer, '');
   }
 
@@ -296,11 +289,11 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
   protected getCoder(type: Type): coders.BinaryTypeCoder<any> {
     switch (type) {
       case Type.Binary: return coders.arrayBufferCoder;
-      case Type.Bitmask16: return coders.bitmask16Coder;
-      case Type.Bitmask32: return coders.bitmask32Coder;
-      case Type.Bitmask8: return coders.bitmask8Coder;
-      case Type.Boolean: return coders.booleanCoder;
-      case Type.BooleanTuple: return coders.booleanArrayCoder;
+      case Type.Bool: return coders.booleanCoder;
+      case Type.Bools: return coders.booleanArrayCoder;
+      case Type.Bools8: return coders.bitmask8Coder;
+      case Type.Bools16: return coders.bitmask16Coder;
+      case Type.Bools32: return coders.bitmask32Coder;
       case Type.Date: return coders.dateCoder;
       case Type.Float16: return coders.float16Coder;
       case Type.Float32: return coders.float32Coder;
@@ -453,5 +446,52 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, IdType extends s
     return coders.booleanCoder.read(state);
   }
 }
+
+/**
+ * Parses and represents an object field.
+ */
+export class Field {
+  public readonly name: string;
+  public readonly coder: BinaryCoder<any>;
+  public readonly isOptional: boolean;
+  public readonly isArray: boolean;
+
+  protected _format?: string;
+
+  public constructor(name: string, rawType: FieldDefinition) {
+    this.isOptional = rawType instanceof OptionalType;
+
+    let type = rawType instanceof OptionalType ? rawType.type : rawType;
+
+    this.name = name;
+
+    if (Array.isArray(type)) {
+      if (type.length !== 1) {
+        throw new TypeError('Invalid array definition, it must have exactly one element');
+      }
+
+      type = type[0];
+      this.isArray = true;
+    }
+    else {
+      this.isArray = false;
+    }
+
+    this.coder = new BinaryCoder<any>(type);
+  }
+
+  /**
+   * @returns A string identifying the encoding format.
+   * @example "{str,uint16,bool}[]?"
+   */
+  public get format(): string {
+    if (this._format === undefined) {
+      this._format = `${(this.coder as any).format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
+    }
+
+    return this._format;
+  }
+}
+
 
 export default BinaryCoder;

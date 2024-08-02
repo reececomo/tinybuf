@@ -19,11 +19,11 @@ export type ValueTypes = {
   [Type.UScalar]: number;
   [Type.Scalar]: number;
   // Boolean
-  [Type.Boolean]: boolean;
-  [Type.BooleanTuple]: boolean[];
-  [Type.Bitmask8]: boolean[];
-  [Type.Bitmask16]: boolean[];
-  [Type.Bitmask32]: boolean[];
+  [Type.Bool]: boolean;
+  [Type.Bools]: boolean[];
+  [Type.Bools8]: boolean[];
+  [Type.Bools16]: boolean[];
+  [Type.Bools32]: boolean[];
   // Other
   [Type.String]: string;
   [Type.Date]: Date;
@@ -47,7 +47,7 @@ export class OptionalType<T extends FieldDefinition> {
 /**
  * Wrap any definition as optional.
  */
-export function Optional<T extends FieldDefinition>(t: T): OptionalType<T> {
+export function optional<T extends FieldDefinition>(t: T): OptionalType<T> {
   return new OptionalType(t);
 }
 
@@ -128,14 +128,13 @@ export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
  */
 export const enum Type {
   /**
-   * A single boolean, encoded as 1 byte.
+   * A boolean, encoded as 1 byte.
    *
-   * To pack multiple booleans into a single byte, see:
+   * Use `Bools8` to pack multiple booleans into 1 byte.
    *
-   * @see {Type.BooleanTuple}
-   * @see {Type.Bitmask8}
+   * @see {Type.Bools8}
    */
-  Boolean = 'bool',
+  Bool = 'bool',
 
   /** A string. */
   String = 'str',
@@ -223,29 +222,20 @@ export const enum Type {
    */
   RegExp = 'regex',
 
-  /**
-   * Any JSON-serializable data.
-   */
+  /** Any JSON-serializable data. Encoded as a UTF-8 string. */
   JSON = 'json',
 
-  /**
-   * A tuple/array of booleans.
-   *
-   * Automatically packs into the minimal amount of bytes (with a 2-bit header):
-   *  - For arrays with 0 -> 6 values uses 1 bytes.
-   *  - For arrays with 7 -> 12 values uses 2 bytes.
-   *  - And so forth...
-   */
-  BooleanTuple = 'booltuple',
+  /** Array of 1 - 8 booleans, encoded to 1 byte. */
+  Bools8 = 'bitmask8',
 
-  /** An array containing up to 8 booleans, encoded as a single UInt8. */
-  Bitmask8 = 'bitmask8',
+  /** Array of 1 - 16 booleans, encoded to 2 bytes. */
+  Bools16 = 'bitmask16',
 
-  /** An array containing up to 16 booleans, encoded as a single UInt16. */
-  Bitmask16 = 'bitmask16',
+  /** Array of 1 - 32 booleans, encoded to 4 bytes. */
+  Bools32 = 'bitmask32',
 
-  /** An array containing up to 32 booleans, encoded as a single UInt32. */
-  Bitmask32 = 'bitmask32',
+  /** Array of booleans (arbitrarily long), encoded with a 2-bit header. */
+  Bools = 'booltuple',
 
   // ----- Data structures: -----
 
@@ -263,11 +253,29 @@ export const enum Type {
   /** Alias for `Type.Float32` @see {Float32} */
   Single = 'float32',
 
+  /** Alias for `Type.Float32` @see {Float32} */
+  Float = 'float32',
+
   /** Alias for `Type.Float64` @see {Float64} */
   Double = 'float64',
 
-  /** Alias for `Type.Float32` @see {Float32} */
-  Float = 'float32',
+  /** Alias for `Type.Bool` @see {Bool} */
+  Boolean = 'bool',
+
+  /** Alias for 'Type.UInt' @see {UInt} */
+  Enum = 'uint',
+
+  /** @deprecated Alias for `Type.BoolArray` @see {BoolArray} */
+  BooleanTuple = 'booltuple',
+
+  /** @deprecated Alias for `Type.Bools8` @see {Bools8} */
+  Bitmask8 = 'bitmask8',
+
+  /** @deprecated Alias for `Type.Bools16` @see {Bools16} */
+  Bitmask16 = 'bitmask16',
+
+  /** @deprecated Alias for `Type.Bools32` @see {Bools32} */
+  Bitmask32 = 'bitmask32',
 }
 
 export const ValidValueTypes: readonly string[] = [
@@ -288,11 +296,11 @@ export const ValidValueTypes: readonly string[] = [
   Type.UScalar,
   Type.Scalar,
   // Boolean
-  Type.Boolean,
-  Type.BooleanTuple,
-  Type.Bitmask8,
-  Type.Bitmask16,
-  Type.Bitmask32,
+  Type.Bool,
+  Type.Bools,
+  Type.Bools8,
+  Type.Bools16,
+  Type.Bools32,
   // Other
   Type.String,
   Type.Date,

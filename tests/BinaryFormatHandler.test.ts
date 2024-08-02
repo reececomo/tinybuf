@@ -1,6 +1,6 @@
 import {
   BinaryCoder,
-  BinaryCoderIdCollisionError,
+  FormatHeaderCollisionError,
   BinaryFormatHandler,
   Type,
   UnhandledBinaryDecodeError,
@@ -101,13 +101,13 @@ describe('BinaryCoderInterpreter', () => {
       expect(() => binaryHandler.on(format, () => {})).toThrow(TypeError);
     });
 
-    it('throws BinaryCoderIdCollisionError if registering the same format twice', () => {
+    it('throws FormatHeaderCollisionError if registering the same format twice', () => {
       const binaryHandler = decoder()
         .on(new BinaryCoder({ a: [Type.String] }), () => {});
 
       const identicalFormat = new BinaryCoder({ a: [Type.String] });
 
-      expect(() => binaryHandler.on(identicalFormat, () => {})).toThrow(BinaryCoderIdCollisionError);
+      expect(() => binaryHandler.on(identicalFormat, () => {})).toThrow(FormatHeaderCollisionError);
     });
   });
 });

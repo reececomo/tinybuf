@@ -1,12 +1,13 @@
 import BinaryCoder from "./BinaryCoder";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
-import { hashCodeTo2CharStr, strToHashCode } from "./lib/hashCode";
+import { hashCodeToStr, strToHashCode } from "./lib/hashCode";
+import { peekHeader } from "./lib/peek";
 
-type BinaryCoderId = number;
+type BCHeader = number;
 type BinaryCoderOnDataHandler = (data: InferredDecodedType<any>) => any;
 
 export class UnhandledBinaryDecodeError extends Error {}
-export class BinaryCoderIdCollisionError extends Error {}
+export class FormatHeaderCollisionError extends Error {}
 
 /**
  * A utility that facilitates the management and handling of multiple binary formats.
@@ -14,7 +15,7 @@ export class BinaryCoderIdCollisionError extends Error {}
  * It provides a central handler for encoding, decoding and routing.
  */
 export class BinaryFormatHandler {
-  private coders = new Map<BinaryCoderId, [BinaryCoder<any, any>, BinaryCoderOnDataHandler]>();
+  private coders = new Map<BCHeader, [BinaryCoder<any, any>, BinaryCoderOnDataHandler]>();
 
   /** All available coders. */
   public get available(): Set<BinaryCoder<any, any>> {
@@ -28,17 +29,17 @@ export class BinaryFormatHandler {
     coder: BinaryCoder<EncoderType, string | number>,
     onDataHandler: (data: DecodedType) => any
   ): this {
-    if (coder.Id === undefined) {
-      throw new TypeError('Cannot register a BinaryCoder with Id disabled.');
+    if (coder.header === undefined) {
+      throw new TypeError('Cannot register a headerless encoding format.');
     }
 
-    const intId = typeof coder.Id === 'string' ? strToHashCode(coder.Id) : coder.Id;
+    const intHeader = typeof coder.header === 'string' ? strToHashCode(coder.header) : coder.header;
 
-    if (this.coders.has(intId)) {
-      throw new BinaryCoderIdCollisionError(`Coder was already registered with matching Id: ${coder.Id}`);
+    if (this.coders.has(intHeader)) {
+      throw new FormatHeaderCollisionError(`Format with identical header was already registered: ${coder.header}`);
     }
 
-    this.coders.set(intId, [coder, onDataHandler]);
+    this.coders.set(intHeader, [coder, onDataHandler]);
 
     return this;
   }
@@ -52,15 +53,13 @@ export class BinaryFormatHandler {
    * @throws {RangeError} If buffer has < 2 bytes.
    */
   public processBuffer(buffer: ArrayBuffer | ArrayBufferView): void {
-    const id: number = BinaryCoder.peekIntId(buffer);
-    const tuple = this.coders.get(id);
+    const header: number = peekHeader(buffer);
 
-    if (!tuple) {
-      const strId = hashCodeTo2CharStr(id);
-      throw new UnhandledBinaryDecodeError(`Failed to process buffer with Id ${id} ('${strId}').`);
+    if (!this.coders.has(header)) {
+      throw new UnhandledBinaryDecodeError(`Failed to process buffer. Header: ${header} ('${hashCodeToStr(header)}').`);
     }
 
-    const [coder, onDataHandler] = tuple;
+    const [coder, onDataHandler] = this.coders.get(header);
     const data = coder.decode(buffer);
 
     onDataHandler(data);
