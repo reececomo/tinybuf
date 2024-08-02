@@ -32,6 +32,6 @@ export function strToHashCode(str: string): number {
 /**
  * Convert UInt16 to a 2-character String.
  */
-export function hashCodeTo2CharStr(hashCode: number): string {
+export function hashCodeToStr(hashCode: number): string {
   return String.fromCharCode(Math.floor(hashCode / 256)) + String.fromCharCode(hashCode % 256);
 }
