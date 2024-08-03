@@ -1,4 +1,4 @@
-import { BinaryCoder } from "./BufferFormat";
+import { BufferFormat } from "./BufferFormat";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
 import {
   BufferDecodingError,
@@ -8,7 +8,7 @@ import {
 import { hashCodeToStr, strToHashCode } from "./lib/hashCode";
 import { peekHeader } from "./lib/peek";
 
-type AnyFormat = BinaryCoder<any, any>;
+type AnyFormat = BufferFormat<any, any>;
 type Uint16FormatHeader = number;
 
 /**
@@ -21,9 +21,9 @@ type Uint16FormatHeader = number;
  *
  * myHandler.processBuffer(bytes);
  */
-export const bufferParser = (): BufferParser => new BufferParser();
+export const bufferParser = (): BufferParserInstance => new BufferParserInstance();
 
-class BufferParser {
+export class BufferParserInstance {
   private formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
 
   /** All available formats */
@@ -70,7 +70,7 @@ class BufferParser {
    * Register a format handler.
    */
   public on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(
-    format: BinaryCoder<EncoderType, string | number>,
+    format: BufferFormat<EncoderType, string | number>,
     callback: (data: DecodedType) => any,
     overwritePrevious: boolean = false,
   ): this {

@@ -1,4 +1,4 @@
-import { BinaryCoder } from "../core/BufferFormat";
+import { BufferFormat } from "../core/BufferFormat";
 import { bufferParser } from "../core/BufferParser";
 import {
   BufferDecodingError,
@@ -8,11 +8,11 @@ import {
 import { Type } from "../core/Type";
 
 describe('buffer parser', () => {
-  const MyCoder1 = new BinaryCoder({ example: Type.String });
-  const MyCoder2 = new BinaryCoder({ example: Type.Int });
+  const MyCoder1 = new BufferFormat({ example: Type.String });
+  const MyCoder2 = new BufferFormat({ example: Type.Int });
 
-  const MyCoderA = new BinaryCoder({ example: Type.String }, 'AB');
-  const MyCoderB = new BinaryCoder({ example: Type.Int }, 'CD');
+  const MyCoderA = new BufferFormat({ example: Type.String }, 'AB');
+  const MyCoderB = new BufferFormat({ example: Type.Int }, 'CD');
 
   it('can receive two different packets with the same keys.', () => {
     let _results1: any[] = [];
@@ -62,16 +62,16 @@ describe('buffer parser', () => {
       { example: 456_456, }
     ]);
 
-    expect(BinaryCoder.peekHeader(data1)).toBe(40118);
+    expect(BufferFormat.peekHeader(data1)).toBe(40118);
     expect(MyCoder1.header).toBe(40118);
 
-    expect(BinaryCoder.peekHeader(data2)).toBe(48432);
+    expect(BufferFormat.peekHeader(data2)).toBe(48432);
     expect(MyCoder2.header).toBe(48432);
 
-    expect(BinaryCoder.peekHeaderStr(dataA)).toBe('AB');
+    expect(BufferFormat.peekHeaderStr(dataA)).toBe('AB');
     expect(MyCoderA.header).toBe('AB');
 
-    expect(BinaryCoder.peekHeaderStr(dataB)).toBe('CD');
+    expect(BufferFormat.peekHeaderStr(dataB)).toBe('CD');
     expect(MyCoderB.header).toBe('CD');
 
     expect(binaryHandler.availableFormats.size).toBe(4);
@@ -96,25 +96,25 @@ describe('buffer parser', () => {
   describe('on()', () => {
     it('throws RangeError if there are not enough peek bytes', () => {
       const binaryHandler = bufferParser();
-      const format = new BinaryCoder({ a: [Type.String] }, null);
+      const format = new BufferFormat({ a: [Type.String] }, null);
 
       expect(() => binaryHandler.on(format, () => {})).toThrow(TypeError);
     });
 
     it('throws error if registering the same format twice', () => {
       const binaryHandler = bufferParser()
-        .on(new BinaryCoder({ a: [Type.String] }), () => {});
+        .on(new BufferFormat({ a: [Type.String] }), () => {});
 
-      const identicalFormat = new BinaryCoder({ a: [Type.String] });
+      const identicalFormat = new BufferFormat({ a: [Type.String] });
 
       expect(() => binaryHandler.on(identicalFormat, () => {})).toThrow(FormatHeaderCollisionError);
     });
 
     it('does not error if registering the same format twice and `overwritePrevious` is set', () => {
       const binaryHandler = bufferParser()
-        .on(new BinaryCoder({ a: [Type.String] }), () => {});
+        .on(new BufferFormat({ a: [Type.String] }), () => {});
 
-      const identicalFormat = new BinaryCoder({ a: [Type.String] });
+      const identicalFormat = new BufferFormat({ a: [Type.String] });
 
       expect(() => binaryHandler.on(identicalFormat, () => {}, true)).not.toThrow(FormatHeaderCollisionError);
     });

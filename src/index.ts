@@ -1,5 +1,5 @@
-import { bufferParser } from './core/BufferParser';
-import { defineFormat, Decoded } from './core/BufferFormat';
+import { bufferParser, BufferParserInstance } from './core/BufferParser';
+import { defineFormat, BufferFormat, Decoded } from './core/BufferFormat';
 import { Type, optional } from './core/Type';
 import { SETTINGS } from './core/settings';
 
@@ -13,6 +13,9 @@ export {
 
   // Global settings:
   SETTINGS,
+
+  BufferFormat,
+  BufferParserInstance
 };
 
 // Utilities:

@@ -22,9 +22,9 @@ export type FormatHeader = string | number;
 
 /**
  * Decoded type of a binary encoding.
- * @example let onData = (data: Decoded<typeof MyBinaryCoder>) => {...};
+ * @example let onData = (data: Decoded<typeof MyBufferFormat>) => {...};
  */
-export type Decoded<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
 
 /**
  * Defines a format for encoding/decoding binary buffers.
@@ -37,7 +37,7 @@ export type Decoded<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(def: T): BinaryCoder<T, HeaderType>;
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(def: T): BufferFormat<T, HeaderType>;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
@@ -49,11 +49,11 @@ export function defineFormat<T extends EncoderDefinition, HeaderType extends str
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BinaryCoder<T, HeaderType>;
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(a?: HeaderType | T, b?: T): BinaryCoder<T, HeaderType> {
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(a?: HeaderType | T, b?: T): BufferFormat<T, HeaderType> {
   return a !== null && typeof a === 'object'
-    ? new BinaryCoder<T, HeaderType>(a as T)
-    : new BinaryCoder<T, HeaderType>(b as T, a as HeaderType);
+    ? new BufferFormat<T, HeaderType>(a as T)
+    : new BufferFormat<T, HeaderType>(b as T, a as HeaderType);
 }
 
 function isValidHeader(h: FormatHeader): boolean {
@@ -63,14 +63,14 @@ function isValidHeader(h: FormatHeader): boolean {
 }
 
 /**
- * BinaryCoder is a utility class for encoding and decoding binary data based
+ * BufferFormat is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
  *
  * @see {header}
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
+export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
   /**
    * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
    *
@@ -127,7 +127,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * Read the header of a buffer as a number.
    *
-   * @see {BinaryCoder.header}
+   * @see {header}
    * @throws {RangeError} if buffer size < 2
    */
   public static peekHeader = peekHeader;
@@ -135,7 +135,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * Read the header of a buffer as a string.
    *
-   * @see {BinaryCoder.header}
+   * @see {header}
    * @throws {RangeError} if buffer size < 2
    */
   public static peekHeaderStr = peekHeaderStr;
@@ -409,7 +409,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
     return field.coder.read(state);
   }
 
-  private readMeAsValueType<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
+  private readValueType<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
     return this._postDecode(this.getCoder(this.type).read(state));
   }
 
@@ -417,7 +417,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type - in this case, there is no need to write custom code.
-      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readMeAsValueType : this.getCoder(this.type).read;
+      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readValueType : this.getCoder(this.type).read;
     }
 
     const code = this.generateObjectReadCode();
@@ -432,7 +432,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
    * @param type
    * @throws if the value is invalid
    */
-  private _writeArray(value: string | any[], data: any, path: string, type: BinaryCoder<any, any>): void {
+  private _writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
     let i: string | number, len: number;
     if (!Array.isArray(value)) {
       throw new WriteTypeError(`Array<${type.type}>`, data, path);
@@ -448,7 +448,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * @throws if invalid data
    */
-  private _readArray<T extends EncoderDefinition>(type: BinaryCoder<T, any>, state: any): Array<T> {
+  private _readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
     const arr = new Array(coders.uintCoder.read(state));
     for (let j = 0; j < arr.length; j++) {
       arr[j] = type.read(state);
@@ -466,7 +466,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
  */
 export class Field {
   public readonly name: string;
-  public readonly coder: BinaryCoder<any>;
+  public readonly coder: BufferFormat<any>;
   public readonly isOptional: boolean;
   public readonly isArray: boolean;
 
@@ -491,7 +491,7 @@ export class Field {
       this.isArray = false;
     }
 
-    this.coder = new BinaryCoder<any>(type, null);
+    this.coder = new BufferFormat<any>(type, null);
   }
 
   /**
