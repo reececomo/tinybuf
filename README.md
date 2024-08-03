@@ -145,7 +145,7 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 | `Type.Bools8` | `boolean[]` | 1 | Array of 1 - 8 booleans. |
 | `Type.Bools16` | `boolean[]` | 2 | Array of 1 - 16 booleans. |
 | `Type.Bools32` | `boolean[]` | 4 | Array of 1 - 32 booleans. |
-| `Type.Buffer` | `ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | JavaScript `ArrayBuffer` data. |
+| `Type.Buffer` | `Uint8Array | ArrayBufferView | ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any buffer / binary data. |
 | `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
 | `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Arbitrary [JSON](http://json.org/) data, encoded as a UTF-8 string. |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup>&nbsp;+&nbsp;n&nbsp;+&nbsp;1 | JavaScript `RegExp` object. |
