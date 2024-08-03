@@ -2,14 +2,14 @@
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
-Zero-dependency binary serialization for Node.js and HTML5 &ndash; based on [js-binary](https://www.npmjs.com/package/js-binary)
+Zero-dependency binary serialization for Node.js and HTML5
 
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
 | 🗜️ Powerful & performant compression | ✨ 50% smaller vs. [FlatBuffers](#-comparison-table)  |
 | 🍃 Zero dependencies | 🙉 Optional advanced features |
-| 🤏 `~5kb` minzipped | 🚦 Supports property mangling (i.e. [Terser\](https://terser.org/)) |
+| 🤏 `~5kb` minzipped | 🚦 Supports property mangling (i.e. [Terser](https://terser.org/)) |
 
 ## 💿 Install
 
@@ -528,4 +528,4 @@ See [docs/ENCODING.md](docs/ENCODING.md) for an overview on how most formats are
 
 ## Credits
 
-Hard-forked from Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).
+Based on Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).
