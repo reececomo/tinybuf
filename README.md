@@ -8,9 +8,9 @@
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
 | 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md)  |
-| 🍃 Zero dependencies | 🙉 Inferred [types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
-| 🌐 Node and browser | 🛡️ Built-in validation and transforms |
-| 🤏 `~5kb` minzipped | ✅ Supports property mangling ([Terser](https://terser.org/)) |
+| 🍃 Zero dependencies | 🙉 Strong, inferred types |
+| 🌐 Node / browser | 🛡️ Built-in validation / transforms |
+| 🤏 `~5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
 ## 💿 Install
 
@@ -78,7 +78,7 @@ const data = GameWorldData.decode(bytes);
 |                  |
 | ---------------- |
 | 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
-| 🤔  [Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
+| 🤔  [Types table](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
 | 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/headers.md) |
 | 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
 | ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
