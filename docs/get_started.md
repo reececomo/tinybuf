@@ -82,7 +82,7 @@ export const MyFormat2 = defineFormat({ /*…*/ });
 | `Type.Bools32` | `boolean[]` | 4 | Array of 1 - 32 booleans. |
 | `Type.Buffer` | `Uint8Array \| ArrayBufferView \| ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any buffer / binary data. |
 | `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
-| `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Arbitrary [JSON](http://json.org/) data, encoded as a UTF-8 string. |
+| `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any JSON encodable object, encoded as a UTF-8 string. |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup>&nbsp;+&nbsp;n&nbsp;+&nbsp;1 | JavaScript `RegExp` object. |
 | `Type.Date` | `Date` | 8 | JavaScript `Date` object. |
 | `optional(T)` | `T \| undefined` | 1 | Any optional field. Use the `Optional(…)` helper. Array elements cannot be optional. |

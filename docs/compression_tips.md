@@ -41,11 +41,11 @@ For more manual approaches, here are the is a list of the various quantization (
 
 ### Custom Transforms
 
-You can combine the above built-ins with **[transforms (see Transforms)](#transforms)** to acheive really meaningful compression.
+You can combine the above built-ins with **[transforms (see Transforms)](./validation_and_transforms.md#transforms)** to acheive really meaningful compression.
 
 In the following example, we have a `myRotation` value which is given in absolute radians between 0 and 2π (~6.28319). If we tried to send this as a plain 16-bit float, we would lose a \*LOT\* of precision, and the rotation would come out visually jerky on the other end.
 
-What we could do instead is set custom [transforms](#transforms) that utilize much more of the safe range for 16-bit floats (±65,504):
+What we could do instead is set custom [transforms](./validation_and_transforms.md#transforms) that utilize much more of the safe range for 16-bit floats (±65,504):
 
 ```ts
 // Example transform functions that boosts precision by x20,000 by putting
