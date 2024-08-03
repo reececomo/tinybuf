@@ -1,4 +1,4 @@
-# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![Minzipped](https://badgen.net/bundlephobia/minzip/tinybuf)](https://www.npmjs.com/package/bitecs) [![Downloads](https://img.shields.io/npm/dt/tinybuf.svg)](https://www.npmjs.com/package/tinybuf) [![Tests](https://github.com/reececomo/tinybuf/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/test.yml) [![License](https://badgen.net/npm/license/tinybuf)](https://github.com/reececomo/tinybuf/blob/main/LICENSE)
+# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![Minzipped](https://badgen.net/bundlephobia/minzip/tinybuf)](https://www.npmjs.com/package/bitecs) [![Downloads](https://img.shields.io/npm/dt/tinybuf.svg)](https://www.npmjs.com/package/tinybuf) [![Tests](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml) [![License](https://badgen.net/npm/license/tinybuf)](https://github.com/reececomo/tinybuf/blob/main/LICENSE)
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
@@ -9,7 +9,7 @@ Zero-dependency binary serialization for Node.js and HTML5 &ndash; based on [js-
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
 | 🗜️ Powerful & performant compression | ✨ 50% smaller vs. [FlatBuffers](#-comparison-table)  |
 | 🍃 Zero dependencies | 🙉 Optional advanced features |
-| 🤏 `~5kb` minzipped | 🚦 Supports property mangling (i.e. [Terser](https://terser.org/)) |
+| 🤏 `~5kb` minzipped | 🚦 Supports property mangling (i.e. [Terser\](https://terser.org/)) |
 
 ## 💿 Install
 
@@ -396,10 +396,11 @@ Here are some use cases stacked uup.
 | **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
 | **Fast & efficient** | 🟢 | 🟢 | 🟢 | 🔴 |
 | **16-bit floats** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Packed booleans** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Boolean arrays** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Scalar types** | 🟢 | 🔴 | 🔴 | 🔴 |
 | **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
-| **Property mangling** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Suitable for real-time data** | 🟢 | 🟢 | 🔴 | 🔴 |
+| **Property mangling** | 🟢 | 🟡 | 🔴 | 🔴 |
+| **Suitable for real-time data** | 🟢 | 🟢 | 🟡 | 🔴 |
 | **Suitable for web APIs** | 🔴 | 🔴 | 🟢 | 🟢 |
 | **Supports HTML5 / Node.js** | 🟢 | 🟢 | 🟢 | 🟢 |
 | **Cross-language (Java, C++, Python, etc.)** | 🔴 | 🟢 | 🟢 | 🟢 |
