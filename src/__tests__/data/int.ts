@@ -1,4 +1,4 @@
-{
+export const intData = {
   "1": {
     "hex": "01",
     "bytes": 1
@@ -1247,4 +1247,4 @@
     "hex": "ffe0000000000001",
     "bytes": 8
   }
-}
+};

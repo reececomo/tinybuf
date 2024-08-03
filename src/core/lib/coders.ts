@@ -1,5 +1,5 @@
-import { MutableArrayBuffer } from '../MutableArrayBuffer';
-import { ReadState } from '../ReadState';
+import { BufferWriter } from './BufferWriter';
+import { BufferReader } from './BufferReader';
 import * as boolArray from './boolArray';
 import { r2z } from './math';
 import {
@@ -8,11 +8,7 @@ import {
   toUScalar8,
   toScalar8
 } from './scalar';
-
-
-/* ---------------------------
- Binary Coder Implementations
- --------------------------- */
+import { WriteTypeError } from './errors';
 
 // Pre-calculated constants
 const MAX_AUTO_UINT8 = 128,
@@ -29,15 +25,14 @@ const MAX_AUTO_UINT8 = 128,
   MAX_UINT32 = 4_294_967_295,
   POW_32 = 4_294_967_296;
 
-export interface BinaryTypeCoder<T> {
-  write(value: T, data: MutableArrayBuffer, path?: string): void;
-  read(state: ReadState): T;
-}
+const utf8Decoder = new TextDecoder('utf-8');
 
-export class WriteTypeError extends TypeError {
-  public constructor(expectedType: string, value: any, path? : string) {
-    super(`Expected '${expectedType}', instead received: ${value} (type: ${typeof value}) (at path: '${path || '<root>'}')`);
-  }
+/**
+ * @internal
+ */
+export interface BinaryTypeCoder<T, R = T> {
+  write(value: T, data: BufferWriter, path?: string): void;
+  read(state: BufferReader): R;
 }
 
 /**
@@ -74,17 +69,17 @@ export const uintCoder: BinaryTypeCoder<number> = {
     const firstByte = state.peekUInt8();
 
     if (!(firstByte & 0x80)) {
-      state.incrementOffset();
+      state.skipByte();
       return firstByte;
     }
     else if (!(firstByte & 0x40)) {
-      return state.readUInt16() - 0x8000;
+      return state.readUint16() - 0x8000;
     }
     else if (!(firstByte & 0x20)) {
-      return state.readUInt32() - 0xc0000000;
+      return state.readUint32() - 0xc0000000;
     }
     else {
-      return (state.readUInt32() - 0xe0000000) * POW_32 + state.readUInt32();
+      return (state.readUint32() - 0xe0000000) * POW_32 + state.readUint32();
     }
   }
 };
@@ -97,7 +92,7 @@ export const uint8Coder: BinaryTypeCoder<number> = {
     data.writeUInt8(r2z(value));
   },
   read: function (state) {
-    return state.readUInt8();
+    return state.readUint8();
   }
 };
 
@@ -109,7 +104,7 @@ export const uint16Coder: BinaryTypeCoder<number> = {
     data.writeUInt16(r2z(value));
   },
   read: function (state) {
-    return state.readUInt16();
+    return state.readUint16();
   }
 };
 
@@ -121,7 +116,7 @@ export const uint32Coder: BinaryTypeCoder<number> = {
     data.writeUInt32(r2z(value));
   },
   read: function (state) {
-    return state.readUInt32();
+    return state.readUint32();
   }
 };
 
@@ -157,21 +152,21 @@ export const intCoder: BinaryTypeCoder<number> = {
     let firstByte = state.peekUInt8(), i: number;
 
     if (!(firstByte & 0x80)) {
-      state.incrementOffset();
+      state.skipByte();
       return (firstByte & 0x40) ? (firstByte | 0xffffff80) : firstByte;
     }
     else if (!(firstByte & 0x40)) {
-      i = state.readUInt16() - 0x8000;
+      i = state.readUint16() - 0x8000;
       return (i & 0x2000) ? (i | 0xffffc000) : i;
     }
     else if (!(firstByte & 0x20)) {
-      i = state.readUInt32() - 0xc0000000;
+      i = state.readUint32() - 0xc0000000;
       return (i & 0x10000000) ? (i | 0xe0000000) : i;
     }
     else {
-      i = state.readUInt32() - 0xe0000000;
+      i = state.readUint32() - 0xe0000000;
       i = (i & 0x10000000) ? (i | 0xe0000000) : i;
-      return i * POW_32 + state.readUInt32();
+      return i * POW_32 + state.readUint32();
     }
   }
 };
@@ -268,7 +263,7 @@ export const uscalarCoder: BinaryTypeCoder<number> = {
     data.writeUInt8(toUScalar8(value));
   },
   read: function (state) {
-    return fromUScalar8(state.readUInt8());
+    return fromUScalar8(state.readUint8());
   }
 };
 
@@ -283,7 +278,7 @@ export const scalarCoder: BinaryTypeCoder<number> = {
     data.writeUInt8(toScalar8(value));
   },
   read: function (state) {
-    return fromScalar8(state.readUInt8());
+    return fromScalar8(state.readUint8());
   }
 };
 
@@ -292,36 +287,23 @@ export const scalarCoder: BinaryTypeCoder<number> = {
  */
 export const stringCoder: BinaryTypeCoder<string> = {
   write: function (value, data, path) {
-    if (typeof value !== 'string') {
-      throw new WriteTypeError('string', value, path);
-    }
-
-    const arrayBuffer = new TextEncoder().encode(value).buffer;
-    arrayBufferCoder.write(arrayBuffer, data, path);
+    bufferCoder.write(new TextEncoder().encode(value ?? ''), data, path);
   },
   read: function (state) {
-    const arrayBuffer = arrayBufferCoder.read(state);
-
-    const decoder = new TextDecoder('utf-8');
-    return decoder.decode(arrayBuffer);
+    return utf8Decoder.decode(bufferCoder.read(state));
   }
 };
 
 /**
  * <uint_length> <buffer_data>
  */
-export const arrayBufferCoder: BinaryTypeCoder<ArrayBuffer> = {
-  write: function (value: ArrayBuffer, data, path) {
-    if (!(value instanceof ArrayBuffer)) {
-      throw new WriteTypeError('ArrayBuffer', value, path);
-    }
-
+export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
+  write: function (value, data, path) {
     uintCoder.write(value.byteLength, data, path);
-    data.appendBuffer(value);
+    data.writeBuffer(value);
   },
-  read: function (state): ArrayBuffer {
-    const length = uintCoder.read(state);
-    return state.readBuffer(length);
+  read: function (state): Uint8Array {
+    return state.readBuffer(uintCoder.read(state));
   }
 };
 
@@ -336,7 +318,7 @@ export const booleanCoder: BinaryTypeCoder<boolean> = {
     data.writeUInt8(value ? 1 : 0);
   },
   read: function (state) {
-    const value = state.readUInt8();
+    const value = state.readUint8();
     return Boolean(value !== 0);
   }
 };
@@ -355,9 +337,11 @@ export const booleanArrayCoder: BinaryTypeCoder<boolean[]> = {
     const chunkSize = 6;
     for (let i = 0; i < Math.max(1, value.length); i += chunkSize) {
       const isFinalChunk = i + chunkSize >= value.length;
-      const bools = value.slice(i, i + chunkSize);
-      const values = [/* header */ true, isFinalChunk, ...bools];
-      const intValue = boolArray.booleanArrayToBitmask(values);
+      const intValue = boolArray.bools2Mask([
+        true, // positive header
+        isFinalChunk,
+        ...value.slice(i, i + chunkSize)
+      ]);
 
       data.writeUInt8(intValue);
     }
@@ -367,7 +351,7 @@ export const booleanArrayCoder: BinaryTypeCoder<boolean[]> = {
     let isFinalChunk = false;
 
     while (!isFinalChunk) {
-      const bitmask = state.readUInt8();
+      const bitmask = state.readUint8();
       const chunk = boolArray.uInt8ToBooleanArray(bitmask);
       chunk.shift(); // pop header
       isFinalChunk = chunk.shift();
@@ -392,8 +376,8 @@ export const bitmask8Coder: BinaryTypeCoder<boolean[]> = {
     data.writeUInt8(bitmask);
   },
   read: function (state) {
-    const bitmask = state.readUInt8();
-    return boolArray.bitmaskToFixedLengthBooleanArray(bitmask, 8);
+    const bitmask = state.readUint8();
+    return boolArray.mask2Bools(bitmask, 8);
   }
 };
 
@@ -410,8 +394,8 @@ export const bitmask16Coder: BinaryTypeCoder<boolean[]> = {
     data.writeUInt16(bitmask);
   },
   read: function (state) {
-    const bitmask = state.readUInt16();
-    return boolArray.bitmaskToFixedLengthBooleanArray(bitmask, 16);
+    const bitmask = state.readUint16();
+    return boolArray.mask2Bools(bitmask, 16);
   }
 };
 
@@ -427,8 +411,8 @@ export const bitmask32Coder: BinaryTypeCoder<boolean[]> = {
     data.writeUInt32(bitmask);
   },
   read: function (state) {
-    const bitmask = state.readUInt32();
-    return boolArray.bitmaskToFixedLengthBooleanArray(bitmask, 32);
+    const bitmask = state.readUint32();
+    return boolArray.mask2Bools(bitmask, 32);
   }
 };
 
@@ -472,7 +456,7 @@ export const regexCoder: BinaryTypeCoder<RegExp> = {
   },
   read: function (state) {
     const source = stringCoder.read(state),
-      flags = state.readUInt8(),
+      flags = state.readUint8(),
       g = flags & 0x1 ? 'g' : '',
       i = flags & 0x2 ? 'i' : '',
       m = flags & 0x4 ? 'm' : '';

@@ -1,97 +1,124 @@
 import * as coders from './lib/coders';
-import { djb2HashUInt16, strToHashCode } from './lib/hashCode';
+import { hashCode, strToHashCode } from './lib/hashCode';
 import { peekHeader, peekHeaderStr } from './lib/peek';
-import { MutableArrayBuffer } from './MutableArrayBuffer';
-import { ReadState } from './ReadState';
+import { BufferWriter } from './lib/BufferWriter';
+import { BufferReader } from './lib/BufferReader';
 import {
   InferredDecodedType,
   EncoderDefinition,
   Type,
   OptionalType,
-  ValidValueTypes,
+  VALID_VALUE_TYPES,
   InferredTransformConfig,
   InferredValidationConfig,
   ValidationFn,
   Transforms,
   FieldDefinition
 } from './Type';
+import { WriteTypeError } from './lib/errors';
+import { SETTINGS } from './settings';
 
-export type BinaryCoderHeader = string | number;
+export type FormatHeader = string | number;
 
 /**
  * Decoded type of a binary encoding.
- * @example let onData = (data: Decoded<typeof MyBinaryCoder>) => {...};
+ * @example let onData = (data: Decoded<typeof MyBufferFormat>) => {...};
  */
-export type Decoded<FromBinaryCoder> = FromBinaryCoder extends BinaryCoder<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
-
-/** @deprecated use Decoded<T> */
-export type Infer<T> = Decoded<T>;
+export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
 
 /**
- * BinaryCoder is a utility class for encoding and decoding binary data based
+ * Defines a format for encoding/decoding binary buffers.
+ *
+ * Optionally customize the identifier, either as a 2-byte string, an unsigned integer (0 -> 65,535), or as `null` to disable entirely.
+ *
+ * @example
+ * const MyFormat = defineFormat({ ... });
+ * const MyFormat = defineFormat('ab', { ... });
+ * const MyFormat = defineFormat(1234, { ... });
+ * const MyFormat = defineFormat(null, { ... });
+ */
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(def: T): BufferFormat<T, HeaderType>;
+/**
+ * Defines a format for encoding/decoding binary buffers.
+ *
+ * Optionally customize the identifier, either as a 2-byte string, an unsigned integer (0 -> 65,535), or as `null` to disable entirely.
+ *
+ * @example
+ * const MyFormat = defineFormat({ ... });
+ * const MyFormat = defineFormat('ab', { ... });
+ * const MyFormat = defineFormat(1234, { ... });
+ * const MyFormat = defineFormat(null, { ... });
+ */
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
+export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(a?: HeaderType | T, b?: T): BufferFormat<T, HeaderType> {
+  return a !== null && typeof a === 'object'
+    ? new BufferFormat<T, HeaderType>(a as T)
+    : new BufferFormat<T, HeaderType>(b as T, a as HeaderType);
+}
+
+function isValidHeader(h: FormatHeader): boolean {
+  if (typeof h === 'number') return Number.isInteger(h) && h >= 0 && h <= 65_535;
+  if (typeof h === 'string') return new TextEncoder().encode(h).byteLength === 2;
+  return false;
+}
+
+/**
+ * BufferFormat is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
  *
  * @see {header}
  * @see {encode(data)}
  * @see {decode(binary)}
  */
-export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType extends BinaryCoderHeader = number> {
+export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
   /**
    * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
    *
    * @see {peekHeader(...)}
    * @see {peekHeaderStr(...)}
-   * @see {BinaryCoder.hashCode}
+   * @see {hashCode}
    */
   public readonly header?: HeaderType;
 
   protected readonly type: Type;
-  protected readonly fields: Field[];
+  protected readonly fields!: Field[];
 
   protected _hash?: number;
   protected _format?: string;
-
   protected _transforms?: Transforms<any> | undefined;
   protected _validationFn?: ValidationFn<any> | undefined;
 
   public constructor(
-    encoderDefinition: EncoderType,
+    def: EncoderType,
     header?: HeaderType | null
   ) {
-    if (
-      (typeof header === 'number' && (Math.floor(header) !== header || header < 0 || header > 65_535))
-      || (typeof header === 'string' && new TextEncoder().encode(header).byteLength !== 2)
-      || (header !== undefined && header !== null && !['string', 'number'].includes(typeof header))
-    ) {
-      throw new TypeError(`header must be an unsigned 16-bit integer, a 2-byte string, or \`null\`. Received: ${header}`);
+    // set definition
+    if (def instanceof OptionalType) {
+      throw new TypeError("Invalid encoding format: Root object cannot be optionals.");
     }
-    else if (encoderDefinition instanceof OptionalType) {
-      throw new TypeError("Invalid type given. Root object must not be an Optional.");
+    else if (def !== undefined && typeof def === 'string' && VALID_VALUE_TYPES.includes(def)) {
+      this.type = def;
     }
-    else if (typeof encoderDefinition === 'object') {
+    else if (def instanceof Object) {
       this.type = Type.Object;
-      this.fields = Object.keys(encoderDefinition).map(function (name) {
-        return new Field(name, encoderDefinition[name]);
-      });
-    }
-    else if (encoderDefinition !== undefined && typeof encoderDefinition === 'string' && ValidValueTypes.includes(encoderDefinition)) {
-      this.type = encoderDefinition;
+      this.fields = Object.keys(def).map((name) => new Field(name, def[name]));
     }
     else {
-      throw new TypeError("Invalid type given. Must be an object, or a known coder type.");
+      throw new TypeError("Invalid encoding format: Must be an object, or a known coder type.");
     }
 
-    if (header === null) {
-      // explicitly disabled
-      this.header = undefined;
+    // set headers
+    if (header === undefined && this.type === Type.Object) {
+      this.header = this.hashCode as HeaderType; // automatic
     }
-    else if (header === undefined && this.type === Type.Object) {
-      // automatic
-      this.header = this.hashCode as HeaderType;
+    else if (header === null) {
+      this.header = undefined; // headerless
+    }
+    else if (isValidHeader(header)) {
+      this.header = header; // manual
     }
     else {
-      // explicitly set
-      this.header = header;
+      throw new TypeError(`Header should be an integer between 0 and 65535, a 2-byte string, or null. Received: ${header}`);
     }
   }
 
@@ -100,7 +127,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * Read the header of a buffer as a number.
    *
-   * @see {BinaryCoder.header}
+   * @see {header}
    * @throws {RangeError} if buffer size < 2
    */
   public static peekHeader = peekHeader;
@@ -108,27 +135,17 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * Read the header of a buffer as a string.
    *
-   * @see {BinaryCoder.header}
+   * @see {header}
    * @throws {RangeError} if buffer size < 2
    */
   public static peekHeaderStr = peekHeaderStr;
 
-  /** @deprecated Use peekHeader */
-  public static peekIntId = peekHeader;
-  /** @deprecated Use peekHeader */
-  public static peekStrId = peekHeaderStr;
-
-  // ----- Public accessors: -----
-
-  /** @deprecated use .header */
-  public get Id(): HeaderType | undefined {
-    return this.header;
-  }
+  // ----- Accessors: -----
 
   /** A uint16 number representing the shape of the encoded format */
   public get hashCode(): number {
     if (this._hash === undefined) {
-      this._hash = djb2HashUInt16(this.format);
+      this._hash = hashCode(this.format);
     }
 
     return this._hash;
@@ -151,18 +168,22 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   // ----- Public methods: -----
 
   /**
-   * Encode an object to binary.
-   *
-   * @throws if the value is invalid
+   * Encode an object to bytes.
+   * @param data - data to encode
+   * @param resize - copy the bytes to a resized buffer instead of returning a view (default: false)
+   * @throws if fails to encode value to schema.
    */
-  public encode<DecodedType extends InferredDecodedType<EncoderType>>(value: DecodedType): ArrayBuffer {
-    const safeValue = this._preEncode(value);
-    const buffer = new MutableArrayBuffer();
+  public encode<DecodedType extends InferredDecodedType<EncoderType>>(
+    data: DecodedType,
+    resize = false,
+  ): Uint8Array {
+    const safeValue = this._preEncode(data);
+    const buffer = new BufferWriter(resize ? SETTINGS.writeBufferDefaultSize : undefined);
 
-    this.writeHeader(buffer);
+    if (this.header != null) this.writeHeader(buffer);
     this.write(safeValue, buffer, '');
 
-    return buffer.toArrayBuffer();
+    return resize ? buffer.copy() : buffer.asView();
   }
 
   /**
@@ -170,11 +191,8 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
    *
    * @throws if fails (e.g. binary data is incompatible with schema).
    */
-  public decode<DecodedType = InferredDecodedType<EncoderType>>(arrayBuffer: ArrayBuffer | ArrayBufferView): DecodedType {
-    return this.read(new ReadState(
-      arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer,
-      this.header === undefined ? 0 : 2
-    ));
+  public decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType {
+    return this.read(new BufferReader(b, this.header === undefined ? 0 : 2));
   }
 
   /**
@@ -227,15 +245,17 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
 
   /**
    * @param value
-   * @param data
+   * @param bw
    * @param path
    * @throws if the value is invalid
+   *
+   * @internal
    */
-  protected write(value: { [x: string]: any; }, data: MutableArrayBuffer, path: string): void {
+  protected write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
     if (this.type !== Type.Object) {
       const safeValue = (this._validationFn || this._transforms) ? this._preEncode(value) : value;
 
-      return this.getCoder(this.type).write(safeValue, data, path);
+      return this.getCoder(this.type).write(safeValue, bw, path);
     }
 
     // Check for object type
@@ -252,43 +272,38 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
 
         // Add 'presence' flag
         if (subValue === undefined || subValue === null) {
-          coders.booleanCoder.write(false, data);
+          coders.booleanCoder.write(false, bw);
           continue;
         }
         else {
-          coders.booleanCoder.write(true, data);
+          coders.booleanCoder.write(true, bw);
         }
       }
 
       if (!field.isArray) {
         // Scalar field
-        field.coder.write(subValue, data, subpath);
+        field.coder.write(subValue, bw, subpath);
         continue;
       }
 
       // Array field
-      this._writeArray(subValue, data, subpath, field.coder);
+      this._writeArray(subValue, bw, subpath, field.coder);
     }
   }
 
-  /**
-   * Writes @see {header} as the prefix of the buffer.
-   */
-  protected writeHeader(mutableArrayBuffer: MutableArrayBuffer): void {
-    if (this.header === undefined) {
-      return;
-    }
-
-    const idInt16 = typeof this.header === 'string' ? strToHashCode(this.header) : this.header as number;
-    coders.uint16Coder.write(idInt16, mutableArrayBuffer, '');
+  /** @internal */
+  private writeHeader(bw: BufferWriter): void {
+    const h = typeof this.header === 'string' ? strToHashCode(this.header) : this.header as number;
+    coders.uint16Coder.write(h, bw, '');
   }
 
   /**
    * Helper to get the right coder.
+   * @internal
    */
   protected getCoder(type: Type): coders.BinaryTypeCoder<any> {
     switch (type) {
-      case Type.Binary: return coders.arrayBufferCoder;
+      case Type.Buffer: return coders.bufferCoder;
       case Type.Bool: return coders.booleanCoder;
       case Type.Bools: return coders.booleanArrayCoder;
       case Type.Bools8: return coders.bitmask8Coder;
@@ -350,7 +365,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
    * @returns
    * @throws if fails
    */
-  private read<DecodedType = InferredDecodedType<EncoderType>>(state: ReadState): DecodedType {
+  private read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
     // This function will be executed only the first time to compile the read routine.
     // After that, we'll compile the read routine and add it directly to the instance
 
@@ -376,12 +391,11 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
       .map(({ name }, i) => `${name}:this.${this._readField.name}(${i},state)`)
       .join(',');
 
-    // return `return this.${this._postDecode.name}({${fieldsStr}})`;
     return `return{${fieldsStr}}`;
   }
 
   /** Read an individual field. */
-  private _readField(fieldIndex: number, state: ReadState): any {
+  private _readField(fieldIndex: number, state: BufferReader): any {
     const field = this.fields[fieldIndex];
 
     if (field.isOptional && !this._readOptional(state)) {
@@ -395,15 +409,15 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
     return field.coder.read(state);
   }
 
-  private readMeAsValueType<DecodedType = InferredDecodedType<EncoderType>>(state: ReadState): DecodedType {
+  private readValueType<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
     return this._postDecode(this.getCoder(this.type).read(state));
   }
 
   /** Compile the decode() method for this object. */
-  private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: ReadState) => DecodedType {
+  private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type - in this case, there is no need to write custom code.
-      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readMeAsValueType : this.getCoder(this.type).read;
+      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readValueType : this.getCoder(this.type).read;
     }
 
     const code = this.generateObjectReadCode();
@@ -418,10 +432,10 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
    * @param type
    * @throws if the value is invalid
    */
-  private _writeArray(value: string | any[], data: any, path: string, type: BinaryCoder<any, any>): void {
+  private _writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
     let i: string | number, len: number;
     if (!Array.isArray(value)) {
-      throw new coders.WriteTypeError(`Array<${type.type}>`, data, path);
+      throw new WriteTypeError(`Array<${type.type}>`, data, path);
     }
 
     len = value.length;
@@ -434,7 +448,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
   /**
    * @throws if invalid data
    */
-  private _readArray<T extends EncoderDefinition>(type: BinaryCoder<T, any>, state: any): Array<T> {
+  private _readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
     const arr = new Array(coders.uintCoder.read(state));
     for (let j = 0; j < arr.length; j++) {
       arr[j] = type.read(state);
@@ -442,7 +456,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
     return arr;
   }
 
-  private _readOptional(state: ReadState): boolean {
+  private _readOptional(state: BufferReader): boolean {
     return coders.booleanCoder.read(state);
   }
 }
@@ -452,7 +466,7 @@ export class BinaryCoder<EncoderType extends EncoderDefinition, HeaderType exten
  */
 export class Field {
   public readonly name: string;
-  public readonly coder: BinaryCoder<any>;
+  public readonly coder: BufferFormat<any>;
   public readonly isOptional: boolean;
   public readonly isArray: boolean;
 
@@ -477,7 +491,7 @@ export class Field {
       this.isArray = false;
     }
 
-    this.coder = new BinaryCoder<any>(type);
+    this.coder = new BufferFormat<any>(type, null);
   }
 
   /**
@@ -492,6 +506,3 @@ export class Field {
     return this._format;
   }
 }
-
-
-export default BinaryCoder;

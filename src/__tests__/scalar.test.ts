@@ -1,4 +1,4 @@
-import { uScalarRound, scalarRound } from "../src";
+import { uScalarRound, scalarRound } from "../core/lib/scalar";
 
 describe('uScalarRound', () => {
   it('should quantize numbers to the nearest 8-bit unsigned scalar', () => {

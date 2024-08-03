@@ -1,5 +1,8 @@
 {
   "root": true,
+  "ignorePatterns": [
+    "dist"
+  ],
   "rules": {
     "newline-before-return": 0,
     "prefer-const": 0,
@@ -31,16 +34,6 @@
     "jsdoc/no-types": 1,
     "no-trailing-spaces": "warn",
     "@typescript-eslint/ban-types": "warn",
-    "disable-autofix/jsdoc/require-jsdoc": [
-      "warn",
-      {
-        "checkConstructors": false,
-        "publicOnly": true,
-        "require": {
-          "MethodDefinition": true
-        }
-      }
-    ],
     "max-len": [
       "warn",
       200
@@ -49,7 +42,7 @@
       "warn",
       "stroustrup"
     ],
-    "curly": "warn",
+    "curly": ["warn", "multi-line"],
     "semi": [
       "warn",
       "always"

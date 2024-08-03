@@ -1,4 +1,4 @@
-{
+export const uintData = {
   "1": {
     "hex": "01",
     "bytes": 1
@@ -619,4 +619,4 @@
     "hex": "e01fffffffffffff",
     "bytes": 8
   }
-}
+};

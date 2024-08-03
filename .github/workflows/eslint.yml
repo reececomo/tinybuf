@@ -1,19 +1,17 @@
-name: "test"
+name: "eslint"
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "**/*.js"
       - "**/*.ts"
   pull_request:
-    branches: ["*"]
+    branches: ["main"]
     paths:
-      - "**/*.js"
       - "**/*.ts"
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,4 +19,4 @@ jobs:
         with:
           node-version: 20.x
       - run: npm install
-      - run: npm run coverage
+      - run: npm run lint
