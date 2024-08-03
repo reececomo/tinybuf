@@ -62,26 +62,27 @@ import { bufferParser } from 'tinybuf'
 // register formats
 const parser = bufferParser()
   .on(GameWorldData, (data) => myWorld.update(data))
-  .on(ChatMessage, (msg) => myHud.showChatMessage(msg));
+  .on(MyChatMessage, (chat) => myHud.showChat(chat));
 
 // process data
 parser.processBuffer(bytes)
 ```
 
-Or individual encodings:
+Or individual:
 
 ```ts
 const data = GameWorldData.decode(bytes);
 ```
 
-## 📘  Documentation
+## 📘 Documentation
 |                  |
 | ---------------- |
-| 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) + [Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
+| 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
+| 🤔  [Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
 | 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/headers.md) |
 | 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
 | ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
-| 🏛  [Encoding guide](https://github.com/reececomo/tinybuf/blob/main/docs/encodings.md) (e.g. varint / varuint) |
 
-> [!NOTE]
-> **tinybuf** is based on Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary).
+## Credits
+
+_**tinybuf** is based on Guilherme Souza's [js-binary](https://github.com/sitegui/js-binary)_
