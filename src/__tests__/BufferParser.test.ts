@@ -1,13 +1,13 @@
+import { BinaryCoder } from "../core/BufferFormat";
+import { bufferParser } from "../core/BufferParser";
 import {
-  BinaryCoder,
+  BufferDecodingError,
   FormatHeaderCollisionError,
-  BinaryFormatHandler,
-  Type,
-  UnhandledBinaryDecodeError,
-  decoder
-} from "../src";
+  UnrecognizedFormatError
+} from "../core/lib/errors";
+import { Type } from "../core/Type";
 
-describe('BinaryCoderInterpreter', () => {
+describe('buffer parser', () => {
   const MyCoder1 = new BinaryCoder({ example: Type.String });
   const MyCoder2 = new BinaryCoder({ example: Type.Int });
 
@@ -20,7 +20,7 @@ describe('BinaryCoderInterpreter', () => {
     let _resultsA: any[] = [];
     let _resultsB: any[] = [];
 
-    const binaryHandler = new BinaryFormatHandler()
+    const binaryHandler = bufferParser()
       .on(MyCoder1, (data) => _results1.push(data))
       .on(MyCoder2, (data) => _results2.push(data))
       .on(MyCoderA, (data) => _resultsA.push(data))
@@ -62,52 +62,61 @@ describe('BinaryCoderInterpreter', () => {
       { example: 456_456, }
     ]);
 
-    expect(BinaryCoder.peekIntId(data1)).toBe(40118);
-    expect(MyCoder1.Id).toBe(40118);
+    expect(BinaryCoder.peekHeader(data1)).toBe(40118);
+    expect(MyCoder1.header).toBe(40118);
 
-    expect(BinaryCoder.peekIntId(data2)).toBe(48432);
-    expect(MyCoder2.Id).toBe(48432);
+    expect(BinaryCoder.peekHeader(data2)).toBe(48432);
+    expect(MyCoder2.header).toBe(48432);
 
-    expect(BinaryCoder.peekStrId(dataA)).toBe('AB');
-    expect(MyCoderA.Id).toBe('AB');
+    expect(BinaryCoder.peekHeaderStr(dataA)).toBe('AB');
+    expect(MyCoderA.header).toBe('AB');
 
-    expect(BinaryCoder.peekStrId(dataB)).toBe('CD');
-    expect(MyCoderB.Id).toBe('CD');
+    expect(BinaryCoder.peekHeaderStr(dataB)).toBe('CD');
+    expect(MyCoderB.header).toBe('CD');
 
-    expect(binaryHandler.available.size).toBe(4);
+    expect(binaryHandler.availableFormats.size).toBe(4);
   });
 
   describe('processBuffer()', () => {
-    it('throws RangeError if there are not enough peek bytes', () => {
-      const binaryHandler = new BinaryFormatHandler();
+    it('throws BufferDecodingError if there are not enough peek bytes', () => {
+      const binaryHandler = bufferParser();
       const uint8array = new Uint8Array([1]);
 
-      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(RangeError);
+      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(BufferDecodingError);
     });
 
-    it('throws UnhandledBinaryDecodeError if there is no registered coder', () => {
-      const binaryHandler = new BinaryFormatHandler();
+    it('throws error if there is no registered format', () => {
+      const binaryHandler = bufferParser();
       const uint8array = new Uint8Array([1, 2]);
 
-      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(UnhandledBinaryDecodeError);
+      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(UnrecognizedFormatError);
     });
   });
 
   describe('on()', () => {
     it('throws RangeError if there are not enough peek bytes', () => {
-      const binaryHandler = new BinaryFormatHandler();
+      const binaryHandler = bufferParser();
       const format = new BinaryCoder({ a: [Type.String] }, null);
 
       expect(() => binaryHandler.on(format, () => {})).toThrow(TypeError);
     });
 
-    it('throws FormatHeaderCollisionError if registering the same format twice', () => {
-      const binaryHandler = decoder()
+    it('throws error if registering the same format twice', () => {
+      const binaryHandler = bufferParser()
         .on(new BinaryCoder({ a: [Type.String] }), () => {});
 
       const identicalFormat = new BinaryCoder({ a: [Type.String] });
 
       expect(() => binaryHandler.on(identicalFormat, () => {})).toThrow(FormatHeaderCollisionError);
+    });
+
+    it('does not error if registering the same format twice and `overwritePrevious` is set', () => {
+      const binaryHandler = bufferParser()
+        .on(new BinaryCoder({ a: [Type.String] }), () => {});
+
+      const identicalFormat = new BinaryCoder({ a: [Type.String] });
+
+      expect(() => binaryHandler.on(identicalFormat, () => {}, true)).not.toThrow(FormatHeaderCollisionError);
     });
   });
 });

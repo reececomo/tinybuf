@@ -1,18 +1,11 @@
+/* eslint-disable @typescript-eslint/no-extraneous-class */
+
 const FLOAT16_EXPONENT_BITS = 5;
 const FLOAT16_EXPONENT_BIAS = 15;
 const FLOAT16_SIGNIFICAND_BITS = 10;
 const FLOAT16_EXPONENT_MASK = 0x1F;
 const FLOAT16_SIGNIFICAND_MASK = 0x3FF;
 const FLOAT16_PRECALCULATE_SUBNORMAL = Math.pow(2, -24);
-
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class F16 {
-  /**
-   * Precomputed table of the conversion factors for each possible
-   * combination of exponent and significand bits. Unsigned.
-   */
-  public static readonly t = _initFloat16LookupTable(); // lazy init
-}
 
 /**
  * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
@@ -86,8 +79,7 @@ export function fromFloat16(b: number): number {
   const sign = (b & 0x8000) === 0 ? 1 : -1;
   const exponent = (b >> FLOAT16_SIGNIFICAND_BITS) & FLOAT16_EXPONENT_MASK;
   const significand = b & FLOAT16_SIGNIFICAND_MASK;
-
-  return (sign) * F16.t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand];
+  return (sign) * f16.t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand];
 }
 
 /**
@@ -102,32 +94,33 @@ export function fround16(doubleFloat: number): number {
 
 // ----- Precalculated table: -----
 
-function _initFloat16LookupTable(): number[] {
-  const t = [];
-  for (let exponent = 0; exponent < 1 << FLOAT16_EXPONENT_BITS; exponent++) {
-    for (let significand = 0; significand < 1 << FLOAT16_SIGNIFICAND_BITS; significand++) {
-      const value = fromFloat16Helper(exponent, significand);
-      t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand] = value;
+
+/** precomputed table of the conversion factors for each possible combination of exponent and significand bits (unsigned) */
+class f16 {
+  public static readonly t = this._initFloat16LookupTable(); // static: lazy initializer
+
+  private static _initFloat16LookupTable(): number[] {
+    const t = [];
+    for (let exponent = 0; exponent < 1 << FLOAT16_EXPONENT_BITS; exponent++) {
+      for (let significand = 0; significand < 1 << FLOAT16_SIGNIFICAND_BITS; significand++) {
+        const value = f16.precalc(exponent, significand);
+        t[(exponent << FLOAT16_SIGNIFICAND_BITS) + significand] = value;
+      }
     }
+    return t;
   }
-  return t;
-}
 
 
-// Helper function used to precalculate the value for a given exponent and significand
-function fromFloat16Helper(exponent: number, significand: number): number {
-  if (exponent === 0) {
-    // Subnormal or zero
-    if (significand === 0) {
-      return 0;
+  /** precalculate the value for a given exponent and significand */
+  private static precalc(exponent: number, significand: number): number {
+    if (exponent === 0) {
+      if (significand === 0) return 0; // subnormal or zero
+
+      return FLOAT16_PRECALCULATE_SUBNORMAL * (significand / 1024); // Subnormal
     }
-    return FLOAT16_PRECALCULATE_SUBNORMAL * (significand / 1024); // Subnormal
+    if (exponent === 0x1F) return significand === 0 ? Infinity : NaN; // Infinity or NaN
+    // Normalized number
+    exponent -= FLOAT16_EXPONENT_BIAS; // Adjust exponent bias
+    return Math.pow(2, exponent) * (1 + significand / 1024);
   }
-  if (exponent === 0x1F) {
-    // Infinity or NaN
-    return significand === 0 ? Infinity : NaN;
-  }
-  // Normalized number
-  exponent -= FLOAT16_EXPONENT_BIAS; // Adjust exponent bias
-  return Math.pow(2, exponent) * (1 + significand / 1024);
 }

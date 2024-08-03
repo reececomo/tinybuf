@@ -1,29 +1,22 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2017",
+    "target": "ES6",
+    "module": "esnext",
+    "lib": ["dom", "es2020"],
     "declaration": true,
-    "declarationMap": true,
-    "noImplicitAny": false,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "sourceMap": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
     "outDir": "./dist",
-    "baseUrl": ".",
-    "types": [
-      "node",
-      "jest"
-    ],
-    "rootDirs": [
-      "src",
-      "src/tests"
-    ]
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "stripInternal": true,
+    "types": []
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src"],
   "exclude": [
-    "src/types/*"
+    "node_modules",
+    "src/__tests__"
   ]
 }

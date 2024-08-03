@@ -1,165 +1,96 @@
-# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![test](https://github.com/reececomo/tinybuf/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/test.yml) [![test](https://github.com/reececomo/tinybuf/actions/workflows/lint.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/lint.yml)
+# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![Minzipped](https://badgen.net/bundlephobia/minzip/tinybuf)](https://www.npmjs.com/package/bitecs) [![Downloads](https://img.shields.io/npm/dt/tinybuf.svg)](https://www.npmjs.com/package/tinybuf) [![Tests](https://github.com/reececomo/tinybuf/actions/workflows/test.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/test.yml) [![License](https://badgen.net/npm/license/tinybuf)](https://github.com/reececomo/tinybuf/blob/main/LICENSE)
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
-Fast, tiny binary serialization for Node.js and HTML5 &ndash; based on [js-binary](https://www.npmjs.com/package/js-binary)
+Zero-dependency binary serialization for Node.js and HTML5 &ndash; based on [js-binary](https://www.npmjs.com/package/js-binary)
 
-- 🚀 Suitable for real-time HTML5 games (e.g. [geckos.io](https://github.com/geckosio/geckos.io), [socket.io](https://github.com/socketio/socket.io), [peer.js](https://github.com/peers/peerjs))
-- ✨ Inferred typings, built-in validation and transforms
-- 🗜️ Fast, highly-compressed encoding: ~50% smaller than [FlatBuffers/protobuf](#-comparison-table)
-- 🚦 Headerless encodings, safe for property mangling (e.g. [terser](https://terser.org/))
+| | |
+| --------------------------------- | ---------------------------------------- |
+| 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
+| 🗜️ Powerful & performant compression | ✨ 50% smaller vs. [FlatBuffers](#-comparison-table)  |
+| 🍃 Zero dependencies | 🙉 Optional advanced features |
+| 🤏 `~5kb` minzipped | 🚦 Supports property mangling (i.e. [Terser](https://terser.org/)) |
 
-## Basic Usage
+## 💿 Install
 
-**Define encoding formats:**
+```
+npm install tinybuf
+```
+
+## 🕹 Example
 
 ```ts
-import { defineFormat, optional, Type } from 'tinybuf';
+import { defineFormat, Type } from 'tinybuf';
 
 
-const GameWorldData = defineFormat({
+const Vector2 = {
+  x: Type.Float32,
+  y: Type.Float32
+} as const;
+
+export const GameWorldData = defineFormat({
   world: {
     seqNo: Type.UInt,
-    time: Type.Float16,
+    time: Type.Float16
   },
-  players: [{
-    id: Type.UInt,
-    inputs: Type.Bools, // [up, left, down, right]
-    position: optional({
-      x: Type.Float32,
-      y: Type.Float32,
-    }),
-  }]
+  players: [
+    {
+      id: Type.UInt,
+      position: Vector2,
+      inputs: Type.Bools // e.g. [ up, left, down, right ]
+    }
+  ]
 });
 ```
 
-> [!NOTE]
-> **Objects** are flat-encoded, so additional nesting incurs a 0 byte overhead. **Arrays** incur a negligible (1 byte)
-> overhead.
-
-**Serialize:**
+#### Encode
 
 ```ts
-// encode
-const bytes = GameWorldData.encode(myGameWorld)
+const bytes = GameWorldData.encode(myGameWorld);
 
 bytes.byteLength
 // 16
+
 ```
 
-**Deserialize:**
+#### Decode
 
 ```ts
-// decode
-const data = GameWorldData.decode(bytes)
-
+const data = GameWorldData.decode(bytes);
 // {
 //   world: { seqNo: number, time: number },
 //   players: Array<{ id: number, inputs: boolean[], position?: { x: number, y: number } }>
 // }
 ```
 
-**Deserialize multiple formats:**
+#### Parsing
 
 ```ts
 import { bufferParser } from 'tinybuf'
 
-// subscribe to formats
+
+// register formats
 const parser = bufferParser()
   .on(GameWorldState, (data) => myWorld.update(data))
   .on(ChatMessage, (data) => myHud.onChatMessage(data))
 
-// process incoming data
+// process data
 parser.processBuffer(bytes)
 ```
 
-## Get Started
+## 📘 Documentation
 
 **tinybuf** achieves its tiny size by serializing to a schemaless encoding format; This means both the client and server
 (or peers) must share common encoding definitions. You might typically put these into some common, shared module.
 
-Use te following
+See the following guides for more:
 
 1. **[defineFormat](#define-formats)**: _Define flexible, static-typed encoding formats_
-2. **[bufferParser](#use-decoder)**: _Parse incoming binary in registered formats_
+2. **[bufferParser](#bufferparser)**: _Parse incoming binary in registered formats_
 3. **[Compression/serialization](#%EF%B8%8F-compression-and-serialization)**: _Various tips &amp techniques for making data small_
 
 > [!TIP]
 > For additional validation and post-processing, see [Validation and Transforms](#-validation--transforms)
-
-## Installation
-
-```sh
-# npm
-npm install tinybuf
-
-# yarn
-yarn add tinybuf
-```
-
-## Usage
-
-### Define formats
-
-Create an encoding format like so:
-
-```ts
-import { encoder, Type, Optional } from 'tinybuf'
-
-// define reusable snippets with `as const`
-const Vec2 = {
-  x: Type.Float32,
-  y: Type.Float32,
-} as const
-
-const Player = {
-  id: Type.UInt,
-  inputs: Type.Bools,
-  position: Vec2,
-  velocity: Vec2,
-} as const
-
-const GameWorldData = defineFormat({
-  world: {
-    seqNo: Type.UInt,
-    time: Type.Float16
-  },
-  players: [Player],
-})
-```
-
-Use `encode(data)` to serialize to binary (as `ArrayBuffer`).
-
-```ts
-// Encode:
-const bytes = GameWorldData.encode({
-  time: 123,
-  players: [
-    {
-       id: 44,
-       isJumping: true,  
-       position: {
-         x: 110.57345,
-         y: -93.5366
-       },
-       velocity: {
-         x: 11,
-         y: 22.12
-       }
-    }
-  ]
-})
-
-bytes.byteLength
-// 14
-```
-
-And you can also decode it directly from the encoding type.
-
-```
-// Decode:
-const data = GameWorldData.decode(bytes)
-```
 
 ### Inferred types
 
@@ -179,7 +110,7 @@ For example, the return type of `GameWorldData.decode(...)` from the above examp
 }
 ```
 
-#### Using 
+#### Using inferred types
 
 You can also use the `Decoded<typeof T>` helper to add inferred types to any custom method/handler:
 

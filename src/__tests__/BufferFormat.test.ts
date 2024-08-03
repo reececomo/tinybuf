@@ -1,10 +1,5 @@
-import {
-  BinaryCoder,
-  Type,
-  Decoded,
-  optional,
-  defineFormat
-} from '../src/index';
+import { BinaryCoder, Decoded, defineFormat } from '../core/BufferFormat';
+import { optional, Type } from '../core/Type';
 
 describe('BinaryCoder', () => {
   const MyBinaryCoder = new BinaryCoder({
@@ -31,7 +26,7 @@ describe('BinaryCoder', () => {
 
   it('should encode all types', () => {
     const MyCoder = defineFormat({
-      myBinary: Type.Binary,
+      myBuffer: Type.Buffer,
       myBoolean: Type.Boolean,
       myBools: Type.Bools,
       myUScalar: Type.UScalar,
@@ -64,7 +59,7 @@ describe('BinaryCoder', () => {
     });
 
     const before = {
-      myBinary: new TextEncoder().encode('binary').buffer,
+      myBuffer: new TextEncoder().encode('binary'),
       myBoolean: true,
       myBools: [false, true],
       myUScalar: 0.5,
@@ -121,7 +116,7 @@ describe('BinaryCoder', () => {
     expect(after).toStrictEqual(before);
 
     // eslint-disable-next-line max-len
-    expect((MyCoder as any).format).toEqual('{binary,bool,booltuple,uscalar,scalar,int,int16,int32,int8,json,regex,str,str[]?,{uint,uint16,uint32,uint8,{float16,float32,float64}[]},{date,bitmask16,bitmask32,bitmask8}?}');
+    expect((MyCoder as any).format).toEqual('{buf,bool,booltuple,uscalar,scalar,int,int16,int32,int8,json,regex,str,str[]?,{uint,uint16,uint32,uint8,{float16,float32,float64}[]},{date,bitmask16,bitmask32,bitmask8}?}');
   });
 
   it('should correctly parse a type', () => {
@@ -169,7 +164,7 @@ describe('BinaryCoder', () => {
 
   it('should encode hash code as Id when Id is not set', () => {
     const coder = new BinaryCoder({ a: Type.UInt }, undefined);
-    expect(coder.Id).not.toBe(undefined);
+    expect(coder.header).not.toBe(undefined);
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(3);
@@ -177,7 +172,7 @@ describe('BinaryCoder', () => {
 
   it('should encode Id when set manually', () => {
     const coder = new BinaryCoder({ a: Type.UInt }, 32);
-    expect(coder.Id).not.toBe(undefined);
+    expect(coder.header).not.toBe(undefined);
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(3);
@@ -185,7 +180,7 @@ describe('BinaryCoder', () => {
 
   it('should encode no Id when Id is false', () => {
     const coder = new BinaryCoder({ a: Type.UInt }, null);
-    expect(coder.Id).toBe(undefined);
+    expect(coder.header).toBe(undefined);
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(1);
@@ -202,16 +197,16 @@ describe('BinaryCoder', () => {
       yzx: Type.Int16,
       zyx: [Type.String],
     });
-    expect(coderA.Id).toBe(coderB.Id);
+    expect(coderA.header).toBe(coderB.header);
 
     // Sanity check.
-    expect(coderA.Id).not.toBe(false);
-    expect(coderA.Id).not.toBe(
+    expect(coderA.header).not.toBe(false);
+    expect(coderA.header).not.toBe(
       new BinaryCoder({
         yzx: Type.Int16,
         xyz: Type.UInt,
         zyx: [Type.String],
-      }).Id
+      }).header
     );
   });
 
@@ -229,14 +224,14 @@ describe('BinaryCoder', () => {
     }, 'ab');
 
     // Sanity check.
-    expect(coderA.Id).not.toBe(coderB.Id);
+    expect(coderA.header).not.toBe(coderB.header);
 
     // Check
-    expect(coderA.Id).toBe('AB');
-    expect(typeof coderA.Id).toBe('string');
+    expect(coderA.header).toBe('AB');
+    expect(typeof coderA.header).toBe('string');
 
     const data = coderA.encode({ abc: 1, bef: 2, ghi: ['lorem'] });
-    expect(BinaryCoder.peekStrId(data)).toBe('AB');
+    expect(BinaryCoder.peekHeaderStr(data)).toBe('AB');
   });
 
   it('should throw TypeError when passed an invalid Id', () => {
@@ -266,8 +261,8 @@ describe('BinaryCoder', () => {
         str: Type.String,
         uint: Type.UInt8,
         optionalObject: optional({
-          x: Type.Float,
-          y: Type.Float
+          x: Type.Float32,
+          y: Type.Float32
         }),
         boolean: Type.Boolean
       }],
@@ -310,9 +305,7 @@ describe('BinaryCoder', () => {
       MyBinaryCoder.encode({
         a: 17,
         b: [],
-        c: [{
-          d: true as any // should be boolean
-        }]
+        c: 'example' as any, // expects array
       });
     }).toThrow();
   });
@@ -604,8 +597,8 @@ describe('Id', () => {
     const MyNakedCoder = new BinaryCoder(format as any, null);
     const MyClothedCoder = new BinaryCoder(format as any);
 
-    expect(MyNakedCoder.Id).toBe(undefined);
-    expect(MyClothedCoder.Id).not.toBe(undefined);
+    expect(MyNakedCoder.header).toBe(undefined);
+    expect(MyClothedCoder.header).not.toBe(undefined);
 
     const binary1 = MyNakedCoder.encode({ name: 'Example' });
     const binary2 = MyClothedCoder.encode({ name: 'Example' });
