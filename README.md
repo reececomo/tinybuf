@@ -137,15 +137,15 @@ function updateGameWorld(data: Decoded<typeof GameWorldData>) {
 | `Type.UInt32` | `number` | 4 | Unsigned integer between 0 and 4,294,967,295. |
 | `Type.Scalar` | `number` | 1 | Signed scalar between -1.0 and 1.0. |
 | `Type.UScalar` | `number` | 1 | Unsigned scalar between 0.0 and 1.0. |
-| `Type.Float64` / `Type.Double` | `number` | 8 | Default JavaScript `number` type. A 64-bit "double" precision floating point number. |
-| `Type.Float32` / `Type.Float` | `number` | 4 | A 32-bit "single" precision floating point number. |
-| `Type.Float16` / `Type.Half` | `number` | 2 | A 16-bit "half" precision floating point number.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
+| `Type.Number` `Type.Float64` `Type.Double` | `number` | 8 | Default JavaScript `number` type. A 64-bit "double" precision floating point number. |
+| `Type.Float32` `Type.Single` | `number` | 4 | A 32-bit "single" precision floating point number. |
+| `Type.Float16` `Type.Half` | `number` | 2 | A 16-bit "half" precision floating point number.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
 | `Type.Bool` | `boolean` | 1 | A single boolean. |
 | `Type.Bools` | `boolean[]` | 1<sup>¶</sup> | Variable-length array of boolean values packed into 1<sup>¶</sup> byte. |
 | `Type.Bools8` | `boolean[]` | 1 | Array of 1 - 8 booleans. |
 | `Type.Bools16` | `boolean[]` | 2 | Array of 1 - 16 booleans. |
 | `Type.Bools32` | `boolean[]` | 4 | Array of 1 - 32 booleans. |
-| `Type.Buffer` | `Uint8Array | ArrayBufferView | ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any buffer / binary data. |
+| `Type.Buffer` | `Uint8Array \| ArrayBufferView \| ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any buffer / binary data. |
 | `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
 | `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Arbitrary [JSON](http://json.org/) data, encoded as a UTF-8 string. |
 | `Type.RegExp` | `RegExp` | 1<sup>†</sup>&nbsp;+&nbsp;n&nbsp;+&nbsp;1 | JavaScript `RegExp` object. |
