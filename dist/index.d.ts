@@ -54,6 +54,23 @@ declare class OptionalType<T extends FieldDefinition> {
 	type: T;
 	constructor(type: T);
 }
+declare let SETTINGS: {
+	/**
+	 * (default: false) When enabled, shares one write buffer (default: each format manages its own buffer).
+	 * Use to maximise performance and memory re-use, just be cautious of possible race conditions.
+	 *
+	 * Note: The global buffer is initialized to `SETTINGS.encodingBufferMaxSize`
+	 */
+	useGlobalEncodingBuffer: boolean;
+	/** (default: 1500) When automatically increasing buffer length, this is the most bytes to allocate */
+	encodingBufferMaxSize: number;
+	/** (default: 256) How many bytes to allocate to a new write buffer */
+	encodingBufferInitialSize: number;
+	/** (default: 256) When automatically increasing buffer length, this is the amount of new bytes to allocate */
+	encodingBufferIncrement: number;
+	/** (default: false) Emits debug console logs (e.g. for memory allocation) */
+	debug: boolean;
+};
 export declare class BufferDecodingError extends TinyBufError {
 	readonly underlying: Error;
 	constructor(summary: string, underlying: Error);
@@ -224,23 +241,6 @@ export declare class UnrecognizedFormatError extends TinyBufError {
 export declare class WriteTypeError extends TinyBufError {
 	constructor(expectedType: string, value: any, path?: string);
 }
-export declare const SETTINGS: {
-	/**
-	 * When enabled, shares one write buffer (default: each format manages its own buffer).
-	 * Use to maximise performance and memory re-use, just be cautious of possible race conditions.
-	 *
-	 * Note: The global buffer is initialized to `SETTINGS.encodingBufferMaxSize`
-	 */
-	useGlobalEncodingBuffer: boolean;
-	/** When automatically increasing buffer length, this is the most bytes to allocate */
-	encodingBufferMaxSize: number;
-	/** How many bytes to allocate to a new write buffer */
-	encodingBufferInitialSize: number;
-	/** When automatically increasing buffer length, this is the amount of new bytes to allocate */
-	encodingBufferIncrement: number;
-	/** Emits debug console logs (e.g. for memory allocation) */
-	debug: boolean;
-};
 /**
  * Small utility for registering and processing format handlers.
  *
@@ -350,6 +350,7 @@ export declare const enum Type {
  * @see https://stackoverflow.com/a/32633586
  */
 export declare const f16mask: (v: number) => number;
+export declare const setTinybufConfig: (newSettings: Partial<typeof SETTINGS>) => void;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
