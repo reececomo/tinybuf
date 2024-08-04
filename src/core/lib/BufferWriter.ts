@@ -4,7 +4,6 @@ import { f16mask } from "./float16";
 
 /**
  * Wraps a view into an underlying buffer, and can be dynamically resized.
- * @internal
  */
 export class BufferWriter {
   /** byteOffset */

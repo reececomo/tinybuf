@@ -93,7 +93,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   protected _transforms?: Transforms<any> | undefined;
   protected _validate?: ValidationFn<any> | undefined;
   protected _vt = false;
-
   protected _w?: BufferWriter;
 
   public constructor(
@@ -286,8 +285,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param bw
    * @param path
    * @throws if the value is invalid
-   *
-   * @internal
    */
   protected write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
     if (this._header !== undefined) this._w.writeUInt16(this._header);
@@ -332,7 +329,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   /**
    * Helper to get the right coder.
-   * @internal
    */
   protected getCoder(type: Type): coders.BinaryTypeCoder<any> {
     switch (type) {

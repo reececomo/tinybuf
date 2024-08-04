@@ -2,8 +2,6 @@ import { f16unmask } from "./float16";
 
 /**
  * Wraps a buffer with a read head pointer.
- *
- * @internal
  */
 export class BufferReader {
   private i: number;
