@@ -197,17 +197,16 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       safe?: boolean
     },
   ): Uint8Array {
-    if (this._vt) data = this._preEncode(data);
-
-    if (SETTINGS.useGlobalEncodingBuffer && BufferFormat.globalBuffer === undefined) {
-      // lazy init
-      BufferFormat.globalBuffer = new ArrayBuffer(SETTINGS.encodingBufferMaxSize);
-      if (SETTINGS.debug) {
-        console.debug(`[tinybuf] init global encoding buffer (${SETTINGS.encodingBufferMaxSize} bytes)`);
-      }
-    }
-
     if (this._w === undefined) {
+      // init global buffer if needed
+      if (SETTINGS.useGlobalEncodingBuffer && BufferFormat.globalBuffer === undefined) {
+        // lazy init
+        BufferFormat.globalBuffer = new ArrayBuffer(SETTINGS.encodingBufferMaxSize);
+        if (SETTINGS.debug) {
+          console.debug(`[tinybuf] init global encoding buffer (${SETTINGS.encodingBufferMaxSize} bytes)`);
+        }
+      }
+
       // create writer
       this._w = new BufferWriter(
         SETTINGS.useGlobalEncodingBuffer ? BufferFormat.globalBuffer! : SETTINGS.encodingBufferInitialSize
@@ -218,6 +217,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       this._w.o = 0;
     }
 
+    if (this._vt) data = this._preEncode(data);
     this.write(data, this._w, '');
 
     return opts?.safe ? this._w.asCopy() : this._w.asView();
