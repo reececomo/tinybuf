@@ -1,6 +1,6 @@
 {
   "name": "tinybuf",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "author": "Reece Como <reece.como@gmail.com>",
   "authors": [
     "Reece Como <reece.como@gmail.com>",
@@ -11,7 +11,9 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["./dist"],
+  "files": [
+    "./dist"
+  ],
   "scripts": {
     "build": "rimraf dist && rollup -c --bundleConfigAsCjs && rimraf dist/core && ./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/index.ts --sort --no-banner --export-referenced-types ",
     "coverage": "jest --collectCoverage",

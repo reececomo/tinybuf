@@ -16,7 +16,6 @@ import {
   FieldDefinition
 } from './Type';
 import { WriteTypeError } from './lib/errors';
-import { SETTINGS } from './settings';
 
 export type FormatHeader = string | number;
 
@@ -80,8 +79,12 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    */
   public readonly header?: HeaderType;
 
+  /** A shared encoding buffer */
+  public _buf?: undefined | ArrayBuffer;
+
   protected readonly type: Type;
   protected readonly fields!: Field[];
+  protected readonly fieldsMap!: Map<string, Field>;
 
   protected _hash?: number;
   protected _format?: string;
@@ -90,7 +93,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   public constructor(
     def: EncoderType,
-    header?: HeaderType | null
+    header?: HeaderType | null,
   ) {
     // set definition
     if (def instanceof OptionalType) {
@@ -101,7 +104,12 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
     else if (def instanceof Object) {
       this.type = Type.Object;
-      this.fields = Object.keys(def).map((name) => new Field(name, def[name]));
+      this.fieldsMap = new Map();
+      this.fields = Object.keys(def).map((name) => {
+        const f = new Field(name, def[name]);
+        this.fieldsMap.set(name, f);
+        return f;
+      });
     }
     else {
       throw new TypeError("Invalid encoding format: Must be an object, or a known coder type.");
@@ -151,10 +159,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return this._hash;
   }
 
-  /**
-   * @returns A string describing the encoding format.
-   * @example "{uint8,str[]?}"
-   */
+  /** @example "{uint8,str[]?}" */
   protected get format(): string {
     if (this._format === undefined) {
       this._format = this.type === Type.Object
@@ -169,27 +174,34 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   /**
    * Encode an object to bytes.
-   * @param data - data to encode
-   * @param resize - copy the bytes to a resized buffer instead of returning a view (default: false)
+   *
+   * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
+   * performance, and to minimize memory allocation and fragmentation.
+   *
+   * Set `{ safe: true }` to return a safe copy instead.
+   *
+   * @returns An unsafe Uint8Array view of the encoded byte array buffer.
    * @throws if fails to encode value to schema.
    */
   public encode<DecodedType extends InferredDecodedType<EncoderType>>(
     data: DecodedType,
-    resize = false,
+    opts?: {
+      /** (default: false) copy bytes to a new buffer, instead of returning an unsafe view */
+      safe?: boolean
+    },
   ): Uint8Array {
     const safeValue = this._preEncode(data);
-    const buffer = new BufferWriter(resize ? SETTINGS.writeBufferDefaultSize : undefined);
+    const writer = new BufferWriter(this);
 
-    if (this.header != null) this.writeHeader(buffer);
-    this.write(safeValue, buffer, '');
+    if (this.header != null) this.writeHeader(writer);
+    this.write(safeValue, writer, '');
 
-    return resize ? buffer.copy() : buffer.asView();
+    return opts?.safe ? writer.asCopy() : writer.asView();
   }
 
   /**
    * Decode binary data to an object.
-   *
-   * @throws if fails (e.g. binary data is incompatible with schema).
+   * @throws if fails to decode bytes to schema.
    */
   public decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType {
     return this.read(new BufferReader(b, this.header === undefined ? 0 : 2));
@@ -204,7 +216,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
     else {
       for (const name of Object.keys(transforms)) {
-        const field = this.fields.find(f => f.name === name);
+        const field = this.fieldsMap.get(name);
         if (!field) {
           throw new TypeError(`Failed to set transforms for field '${name}'`);
         }
@@ -229,7 +241,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
     else {
       for (const name of Object.keys(validations)) {
-        const field = this.fields.find(f => f.name === name);
+        const field = this.fieldsMap.get(name);
         if (!field) {
           throw new TypeError(`Failed to set validation function for field '${name}'`);
         }
@@ -494,10 +506,6 @@ export class Field {
     this.coder = new BufferFormat<any>(type, null);
   }
 
-  /**
-   * @returns A string identifying the encoding format.
-   * @example "{str,uint16,bool}[]?"
-   */
   public get format(): string {
     if (this._format === undefined) {
       this._format = `${(this.coder as any).format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;

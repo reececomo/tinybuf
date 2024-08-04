@@ -41,10 +41,10 @@ export const enum Type {
 
   /**
    * Unsigned integer (1 - 8 bytes).
-   * - `0` → `127` = 1 byte
-   * - `128` → `16,384` = 2 bytes
-   * - `16,385` → `536,870,911` = 4 bytes
-   * - `536,870,912` → `Number.MAX_SAFE_INTEGER` = 8 bytes
+   * - 0 → 127 = 1 byte
+   * - 128 → 16,384 = 2 bytes
+   * - 16,385 → 536,870,911 = 4 bytes
+   * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
   UInt = 'uint',
 
@@ -65,7 +65,7 @@ export const enum Type {
 
   // ---- Advanced types: -----
 
-  /** A Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+  /** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
   Buffer = 'buf',
 
   /**
@@ -78,11 +78,7 @@ export const enum Type {
    */
   Date = 'date',
 
-  /**
-   * A JavaScript regular expression.
-   *
-   * @see {RegExp}
-   */
+  /** A JavaScript regular expression. */
   RegExp = 'regex',
 
   /** Any JSON-serializable data. Encodes as a UTF-8 string. */

@@ -5,10 +5,6 @@ declare class Field {
 	readonly isArray: boolean;
 	protected _format?: string;
 	constructor(name: string, rawType: FieldDefinition);
-	/**
-	 * @returns A string identifying the encoding format.
-	 * @example "{str,uint16,bool}[]?"
-	 */
 	get format(): string;
 }
 declare class OptionalType<T extends FieldDefinition> {
@@ -38,8 +34,11 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {hashCode}
 	 */
 	readonly header?: HeaderType;
+	/** A shared encoding buffer */
+	_buf?: undefined | ArrayBuffer;
 	protected readonly type: Type;
 	protected readonly fields: Field[];
+	protected readonly fieldsMap: Map<string, Field>;
 	protected _hash?: number;
 	protected _format?: string;
 	protected _transforms?: Transforms<any> | undefined;
@@ -61,22 +60,26 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	static peekHeaderStr: typeof peekHeaderStr;
 	/** A uint16 number representing the shape of the encoded format */
 	get hashCode(): number;
-	/**
-	 * @returns A string describing the encoding format.
-	 * @example "{uint8,str[]?}"
-	 */
+	/** @example "{uint8,str[]?}" */
 	protected get format(): string;
 	/**
 	 * Encode an object to bytes.
-	 * @param data - data to encode
-	 * @param resize - copy the bytes to a resized buffer instead of returning a view (default: false)
+	 *
+	 * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
+	 * performance, and to minimize memory allocation and fragmentation.
+	 *
+	 * Set `{ safe: true }` to return a safe copy instead.
+	 *
+	 * @returns An unsafe Uint8Array view of the encoded byte array buffer.
 	 * @throws if fails to encode value to schema.
 	 */
-	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, resize?: boolean): Uint8Array;
+	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, opts?: {
+		/** (default: false) copy bytes to a new buffer, instead of returning an unsafe view */
+		safe?: boolean;
+	}): Uint8Array;
 	/**
 	 * Decode binary data to an object.
-	 *
-	 * @throws if fails (e.g. binary data is incompatible with schema).
+	 * @throws if fails to decode bytes to schema.
 	 */
 	decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType;
 	/**
@@ -163,8 +166,6 @@ export declare class WriteTypeError extends TinyBufError {
 	constructor(expectedType: string, value: any, path?: string);
 }
 export declare const SETTINGS: {
-	/** Use a single shared buffer for encoding (dangerous if you maintain long-lived references to encoded data) */
-	useSharedWriteBuffer: boolean;
 	/** How many bytes to allocate to a new write buffer */
 	writeBufferDefaultSize: number;
 	/** When automatically increasing buffer length, this is the amount of bytes to allocate */
@@ -216,10 +217,10 @@ export declare const enum Type {
 	Int32 = "int32",
 	/**
 	 * Unsigned integer (1 - 8 bytes).
-	 * - `0` → `127` = 1 byte
-	 * - `128` → `16,384` = 2 bytes
-	 * - `16,385` → `536,870,911` = 4 bytes
-	 * - `536,870,912` → `Number.MAX_SAFE_INTEGER` = 8 bytes
+	 * - 0 → 127 = 1 byte
+	 * - 128 → 16,384 = 2 bytes
+	 * - 16,385 → 536,870,911 = 4 bytes
+	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
 	UInt = "uint",
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
@@ -232,7 +233,7 @@ export declare const enum Type {
 	Scalar = "scalar",
 	/** An unsigned scalar between 0.00 and 1.00 (1 byte). */
 	UScalar = "uscalar",
-	/** A Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+	/** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
 	Buffer = "buf",
 	/**
 	 * A JavaScript date object.
@@ -243,11 +244,7 @@ export declare const enum Type {
 	 * @see {Date}
 	 */
 	Date = "date",
-	/**
-	 * A JavaScript regular expression.
-	 *
-	 * @see {RegExp}
-	 */
+	/** A JavaScript regular expression. */
 	RegExp = "regex",
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
 	JSON = "json",

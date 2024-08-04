@@ -2,25 +2,35 @@ import { SETTINGS } from "../settings";
 import { BufferEncodingError } from "./errors";
 import { toFloat16 } from "./float16";
 
+export interface SharedBufferProvider {
+  _buf?: ArrayBuffer;
+}
+
 /**
- * A view into an underlying buffer.
- *
- * If you use beyond the byte limit of the underlying buffer, it will be dynamically resized.
- *
+ * Wraps a view into an underlying buffer, and can be dynamically resized.
  * @internal
  */
 export class BufferWriter {
-  private static sharedBuffer = new ArrayBuffer(SETTINGS.writeBufferDefaultSize);
-
   private data: DataView;
   /** byteOffset */
   private o: number = 0;
+  /** reference to a shared buffer */
+  private sbp?: SharedBufferProvider;
 
-  public constructor(initialBytes?: number) {
-    const buffer = (initialBytes && !SETTINGS.useSharedWriteBuffer)
-      ? BufferWriter.sharedBuffer
-      : new ArrayBuffer(initialBytes ?? SETTINGS.writeBufferDefaultSize);
-    this.data = new DataView(buffer);
+  public constructor(newBufferLength?: number)
+  public constructor(bufferProvider: SharedBufferProvider)
+  public constructor(value?: number | SharedBufferProvider) {
+    if (value instanceof Object) {
+      // use shared buffer
+      this.sbp = value;
+      // lazy init
+      if (value._buf === undefined) value._buf = new ArrayBuffer(SETTINGS.writeBufferDefaultSize);
+      this.data = new DataView(value._buf, 0);
+    }
+    else {
+      // create new buffer
+      this.data = new DataView(new ArrayBuffer(value ?? SETTINGS.writeBufferDefaultSize));
+    }
   }
 
   public get allocatedBytes(): number {
@@ -31,7 +41,7 @@ export class BufferWriter {
     return new Uint8Array(this.data.buffer, 0, this.o);
   }
 
-  public copy(): Uint8Array {
+  public asCopy(): Uint8Array {
     return new Uint8Array(this.data.buffer.slice(0, this.o));
   }
 
@@ -111,8 +121,8 @@ export class BufferWriter {
     const currentData = new Uint8Array(this.data.buffer, this.data.byteOffset, currentAlloc);
     new Uint8Array(newBuffer).set(currentData);
 
-    if (SETTINGS.useSharedWriteBuffer) {
-      BufferWriter.sharedBuffer = newBuffer;
+    if (this.sbp) {
+      this.sbp._buf = newBuffer;
     }
 
     // update the view

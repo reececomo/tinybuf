@@ -14,7 +14,7 @@ describe('BufferWriter', () => {
 
     expect(mutableBuffer.allocatedBytes).toBeGreaterThan(32);
 
-    const text = new TextDecoder('utf-8').decode(mutableBuffer.copy());
+    const text = new TextDecoder('utf-8').decode(mutableBuffer.asCopy());
     expect(text).toBe(input);
   });
 });

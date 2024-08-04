@@ -2,7 +2,7 @@ import { BufferFormat, Decoded, defineFormat } from '../core/BufferFormat';
 import { optional, Type } from '../core/Type';
 
 describe('BufferFormat', () => {
-  const MyBufferFormat = new BufferFormat({
+  const MyBufferFormat = defineFormat({
     a: Type.Int,
     b: [Type.Int],
     c: [{
@@ -10,19 +10,26 @@ describe('BufferFormat', () => {
     }],
   });
 
-  const validData = {
-    a: 22,
-    b: [-3, 14, -15, 92, -65, 35],
-    c: [
-      {
-        d: 'Hello World'
-      },
-      {},
-      {
-        d: '?'
-      },
-    ],
-  };
+  describe('default shared buffer behavior', () => {
+    it('encoding recycles the same buffer', () => {
+      const TestFormat = defineFormat('AB', { value: Type.String });
+      const abcd = TestFormat.encode({ value: 'abcd' });
+      const efgh = TestFormat.encode({ value: 'efgh' });
+
+      expect(TestFormat.decode(efgh)).toEqual({ value: 'efgh' });
+      expect(TestFormat.decode(abcd)).not.toEqual({ value: 'abcd' });
+      expect(TestFormat.decode(abcd)).toEqual({ value: 'efgh' });
+    });
+
+    it('{ safe: true } encoding preserves the buffer', () => {
+      const TestFormat = defineFormat('AB', { value: Type.String });
+      const abcd = TestFormat.encode({ value: 'abcd' }, { safe: true });
+      const efgh = TestFormat.encode({ value: 'efgh' });
+
+      expect(TestFormat.decode(efgh)).toEqual({ value: 'efgh' });
+      expect(TestFormat.decode(abcd)).toEqual({ value: 'abcd' });
+    });
+  });
 
   it('should encode all types', () => {
     const MyCoder = defineFormat({
@@ -162,24 +169,24 @@ describe('BufferFormat', () => {
     });
   });
 
-  it('should encode hash code as Id when Id is not set', () => {
-    const coder = new BufferFormat({ a: Type.UInt }, undefined);
+  it('should encode hash code as header when header is not set', () => {
+    const coder = defineFormat({ a: Type.UInt });
     expect(coder.header).not.toBe(undefined);
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(3);
   });
 
-  it('should encode Id when set manually', () => {
-    const coder = new BufferFormat({ a: Type.UInt }, 32);
+  it('should encode header when set manually', () => {
+    const coder = defineFormat(32, { a: Type.UInt });
     expect(coder.header).not.toBe(undefined);
 
     const data = coder.encode({ a: 0 });
     expect(data.byteLength).toBe(3);
   });
 
-  it('should encode no Id when Id is false', () => {
-    const coder = new BufferFormat({ a: Type.UInt }, null);
+  it('should encode no header when header is null', () => {
+    const coder = defineFormat(null, { a: Type.UInt });
     expect(coder.header).toBe(undefined);
 
     const data = coder.encode({ a: 0 });
@@ -187,12 +194,12 @@ describe('BufferFormat', () => {
   });
 
   it('should match ids based on shape, but not keys', () => {
-    const coderA = new BufferFormat({
+    const coderA = defineFormat({
       abc: Type.UInt,
       bef: Type.Int16,
       ghi: [Type.String],
     });
-    const coderB = new BufferFormat({
+    const coderB = defineFormat({
       xyz: Type.UInt,
       yzx: Type.Int16,
       zyx: [Type.String],
@@ -202,7 +209,7 @@ describe('BufferFormat', () => {
     // Sanity check.
     expect(coderA.header).not.toBe(false);
     expect(coderA.header).not.toBe(
-      new BufferFormat({
+      defineFormat({
         yzx: Type.Int16,
         xyz: Type.UInt,
         zyx: [Type.String],
@@ -211,17 +218,17 @@ describe('BufferFormat', () => {
   });
 
   it('should allow string ids ', () => {
-    const coderA = new BufferFormat({
+    const coderA = defineFormat('AB', {
       abc: Type.UInt,
       bef: Type.Int16,
       ghi: [Type.String],
-    }, 'AB');
+    });
 
-    const coderB = new BufferFormat({
+    const coderB = defineFormat('ab', {
       xyz: Type.UInt,
       yzx: Type.Int16,
       zyx: [Type.String],
-    }, 'ab');
+    });
 
     // Sanity check.
     expect(coderA.header).not.toBe(coderB.header);
@@ -234,28 +241,28 @@ describe('BufferFormat', () => {
     expect(BufferFormat.peekHeaderStr(data)).toBe('AB');
   });
 
-  it('should throw TypeError when passed an invalid Id', () => {
-    expect(() => new BufferFormat({ data: Type.UInt }, true as any)).toThrow(TypeError);
-    expect(() => new BufferFormat({ data: Type.UInt }, -1)).toThrow(TypeError);
-    expect(() => new BufferFormat({ data: Type.UInt }, 65_536)).toThrow(TypeError);
-    expect(() => new BufferFormat({ data: Type.UInt }, 1.01)).toThrow(TypeError);
+  it('should throw TypeError when passed an invalid header', () => {
+    expect(() => defineFormat(true as any, { data: Type.UInt })).toThrow(TypeError);
+    expect(() => defineFormat(-1, { data: Type.UInt })).toThrow(TypeError);
+    expect(() => defineFormat(65_536, { data: Type.UInt })).toThrow(TypeError);
+    expect(() => defineFormat(1.01, { data: Type.UInt })).toThrow(TypeError);
   });
 
   it('should throw TypeError when an array contains non-1 value', () => {
-    expect(() => new BufferFormat({ data: [] as any })).toThrow(TypeError);
-    expect(() => new BufferFormat({ data: [Type.String, Type.String] as any })).toThrow(TypeError);
+    expect(() => defineFormat({ data: [] as any })).toThrow(TypeError);
+    expect(() => defineFormat({ data: [Type.String, Type.String] as any })).toThrow(TypeError);
   });
 
   it('should throw TypeError when root object is optional', () => {
-    expect(() => new BufferFormat(optional({ a: Type.UInt }) as any)).toThrow(TypeError);
+    expect(() => defineFormat(optional({ a: Type.UInt }) as any)).toThrow(TypeError);
   });
 
   it('should throw TypeError when root object is unknown coder type', () => {
-    expect(() => new BufferFormat('bigint128' as any)).toThrow(TypeError);
+    expect(() => defineFormat('bigint128' as any)).toThrow(TypeError);
   });
 
   it('decode() emits output that is valid input for encode()', () => {
-    const Example = new BufferFormat({
+    const Example = defineFormat({
       integer: Type.UInt16,
       objectArray: [{
         str: Type.String,
@@ -311,6 +318,20 @@ describe('BufferFormat', () => {
   });
 
   it('should encode a conforming object and read back the data', () => {
+    const validData = {
+      a: 22,
+      b: [-3, 14, -15, 92, -65, 35],
+      c: [
+        {
+          d: 'Hello World'
+        },
+        {},
+        {
+          d: '?'
+        },
+      ],
+    };
+
     const encoded = MyBufferFormat.encode(validData);
     const decoded = MyBufferFormat.decode(encoded);
 
@@ -318,12 +339,12 @@ describe('BufferFormat', () => {
   });
 
   it('should encode an array', () => {
-    const intArray = new BufferFormat({ data: [Type.Int] });
+    const intArray = defineFormat({ data: [Type.Int] });
     expect(intArray.decode(intArray.encode({ data: [] }))).toEqual({ data: [] });
     expect(intArray.decode(intArray.encode({ data: [3] }))).toEqual({ data: [3] });
     expect(intArray.decode(intArray.encode({ data: [3, 14, 15] }))).toEqual({ data: [3, 14, 15] });
 
-    const objArray = new BufferFormat({ data: [{
+    const objArray = defineFormat({ data: [{
       v: Type.Int,
       f: Type.String
     }]});
@@ -341,7 +362,7 @@ describe('BufferFormat', () => {
 
 describe('transforms and validation', () => {
   it('should handle basic case', () => {
-    const MyCoder = new BufferFormat({
+    const MyCoder = defineFormat({
       id: Type.UInt
     })
       .setTransforms({
@@ -363,12 +384,12 @@ describe('transforms and validation', () => {
   });
 
   it('can use transforms to improve accuracy of lossy types', () => {
-    let MyCoder = new BufferFormat({ ball: { rotation: Type.Float16 } });
+    let MyCoder = defineFormat({ ball: { rotation: Type.Float16 } });
 
     const input = { ball: { rotation: 3.1419 }};
     expect(MyCoder.decode(MyCoder.encode(input)).ball.rotation).toBe(3.142578125);
 
-    MyCoder = new BufferFormat({ ball: { rotation: Type.Float16 } })
+    MyCoder = defineFormat({ ball: { rotation: Type.Float16 } })
       .setTransforms({
         ball: { rotation: [ x => x * 1_000, x => x * 0.001 ] }
       });
@@ -378,7 +399,7 @@ describe('transforms and validation', () => {
   });
 
   it('should handle advanced case', () => {
-    const MyCoder = new BufferFormat({
+    const MyCoder = defineFormat({
       id: Type.UInt,
       names: optional([Type.String]),
       dates: [Type.Date],
@@ -494,7 +515,7 @@ describe('transforms and validation', () => {
 
 
 describe('BOOLEAN_ARRAY', () => {
-  const MyCoder = new BufferFormat({
+  const MyCoder = defineFormat({
     name: Type.String,
     coolBools: Type.Bools,
   });
@@ -548,7 +569,7 @@ describe('BOOLEAN_ARRAY', () => {
 });
 
 describe('BITMASK_8', () => {
-  const MyCoder = new BufferFormat({
+  const MyCoder = defineFormat({
     name: Type.String,
     coolBools: Type.Bools8,
   });
@@ -589,13 +610,13 @@ describe('BITMASK_8', () => {
   });
 });
 
-describe('Id', () => {
+describe('header', () => {
   it('matches expected shapes', () => {
     const format = {
       name: Type.String,
     };
-    const MyNakedCoder = new BufferFormat(format as any, null);
-    const MyClothedCoder = new BufferFormat(format as any);
+    const MyNakedCoder = defineFormat(null, format as any);
+    const MyClothedCoder = defineFormat(format as any);
 
     expect(MyNakedCoder.header).toBe(undefined);
     expect(MyClothedCoder.header).not.toBe(undefined);
@@ -608,7 +629,7 @@ describe('Id', () => {
 });
 
 describe('Bools16', () => {
-  const MyCoder = new BufferFormat({
+  const MyCoder = defineFormat({
     name: Type.String,
     coolBools: Type.Bools16,
   });
@@ -635,7 +656,7 @@ describe('Bools16', () => {
 });
 
 describe('Bools32', () => {
-  const MyCoder = new BufferFormat({
+  const MyCoder = defineFormat({
     name: Type.String,
     coolBools: Type.Bools32,
     other: optional(Type.String),
