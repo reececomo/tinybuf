@@ -17,6 +17,9 @@ export class BufferWriter {
     if (value instanceof ArrayBuffer) {
       this.buf = value;
       this.resize = false;
+      if (SETTINGS.debug) {
+        console.debug(`[tinybuf] assigning buffer writer to global encoding buffer`);
+      }
     }
     else {
       if (SETTINGS.debug) {

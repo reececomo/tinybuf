@@ -202,6 +202,9 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (SETTINGS.useGlobalEncodingBuffer && BufferFormat.globalBuffer === undefined) {
       // lazy init
       BufferFormat.globalBuffer = new ArrayBuffer(SETTINGS.encodingBufferMaxSize);
+      if (SETTINGS.debug) {
+        console.debug(`[tinybuf] init global encoding buffer (${SETTINGS.encodingBufferMaxSize} bytes)`);
+      }
     }
 
     if (this._w === undefined) {
