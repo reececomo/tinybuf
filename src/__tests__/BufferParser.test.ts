@@ -26,18 +26,23 @@ describe('buffer parser', () => {
       .on(MyCoderA, (data) => _resultsA.push(data))
       .on(MyCoderB, (data) => _resultsB.push(data));
 
+    // encode safely (as if it had been received across the network):
+
     const data1 = MyCoder1.encode({
       example: 'someText',
-    });
+    }, { safe: true });
+
     const data2 = MyCoder2.encode({
       example: 123_123,
-    });
+    }, { safe: true });
+
     const dataA = MyCoderA.encode({
       example: 'dolor sit amet',
-    });
+    }, { safe: true });
+
     const dataB = MyCoderB.encode({
       example: 456_456,
-    });
+    }, { safe: true });
 
     binaryHandler.processBuffer(data1);
     binaryHandler.processBuffer(data2);

@@ -1,20 +1,23 @@
 import { BufferWriter } from "../core/lib/BufferWriter";
 
 describe('BufferWriter', () => {
-  it('should dynamically resize the underlying array buffer', () => {
+  it('sanity check: should dynamically resize underlying array buffer', () => {
     // Outputs a string with 120 bytes
     const input = "🌍".repeat(48);
 
-    const mutableBuffer = new BufferWriter(32);
+    const writer = new BufferWriter(32);
 
-    expect(mutableBuffer.allocatedBytes).toBe(32);
+    // cheeky check of the underlying implementation
+    expect((writer as any).view.byteOffset).toBe(0);
+    expect((writer as any).view.byteLength).toBe(32);
 
     const textBuffer = new TextEncoder().encode(input);
-    mutableBuffer.writeBuffer(textBuffer);
+    writer.writeBuffer(textBuffer);
 
-    expect(mutableBuffer.allocatedBytes).toBeGreaterThan(32);
+    expect((writer as any).view.byteOffset).toBe(0);
+    expect((writer as any).view.byteLength).toBeGreaterThan(32);
 
-    const text = new TextDecoder('utf-8').decode(mutableBuffer.asCopy());
+    const text = new TextDecoder('utf-8').decode(writer.asCopy());
     expect(text).toBe(input);
   });
 });

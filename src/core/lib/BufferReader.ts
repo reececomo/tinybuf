@@ -1,9 +1,7 @@
-import { fromFloat16 } from "./float16";
+import { f16unmask } from "./float16";
 
 /**
  * Wraps a buffer with a read head pointer.
- *
- * @internal
  */
 export class BufferReader {
   private i: number;
@@ -65,7 +63,7 @@ export class BufferReader {
   public readFloat16(): number {
     const r = this.data.getUint16(this.i);
     this.i += 2;
-    return fromFloat16(r);
+    return f16unmask(r);
   }
 
   public readFloat32(): number {

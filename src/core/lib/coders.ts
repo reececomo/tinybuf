@@ -27,9 +27,6 @@ const MAX_AUTO_UINT8 = 128,
 
 const utf8Decoder = new TextDecoder('utf-8');
 
-/**
- * @internal
- */
 export interface BinaryTypeCoder<T, R = T> {
   write(value: T, data: BufferWriter, path?: string): void;
   read(state: BufferReader): R;

@@ -1,7 +1,7 @@
 import { bufferParser, BufferParserInstance } from './core/BufferParser';
 import { defineFormat, BufferFormat, Decoded } from './core/BufferFormat';
 import { Type, optional } from './core/Type';
-import { SETTINGS } from './core/settings';
+import { setTinybufConfig } from './core/settings';
 
 
 // Core API:
@@ -11,9 +11,10 @@ export {
   Type,
   optional,
 
-  // Global settings:
-  SETTINGS,
+  // settings:
+  setTinybufConfig,
 
+  // classes:
   BufferFormat,
   BufferParserInstance
 };
