@@ -556,7 +556,7 @@ describe('coders', () => {
 //
 
 function _writeAndReturnArrayBuffer<T>(coder: any, value: T): ArrayBuffer {
-  const  data = new BufferWriter();
+  const  data = new BufferWriter(64);
   coder.write(value, data, '');
   return data.asView();
 }
@@ -576,7 +576,7 @@ function _writeAndGetHex<T>(type: BinaryTypeCoder<T>, value: T): string {
 }
 
 function _write<T>(type: BinaryTypeCoder<T>, value: T): ArrayBuffer {
-  const data = new BufferWriter();
+  const data = new BufferWriter(64);
   type.write(value, data, '');
 
   return data.asView();

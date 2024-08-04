@@ -16,11 +16,12 @@ import {
   FieldDefinition
 } from './Type';
 import { WriteTypeError } from './lib/errors';
+import { SETTINGS } from './settings';
 
 export type FormatHeader = string | number;
 
 /**
- * Decoded type of a binary encoding.
+ * Decoded object types for a given binary format.
  * @example let onData = (data: Decoded<typeof MyBufferFormat>) => {...};
  */
 export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
@@ -70,6 +71,9 @@ function isValidHeader(h: FormatHeader): boolean {
  * @see {decode(binary)}
  */
 export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
+  /** A global encoding buffer that can be used by all formats */
+  public static globalBuffer?: ArrayBuffer;
+
   /**
    * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
    *
@@ -77,11 +81,9 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @see {peekHeaderStr(...)}
    * @see {hashCode}
    */
-  public readonly header?: HeaderType;
+  public readonly header!: HeaderType;
 
-  /** A shared encoding buffer */
-  public _buf?: undefined | ArrayBuffer;
-
+  protected readonly _header!: number;
   protected readonly type: Type;
   protected readonly fields!: Field[];
   protected readonly fieldsMap!: Map<string, Field>;
@@ -89,7 +91,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   protected _hash?: number;
   protected _format?: string;
   protected _transforms?: Transforms<any> | undefined;
-  protected _validationFn?: ValidationFn<any> | undefined;
+  protected _validate?: ValidationFn<any> | undefined;
+  protected _vt = false;
+
+  protected _w?: BufferWriter;
 
   public constructor(
     def: EncoderType,
@@ -118,12 +123,15 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     // set headers
     if (header === undefined && this.type === Type.Object) {
       this.header = this.hashCode as HeaderType; // automatic
+      this._header = this.header as number;
     }
     else if (header === null) {
       this.header = undefined; // headerless
+      this._header = undefined;
     }
     else if (isValidHeader(header)) {
       this.header = header; // manual
+      this._header = typeof header === 'number' ? header : strToHashCode(header);
     }
     else {
       throw new TypeError(`Header should be an integer between 0 and 65535, a 2-byte string, or null. Received: ${header}`);
@@ -190,13 +198,27 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       safe?: boolean
     },
   ): Uint8Array {
-    const safeValue = this._preEncode(data);
-    const writer = new BufferWriter(this);
+    if (this._vt) data = this._preEncode(data);
 
-    if (this.header != null) this.writeHeader(writer);
-    this.write(safeValue, writer, '');
+    if (SETTINGS.useGlobalEncodingBuffer && BufferFormat.globalBuffer === undefined) {
+      // lazy init
+      BufferFormat.globalBuffer = new ArrayBuffer(SETTINGS.encodingBufferMaxSize);
+    }
 
-    return opts?.safe ? writer.asCopy() : writer.asView();
+    if (this._w === undefined) {
+      // create writer
+      this._w = new BufferWriter(
+        SETTINGS.useGlobalEncodingBuffer ? BufferFormat.globalBuffer! : SETTINGS.encodingBufferInitialSize
+      );
+    }
+    else {
+      // reset
+      this._w.o = 0;
+    }
+
+    this.write(data, this._w, '');
+
+    return opts?.safe ? this._w.asCopy() : this._w.asView();
   }
 
   /**
@@ -211,6 +233,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * Set additional transform functions to apply before encoding and after decoding.
    */
   public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
+    this._vt = true;
+
     if (transforms instanceof Function || (Array.isArray(transforms) && transforms[0] instanceof Function)) {
       this._transforms = transforms;
     }
@@ -236,8 +260,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * - Anything else is treated as successfully passing validation.
    */
   public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
+    this._vt = true;
+
     if (validations instanceof Function) {
-      this._validationFn = validations;
+      this._validate = validations;
     }
     else {
       for (const name of Object.keys(validations)) {
@@ -264,8 +290,9 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @internal
    */
   protected write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
+    if (this._header !== undefined) this._w.writeUInt16(this._header);
     if (this.type !== Type.Object) {
-      const safeValue = (this._validationFn || this._transforms) ? this._preEncode(value) : value;
+      const safeValue = (this._validate || this._transforms) ? this._preEncode(value) : value;
 
       return this.getCoder(this.type).write(safeValue, bw, path);
     }
@@ -303,48 +330,42 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
   }
 
-  /** @internal */
-  private writeHeader(bw: BufferWriter): void {
-    const h = typeof this.header === 'string' ? strToHashCode(this.header) : this.header as number;
-    coders.uint16Coder.write(h, bw, '');
-  }
-
   /**
    * Helper to get the right coder.
    * @internal
    */
   protected getCoder(type: Type): coders.BinaryTypeCoder<any> {
     switch (type) {
-      case Type.Buffer: return coders.bufferCoder;
       case Type.Bool: return coders.booleanCoder;
       case Type.Bools: return coders.booleanArrayCoder;
-      case Type.Bools8: return coders.bitmask8Coder;
       case Type.Bools16: return coders.bitmask16Coder;
       case Type.Bools32: return coders.bitmask32Coder;
+      case Type.Bools8: return coders.bitmask8Coder;
+      case Type.Buffer: return coders.bufferCoder;
       case Type.Date: return coders.dateCoder;
       case Type.Float16: return coders.float16Coder;
       case Type.Float32: return coders.float32Coder;
       case Type.Float64: return coders.float64Coder;
-      case Type.UScalar: return coders.uscalarCoder;
-      case Type.Scalar: return coders.scalarCoder;
       case Type.Int: return coders.intCoder;
       case Type.Int16: return coders.int16Coder;
       case Type.Int32: return coders.int32Coder;
       case Type.Int8: return coders.int8Coder;
       case Type.JSON: return coders.jsonCoder;
       case Type.RegExp: return coders.regexCoder;
+      case Type.Scalar: return coders.scalarCoder;
       case Type.String: return coders.stringCoder;
       case Type.UInt: return coders.uintCoder;
       case Type.UInt16: return coders.uint16Coder;
       case Type.UInt32: return coders.uint32Coder;
       case Type.UInt8: return coders.uint8Coder;
+      case Type.UScalar: return coders.uscalarCoder;
     }
   }
 
   // ----- Private methods: -----
 
   private _preEncode<T extends Record<string, any>>(data: T): T {
-    if (this._validationFn && this._validationFn(data) === false) {
+    if (this._validate && this._validate(data) === false) {
       throw new Error('custom validation failed');
     }
 
@@ -363,8 +384,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       data = this._transforms[1](data);
     }
 
-    if (this._validationFn instanceof Function) {
-      this._validationFn(data);
+    if (this._validate instanceof Function) {
+      this._validate(data);
     }
 
     return data;
@@ -429,7 +450,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
     if (this.type !== Type.Object && this.type !== Type.Array) {
       // Scalar type - in this case, there is no need to write custom code.
-      return (this._validationFn !== undefined || this._transforms !== undefined) ? this.readValueType : this.getCoder(this.type).read;
+      return (this._validate !== undefined || this._transforms !== undefined) ? this.readValueType : this.getCoder(this.type).read;
     }
 
     const code = this.generateObjectReadCode();
