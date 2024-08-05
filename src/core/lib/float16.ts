@@ -3,6 +3,16 @@
 const FLOAT16_PRECALCULATE_SUBNORMAL = Math.pow(2, -24);
 
 /**
+ * The fround16() method returns the nearest 16-bit half precision float representation of a number.
+ *
+ * @param doubleFloat A number.
+ * @returns The nearest 16-bit half precision float representation of x.
+ */
+export function fround16(doubleFloat: number): number {
+  return $f16unmask($f16mask(doubleFloat));
+}
+
+/**
  * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
  *
  * @param doubleFloat A number.
@@ -72,16 +82,6 @@ export function $f16unmask(b: number): number {
   // eslint-disable-next-line max-len
   if ((b & 0x8000) === 0) return f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
   else return -f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
-}
-
-/**
- * The fround16() method returns the nearest 16-bit half precision float representation of a number.
- *
- * @param doubleFloat A number.
- * @returns The nearest 16-bit half precision float representation of x.
- */
-export function fround16(doubleFloat: number): number {
-  return $f16unmask($f16mask(doubleFloat));
 }
 
 // ----- Precomputed table: -----

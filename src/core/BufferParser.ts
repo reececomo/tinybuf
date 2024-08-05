@@ -17,9 +17,9 @@ type Uint16FormatHeader = number;
  *
  * myHandler.processBuffer(bytes);
  */
-export const bufferParser = (): BufferParserInstance => new BufferParserInstance();
+export const bufferParser = (): BufferParser => new BufferParser();
 
-export class BufferParserInstance {
+export class BufferParser {
   /** @internal */
   private _$formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
 

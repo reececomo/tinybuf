@@ -46,7 +46,6 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 *
 	 * @see {peekHeader(...)}
 	 * @see {peekHeaderStr(...)}
-	 * @see {$hashCode}
 	 */
 	readonly header: HeaderType;
 	constructor(def: EncoderType, header?: HeaderType | null);
@@ -94,7 +93,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 */
 	setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
 }
-export declare class BufferParserInstance {
+export declare class BufferParser {
 	/**
 	 * Decode an array buffer and trigger the relevant data handler.
 	 *
@@ -123,15 +122,6 @@ export declare class EncodeError extends TinybufError {
 export declare class TinybufError extends Error {
 }
 /**
- * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
- *
- * @param doubleFloat A number.
- * @returns A UInt16 bitmask representation of a half precision float.
- *
- * @see https://stackoverflow.com/a/32633586
- */
-export declare const $f16mask: (v: number) => number;
-/**
  * Small utility for registering and processing format handlers.
  *
  * @example
@@ -141,7 +131,7 @@ export declare const $f16mask: (v: number) => number;
  *
  * myHandler.processBuffer(bytes);
  */
-export declare const bufferParser: () => BufferParserInstance;
+export declare const bufferParser: () => BufferParser;
 /**
  * Binary coder types.
  *
@@ -220,14 +210,6 @@ export declare const enum Type {
 /** Set Tinybuf global config */
 export declare const setTinybufConfig: (newSettings: Partial<typeof cfg>) => void;
 /**
- * Convert a UInt16 bitmask of a 16-bit half precision float representation into
- * a double precision float (number).
- *
- * @param b A UInt16 bitmask representation of a half precision float.
- * @returns A number (standard 64-bit double precision representation).
- */
-export declare function $f16unmask(b: number): number;
-/**
  * Defines a format for encoding/decoding binary buffers.
  *
  * Optionally customize the identifier, either as a 2-byte string, an unsigned integer (0 -> 65,535), or as `null` to disable entirely.
@@ -251,10 +233,6 @@ export declare function defineFormat<T extends EncoderDefinition, HeaderType ext
  * const MyFormat = defineFormat(null, { ... });
  */
 export declare function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
-/** @returns A signed scalar between -1.0 and 1.0. */
-export declare function fromScalar8(uInt8: number): number;
-/** @returns An unsigned scalar between 0.0 and 1.0. */
-export declare function fromUScalar8(uInt8: number): number;
 /**
  * The fround16() method returns the nearest 16-bit half precision float representation of a number.
  *
@@ -285,10 +263,6 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
  * @returns A number (double) in its closest signed scalar representation.
  */
 export declare function scalarRound(doubleFloat: number): number;
-/** @returns A UInt8 bitmask representation. */
-export declare function toScalar8(scalar: number): number;
-/** @returns A UInt8 bitmask representation. */
-export declare function toUScalar8(uScalar: number): number;
 /**
  * Quantize a number to an 8-bit scalar between 0.0 and 1.0.
  *

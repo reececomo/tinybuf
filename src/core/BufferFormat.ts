@@ -79,7 +79,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @see {peekHeader(...)}
    * @see {peekHeaderStr(...)}
-   * @see {$hashCode}
    */
   public readonly header!: HeaderType;
 
