@@ -10,7 +10,7 @@ const FLOAT16_PRECALCULATE_SUBNORMAL = Math.pow(2, -24);
  *
  * @see https://stackoverflow.com/a/32633586
  */
-export const f16mask = (function() {
+export const $f16mask = (function() {
   const floatView = new Float32Array(1);
   const int32View = new Int32Array(floatView.buffer);
 
@@ -68,7 +68,7 @@ export const f16mask = (function() {
  * @param b A UInt16 bitmask representation of a half precision float.
  * @returns A number (standard 64-bit double precision representation).
  */
-export function f16unmask(b: number): number {
+export function $f16unmask(b: number): number {
   // eslint-disable-next-line max-len
   if ((b & 0x8000) === 0) return f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
   else return -f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
@@ -81,20 +81,20 @@ export function f16unmask(b: number): number {
  * @returns The nearest 16-bit half precision float representation of x.
  */
 export function fround16(doubleFloat: number): number {
-  return f16unmask(f16mask(doubleFloat));
+  return $f16unmask($f16mask(doubleFloat));
 }
 
 // ----- Precomputed table: -----
 
 /** precomputed table of the conversion factors for each possible combination of exponent and significand bits (unsigned) */
 class f16 {
-  public static readonly t = this._initFloat16LookupTable(); // static: lazy initializer
+  public static readonly t = this._$initF16LookupTable(); // static: lazy initializer
 
-  private static _initFloat16LookupTable(): number[] {
+  private static _$initF16LookupTable(): number[] {
     const t = [];
     for (let exponent = 0; exponent < 1 << 5 /* FLOAT16_EXPONENT_BITS */; exponent++) {
       for (let significand = 0; significand < 1 << 10 /* FLOAT16_SIGNIFICAND_BITS */; significand++) {
-        const value = f16.precalc(exponent, significand);
+        const value = f16._$precalculate(exponent, significand);
         t[(exponent << 10 /* FLOAT16_SIGNIFICAND_BITS */) + significand] = value;
       }
     }
@@ -103,7 +103,7 @@ class f16 {
 
 
   /** precalculate the value for a given exponent and significand */
-  private static precalc(exponent: number, significand: number): number {
+  private static _$precalculate(exponent: number, significand: number): number {
     if (exponent === 0) {
       if (significand === 0) return 0; // subnormal or zero
       return FLOAT16_PRECALCULATE_SUBNORMAL * (significand / 1024); // Subnormal

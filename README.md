@@ -1,4 +1,4 @@
-# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![Minzipped](https://badgen.net/bundlephobia/minzip/tinybuf@latest)](https://bundlephobia.com/package/tinybuf) [![Downloads](https://img.shields.io/npm/dt/tinybuf.svg)](https://www.npmjs.com/package/tinybuf) [![Tests](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml) [![License](https://badgen.net/npm/license/tinybuf)](https://github.com/reececomo/tinybuf/blob/main/LICENSE)
+# 🔌 tinybuf &nbsp;[![NPM version](https://img.shields.io/npm/v/tinybuf.svg?style=flat-square)](https://www.npmjs.com/package/tinybuf) [![Minzipped](https://badgen.net/bundlephobia/minzip/tinybuf)](https://bundlephobia.com/package/tinybuf) [![Downloads](https://img.shields.io/npm/dt/tinybuf.svg)](https://www.npmjs.com/package/tinybuf) [![Tests](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml/badge.svg)](https://github.com/reececomo/tinybuf/actions/workflows/tests.yml) [![License](https://badgen.net/npm/license/tinybuf)](https://github.com/reececomo/tinybuf/blob/main/LICENSE)
 
 <img align="right" src="docs/hero.png" alt="tinybuf icon showing binary peeking out from behind a square." height="80">
 
@@ -7,8 +7,8 @@
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
-| 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md)  |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
+| 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🌐 Node / browser | 🛡️ Built-in validation / transforms |
 | 🤏 `~5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
@@ -51,8 +51,13 @@ const bytes = GameWorldData.encode({ /*…*/ });
 
 bytes.byteLength
 // 17
-
 ```
+
+> [!CAUTION]
+> `encode(…)` runs returns a `Uint8Array` view of the shared encoding buffer.
+
+> [!TIP]
+> `encode(…)` returns a `Uint8Array` view of shared encoding buffer, which is great if
 
 #### Decode
 
@@ -79,7 +84,7 @@ const data = GameWorldData.decode(bytes);
 | ---------------- |
 | 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
 | 🤔  [Types table](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
-| 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/headers.md) |
+| 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md) |
 | 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
 | ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
 

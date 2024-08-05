@@ -1,82 +1,37 @@
-declare class BufferReader {
-	private i;
-	private data;
-	constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, byteOffset?: number);
-	get hasEnded(): boolean;
-	/** Read the next byte, without moving the read head pointer. */
-	peekUInt8(): number;
-	/** used to skip bytes for reading type headers. */
-	skipByte(): void;
-	readUint8(): number;
-	readUint16(): number;
-	readUint32(): number;
-	readInt8(): number;
-	readInt16(): number;
-	readInt32(): number;
-	readFloat16(): number;
-	readFloat32(): number;
-	readFloat64(): number;
-	/** @throws RangeError if exceeds length */
-	readBuffer(bytes: number): Uint8Array;
-}
-declare class BufferWriter {
-	/** byteOffset */
-	o: number;
-	private view;
-	private buf;
-	private resize;
-	constructor(value: number | ArrayBuffer);
-	asView(): Uint8Array;
-	asCopy(): Uint8Array;
-	writeInt8(value: number): void;
-	writeInt16(value: number): void;
-	writeInt32(value: number): void;
-	writeUInt8(value: number): void;
-	writeUInt16(value: number): void;
-	writeUInt32(value: number): void;
-	writeFloat16(value: number): void;
-	writeFloat32(value: number): void;
-	writeFloat64(value: number): void;
-	writeBuffer(b: ArrayBuffer | ArrayBufferView): void;
-	/** Allocate the given number of bytes, and then return the current header position (byteOffset). */
-	private alloc;
-}
-declare class Field {
-	readonly name: string;
-	readonly coder: BufferFormat<any>;
-	readonly isOptional: boolean;
-	readonly isArray: boolean;
-	protected _format?: string;
-	constructor(name: string, rawType: FieldDefinition);
-	get format(): string;
-}
 declare class OptionalType<T extends FieldDefinition> {
 	type: T;
 	constructor(type: T);
 }
-declare let SETTINGS: {
+declare let cfg: {
 	/**
-	 * (default: false) When enabled, shares one write buffer (default: each format manages its own buffer).
-	 * Use to maximise performance and memory re-use, just be cautious of possible race conditions.
+	 * (default: 1500)
+	 * The maximum bytes to allocate to an encoding buffer. If using the global
+	 * encoding buffer, this is the size it is initialized to.
+	 */
+	encodingBufferMaxSize: number;
+	/**
+	 * (default: 256)
+	 * Initial bytes to allocate to individual format encoding buffers, if used.
+	 */
+	encodingBufferInitialSize: number;
+	/**
+	 * (default: 256)
+	 * Additional bytes when resizing individual format encoding buffers, if used.
+	 */
+	encodingBufferIncrement: number;
+	/**
+	 * (default: true)
+	 * By default, format encoders share a global encoding buffer for performance
+	 * and memory management reasons.
 	 *
-	 * Note: The global buffer is initialized to `SETTINGS.encodingBufferMaxSize`
+	 * When set to false, each format will be allocated its own resizable
+	 * encoding buffer.
+	 *
+	 * Enable to maximise performance and memory re-use, just be cautious of
+	 * possible race conditions.
 	 */
 	useGlobalEncodingBuffer: boolean;
-	/** (default: 1500) When automatically increasing buffer length, this is the most bytes to allocate */
-	encodingBufferMaxSize: number;
-	/** (default: 256) How many bytes to allocate to a new write buffer */
-	encodingBufferInitialSize: number;
-	/** (default: 256) When automatically increasing buffer length, this is the amount of new bytes to allocate */
-	encodingBufferIncrement: number;
-	/** (default: false) Emits debug console logs (e.g. for memory allocation) */
-	debug: boolean;
 };
-export declare class BufferDecodingError extends TinyBufError {
-	readonly underlying: Error;
-	constructor(summary: string, underlying: Error);
-}
-export declare class BufferEncodingError extends TinyBufError {
-}
 /**
  * BufferFormat is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
@@ -86,26 +41,25 @@ export declare class BufferEncodingError extends TinyBufError {
  * @see {decode(binary)}
  */
 export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
-	/** A global encoding buffer that can be used by all formats */
-	static globalBuffer?: ArrayBuffer;
+	/** Global encoding buffer that can be used by anyh format */
+	private static _$globalEncodingBuffer?;
 	/**
 	 * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
 	 *
 	 * @see {peekHeader(...)}
 	 * @see {peekHeaderStr(...)}
-	 * @see {hashCode}
+	 * @see {$hashCode}
 	 */
 	readonly header: HeaderType;
-	protected readonly _header: number;
-	protected readonly type: Type;
-	protected readonly fields: Field[];
-	protected readonly fieldsMap: Map<string, Field>;
-	protected _hash?: number;
-	protected _format?: string;
-	protected _transforms?: Transforms<any> | undefined;
-	protected _validate?: ValidationFn<any> | undefined;
-	protected _vt: boolean;
-	protected _w?: BufferWriter;
+	private readonly _$header;
+	private readonly _$type;
+	private readonly _$fields;
+	private readonly _$fieldsMap;
+	private _$format?;
+	private _$transforms?;
+	private _$validate?;
+	private _$hasValidationOrTransforms;
+	private _$writer?;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
 	 * Read the header of a buffer as a number.
@@ -121,25 +75,22 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @throws {RangeError} if buffer size < 2
 	 */
 	static peekHeaderStr: typeof peekHeaderStr;
-	/** A uint16 number representing the shape of the encoded format */
-	get hashCode(): number;
 	/** @example "{uint8,str[]?}" */
-	protected get format(): string;
+	private get f();
+	private static _$initWriter;
 	/**
 	 * Encode an object to bytes.
 	 *
 	 * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
 	 * performance, and to minimize memory allocation and fragmentation.
 	 *
-	 * Set `{ safe: true }` to return a safe copy instead.
+	 * @param data - data to encode
+	 * @param safe - (default: false) safely copies bytes, instead of returning a pointer to the encoding buffer
 	 *
 	 * @returns An unsafe Uint8Array view of the encoded byte array buffer.
 	 * @throws if fails to encode value to schema.
 	 */
-	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, opts?: {
-		/** (default: false) copy bytes to a new buffer, instead of returning an unsafe view */
-		safe?: boolean;
-	}): Uint8Array;
+	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, safe?: boolean): Uint8Array;
 	/**
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
@@ -162,15 +113,11 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @param path
 	 * @throws if the value is invalid
 	 */
-	protected write(value: {
-		[x: string]: any;
-	}, bw: BufferWriter, path: string): void;
-	/**
-	 * Helper to get the right coder.
-	 */
-	protected getCoder(type: Type): BinaryTypeCoder<any>;
-	private _preEncode;
-	private _postDecode;
+	private _$write;
+	/** pre-process: validation and/or transforms */
+	private _$preprocess;
+	/** post-process: validation and/or transforms */
+	private _$postprocess;
 	/**
 	 * This function will be executed only the first time
 	 * After that, we'll compile the read routine and add it directly to the instance
@@ -178,7 +125,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @returns
 	 * @throws if fails
 	 */
-	private read;
+	private _$read;
 	/**
 	 * Generate read function code for this coder.
 	 *
@@ -190,12 +137,11 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 *   b: this._readField(1, state),
 	 * }`
 	 */
-	private generateObjectReadCode;
+	private _$makeReadObjectCode;
 	/** Read an individual field. */
-	private _readField;
-	private readValueType;
+	private _$readField;
 	/** Compile the decode() method for this object. */
-	private compileRead;
+	private _$compileFormatReadFn;
 	/**
 	 * @param value
 	 * @param data
@@ -203,24 +149,21 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @param type
 	 * @throws if the value is invalid
 	 */
-	private _writeArray;
+	private _$writeArray;
 	/**
 	 * @throws if invalid data
 	 */
-	private _readArray;
-	private _readOptional;
+	private _$readArray;
+	private _$readOptional;
 }
 export declare class BufferParserInstance {
-	private formats;
-	/** All available formats */
-	get availableFormats(): Set<AnyFormat>;
+	private _$formats;
 	/**
 	 * Decode an array buffer and trigger the relevant data handler.
 	 *
 	 * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
 	 *
-	 * @throws {BufferDecodingError} if the buffer failed to decode to the registered format, or header was bad
-	 * @throws {UnrecognizedFormatError} if no format is registered that can handle this data
+	 * @throws {TinybufError} if fails to decode, or no handler is registered
 	 */
 	processBuffer(b: ArrayBuffer | ArrayBufferView): void;
 	/**
@@ -232,15 +175,25 @@ export declare class BufferParserInstance {
 	/** Clears all registered formats and handlers. */
 	clear(): void;
 }
-export declare class FormatHeaderCollisionError extends TinyBufError {
+export declare class DecodeError extends TinybufError {
+	readonly cause: Error;
+	constructor(summary: string, cause: Error);
 }
-export declare class TinyBufError extends Error {
+export declare class EncodeError extends TinybufError {
+	constructor(message: string);
+	constructor(expectedType: string, value: any, path: string);
 }
-export declare class UnrecognizedFormatError extends TinyBufError {
+export declare class TinybufError extends Error {
 }
-export declare class WriteTypeError extends TinyBufError {
-	constructor(expectedType: string, value: any, path?: string);
-}
+/**
+ * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
+ *
+ * @param doubleFloat A number.
+ * @returns A UInt16 bitmask representation of a half precision float.
+ *
+ * @see https://stackoverflow.com/a/32633586
+ */
+export declare const $f16mask: (v: number) => number;
 /**
  * Small utility for registering and processing format handlers.
  *
@@ -252,37 +205,8 @@ export declare class WriteTypeError extends TinyBufError {
  * myHandler.processBuffer(bytes);
  */
 export declare const bufferParser: () => BufferParserInstance;
-/**
- * Binary coder types.
- */
+/** Binary coder types */
 export declare const enum Type {
-	/**
-	 * Boolean value (1 byte).
-	 * @see {Bools8} for packing multiple booleans into a single byte.
-	 */
-	Bool = "bool",
-	/** A string (1† byte header + string bytes). */
-	String = "str",
-	/** Floating-point number (16-bit, half precision, 2 bytes). */
-	Float16 = "float16",
-	/** Floating-point number (32-bit, single precision, 4 bytes). */
-	Float32 = "float32",
-	/** Floating-point number (64-bit, double precision, 8 bytes). Default JavaScript `number` type. */
-	Float64 = "float64",
-	/**
-	 * Signed integer (1 - 8 bytes).
-	 * - 0 → ±64 = 1 byte
-	 * - … → ±8,192 = 2 bytes
-	 * - … → ±268,435,456 = 4 bytes
-	 * - … → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
-	 */
-	Int = "int",
-	/** Signed 1 byte integer (between -127 and 127). */
-	Int8 = "int8",
-	/** Signed 2 byte integer (between -32,767 and 32,767). */
-	Int16 = "int16",
-	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-	Int32 = "int32",
 	/**
 	 * Unsigned integer (1 - 8 bytes).
 	 * - 0 → 127 = 1 byte
@@ -290,67 +214,78 @@ export declare const enum Type {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	UInt = "uint",
+	UInt = 0,
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-	UInt8 = "uint8",
+	UInt8 = 1,
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-	UInt16 = "uint16",
+	UInt16 = 2,
 	/** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-	UInt32 = "uint32",
-	/** A signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar = "scalar",
-	/** An unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar = "uscalar",
-	/** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
-	Buffer = "buf",
+	UInt32 = 3,
 	/**
-	 * A JavaScript date object.
+	 * Signed integer (1 - 8 bytes).
+	 * - 0 → ±64 = 1 byte
+	 * - … → ±8,192 = 2 bytes
+	 * - … → ±268,435,456 = 4 bytes
+	 * - … → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
+	 */
+	Int = 4,
+	/** Signed 1 byte integer (between -127 and 127). */
+	Int8 = 5,
+	/** Signed 2 byte integer (between -32,767 and 32,767). */
+	Int16 = 6,
+	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
+	Int32 = 7,
+	/** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
+	Float64 = 8,
+	/** Floating-point number (32-bit, single precision, 4 bytes). */
+	Float32 = 9,
+	/** Floating-point number (16-bit, half precision, 2 bytes). */
+	Float16 = 10,
+	/** A signed scalar between -1.00 and 1.00 (1 byte). */
+	Scalar = 11,
+	/** An unsigned scalar between 0.00 and 1.00 (1 byte). */
+	UScalar = 12,
+	/**
+	 * Boolean value (1 byte).
+	 * @see {Bools8} for packing multiple booleans into a single byte.
+	 */
+	Bool = 13,
+	/** Any array of booleans (0¶ byte / 2-bit header). */
+	Bools = 14,
+	/** Up to 8 booleans (1 byte). */
+	Bools8 = 15,
+	/** Up to 16 booleans (2 bytes). */
+	Bools16 = 16,
+	/** Up to 32 booleans (4 bytes). */
+	Bools32 = 17,
+	/** A string (1† byte header + string bytes). */
+	String = 18,
+	/** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+	Buffer = 19,
+	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
+	JSON = 20,
+	/** JavaScript regular expression. */
+	RegExp = 21,
+	/**
+	 * JavaScript date object.
 	 *
 	 * Encoded as an 8 byte (64-bit) integer UTC timestamp from as the number
 	 * of milliseconds since the Unix Epoch (January 1, 1970, 00:00:00 UTC).
 	 *
 	 * @see {Date}
 	 */
-	Date = "date",
-	/** A JavaScript regular expression. */
-	RegExp = "regex",
-	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = "json",
-	/** Up to 8 booleans (1 byte). */
-	Bools8 = "bitmask8",
-	/** Up to 16 booleans (2 bytes). */
-	Bools16 = "bitmask16",
-	/** Up to 32 booleans (4 bytes). */
-	Bools32 = "bitmask32",
-	/** Any array of booleans (0¶ byte / 2-bit header). */
-	Bools = "booltuple",
-	/** [INTERNAL ONLY] Use "[T]" array syntax instead. */
-	Array = "[array]",
-	/** [INTERNAL ONLY] Use "{}" object syntax instead. */
-	Object = "{object}",
-	/** Alias for `Type.Float16` @see {Float16} */
-	Half = "float16",
-	/** Alias for `Type.Float32` @see {Float32} */
-	Single = "float32",
-	/** Alias for `Type.Float64` @see {Float64} */
-	Double = "float64",
-	/** Alias for `Type.Float64 @see {Float64} */
-	Number = "float64",
-	/** Alias for `Type.Bool` @see {Bool} */
-	Boolean = "bool",
-	/** Alias for 'Type.UInt' @see {UInt} */
-	Enum = "uint"
+	Date = 22
 }
+/** Set Tinybuf global config */
+export declare const setTinybufConfig: (newSettings: Partial<typeof cfg>) => void;
 /**
- * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
+ * Convert a UInt16 bitmask of a 16-bit half precision float representation into
+ * a double precision float (number).
  *
- * @param doubleFloat A number.
- * @returns A UInt16 bitmask representation of a half precision float.
- *
- * @see https://stackoverflow.com/a/32633586
+ * @param b A UInt16 bitmask representation of a half precision float.
+ * @returns A number (standard 64-bit double precision representation).
  */
-export declare const f16mask: (v: number) => number;
-export declare const setTinybufConfig: (newSettings: Partial<typeof SETTINGS>) => void;
+export declare function $f16unmask(b: number): number;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
@@ -375,14 +310,6 @@ export declare function defineFormat<T extends EncoderDefinition, HeaderType ext
  * const MyFormat = defineFormat(null, { ... });
  */
 export declare function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
-/**
- * Convert a UInt16 bitmask of a 16-bit half precision float representation into
- * a double precision float (number).
- *
- * @param b A UInt16 bitmask representation of a half precision float.
- * @returns A number (standard 64-bit double precision representation).
- */
-export declare function f16unmask(b: number): number;
 /** @returns A signed scalar between -1.0 and 1.0. */
 export declare function fromScalar8(uInt8: number): number;
 /** @returns An unsigned scalar between 0.0 and 1.0. */
@@ -428,10 +355,6 @@ export declare function toUScalar8(uScalar: number): number;
  * @returns A number (double) in its closest signed scalar representation.
  */
 export declare function uScalarRound(doubleFloat: number): number;
-export interface BinaryTypeCoder<T, R = T> {
-	write(value: T, data: BufferWriter, path?: string): void;
-	read(state: BufferReader): R;
-}
 export type AnyFormat = BufferFormat<any, any>;
 /**
  * Decoded object types for a given binary format.

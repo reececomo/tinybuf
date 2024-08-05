@@ -2,7 +2,7 @@
 This file describes how data is encoded to binary and explain some rationale behind them.
 
 ## Endianess
-Everything uses big-endian
+Everything except `UInt16` and `UInt32` uses little-endian.
 
 ## Basic types
 

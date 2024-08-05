@@ -1,24 +1,19 @@
-// Buffer parser errors:
+export class TinybufError extends Error {}
 
-export class TinyBufError extends Error {}
+export class EncodeError extends TinybufError {
+  public constructor(message: string)
+  public constructor(expectedType: string, value: any, path: string)
+  public constructor(a: string, b?: any, c?: string) {
+    super(`Failed to encode ${b} as '${a}'${c ? ` (path: '${c}')` : ''}`);
+  }
+}
 
-export class UnrecognizedFormatError extends TinyBufError {}
-export class FormatHeaderCollisionError extends TinyBufError {}
-export class BufferDecodingError extends TinyBufError {
+export class DecodeError extends TinybufError {
   public constructor(
     summary: string,
-    public readonly underlying: Error,
+    public readonly cause: Error,
   ) {
-    super(`${summary}: ${underlying.message}`);
-    this.stack = underlying.stack;
+    super(`${summary}: ${cause.message}`);
+    this.stack = cause.stack;
   }
 }
-
-// Encoding errors:
-
-export class WriteTypeError extends TinyBufError {
-  public constructor(expectedType: string, value: any, path? : string) {
-    super(`Expected '${expectedType}', instead received: ${value} (type: ${typeof value}) (at path: '${path || '<root>'}')`);
-  }
-}
-export class BufferEncodingError extends TinyBufError {}

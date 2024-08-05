@@ -1,5 +1,6 @@
+import { CODERS } from './lib/coders';
 import * as coders from './lib/coders';
-import { hashCode, strToHashCode } from './lib/hashCode';
+import { $hashCode, $strToHashCode } from './lib/hashCode';
 import { peekHeader, peekHeaderStr } from './lib/peek';
 import { BufferWriter } from './lib/BufferWriter';
 import { BufferReader } from './lib/BufferReader';
@@ -8,15 +9,14 @@ import {
   EncoderDefinition,
   Type,
   OptionalType,
-  VALID_VALUE_TYPES,
   InferredTransformConfig,
   InferredValidationConfig,
   ValidationFn,
   Transforms,
   FieldDefinition
 } from './Type';
-import { WriteTypeError } from './lib/errors';
-import { SETTINGS } from './settings';
+import { EncodeError } from './lib/errors';
+import { cfg } from './settings';
 
 export type FormatHeader = string | number;
 
@@ -71,29 +71,28 @@ function isValidHeader(h: FormatHeader): boolean {
  * @see {decode(binary)}
  */
 export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
-  /** A global encoding buffer that can be used by all formats */
-  public static globalBuffer?: ArrayBuffer;
+  /** Global encoding buffer that can be used by anyh format */
+  private static _$globalEncodingBuffer?: ArrayBuffer;
 
   /**
    * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
    *
    * @see {peekHeader(...)}
    * @see {peekHeaderStr(...)}
-   * @see {hashCode}
+   * @see {$hashCode}
    */
   public readonly header!: HeaderType;
 
-  protected readonly _header!: number;
-  protected readonly type: Type;
-  protected readonly fields!: Field[];
-  protected readonly fieldsMap!: Map<string, Field>;
+  private readonly _$header!: number; // always uint16 vesion
+  private readonly _$type!: Type;
+  private readonly _$fields!: Field[];
+  private readonly _$fieldsMap!: Map<string, Field>;
 
-  protected _hash?: number;
-  protected _format?: string;
-  protected _transforms?: Transforms<any> | undefined;
-  protected _validate?: ValidationFn<any> | undefined;
-  protected _vt = false;
-  protected _w?: BufferWriter;
+  private _$format?: string;
+  private _$transforms?: Transforms<any> | undefined;
+  private _$validate?: ValidationFn<any> | undefined;
+  private _$hasValidationOrTransforms = false;
+  private _$writer?: BufferWriter;
 
   public constructor(
     def: EncoderType,
@@ -103,37 +102,37 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (def instanceof OptionalType) {
       throw new TypeError("Invalid encoding format: Root object cannot be optionals.");
     }
-    else if (def !== undefined && typeof def === 'string' && VALID_VALUE_TYPES.includes(def)) {
-      this.type = def;
+    else if (def !== undefined && typeof def === 'number') {
+      this._$type = def;
     }
     else if (def instanceof Object) {
-      this.type = Type.Object;
-      this.fieldsMap = new Map();
-      this.fields = Object.keys(def).map((name) => {
+      this._$type = undefined; // object
+      this._$fieldsMap = new Map();
+      this._$fields = Object.keys(def).map((name) => {
         const f = new Field(name, def[name]);
-        this.fieldsMap.set(name, f);
+        this._$fieldsMap.set(name, f);
         return f;
       });
+
+      // set headers
+      if (header === undefined) {
+        this.header = $hashCode(this.f) as HeaderType; // automatic
+        this._$header = this.header as number;
+      }
+      else if (header === null) {
+        this.header = undefined; // headerless
+        this._$header = undefined;
+      }
+      else if (isValidHeader(header)) {
+        this.header = header; // manual
+        this._$header = typeof header === 'number' ? header : $strToHashCode(header);
+      }
+      else {
+        throw new TypeError(`Header should be an integer between 0 and 65535, a 2-byte string, or null. Received: ${header}`);
+      }
     }
     else {
       throw new TypeError("Invalid encoding format: Must be an object, or a known coder type.");
-    }
-
-    // set headers
-    if (header === undefined && this.type === Type.Object) {
-      this.header = this.hashCode as HeaderType; // automatic
-      this._header = this.header as number;
-    }
-    else if (header === null) {
-      this.header = undefined; // headerless
-      this._header = undefined;
-    }
-    else if (isValidHeader(header)) {
-      this.header = header; // manual
-      this._header = typeof header === 'number' ? header : strToHashCode(header);
-    }
-    else {
-      throw new TypeError(`Header should be an integer between 0 and 65535, a 2-byte string, or null. Received: ${header}`);
     }
   }
 
@@ -157,27 +156,30 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   // ----- Accessors: -----
 
-  /** A uint16 number representing the shape of the encoded format */
-  public get hashCode(): number {
-    if (this._hash === undefined) {
-      this._hash = hashCode(this.format);
-    }
-
-    return this._hash;
-  }
-
   /** @example "{uint8,str[]?}" */
-  protected get format(): string {
-    if (this._format === undefined) {
-      this._format = this.type === Type.Object
-        ? `{${this.fields.map(v => v.format).join(',')}}`
-        : `${this.type}`;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  private get f(): string {
+    if (this._$format === undefined) {
+      this._$format = this._$fields !== undefined
+        ? `{${this._$fields.map(v => v.f).join(',')}}`
+        : `${this._$type}`;
     }
 
-    return this._format;
+    return this._$format;
   }
 
-  // ----- Public methods: -----
+  private static _$initWriter(): BufferWriter {
+    if (cfg.useGlobalEncodingBuffer) {
+      if (!BufferFormat._$globalEncodingBuffer) {
+        // lazy init: global encoding buffer created at max size
+        BufferFormat._$globalEncodingBuffer = new ArrayBuffer(cfg.encodingBufferMaxSize);
+      }
+
+      return new BufferWriter(BufferFormat._$globalEncodingBuffer);
+    }
+
+    return new BufferWriter(cfg.encodingBufferInitialSize);
+  }
 
   /**
    * Encode an object to bytes.
@@ -185,42 +187,25 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
    * performance, and to minimize memory allocation and fragmentation.
    *
-   * Set `{ safe: true }` to return a safe copy instead.
+   * @param data - data to encode
+   * @param safe - (default: false) safely copies bytes, instead of returning a pointer to the encoding buffer
    *
    * @returns An unsafe Uint8Array view of the encoded byte array buffer.
    * @throws if fails to encode value to schema.
    */
   public encode<DecodedType extends InferredDecodedType<EncoderType>>(
     data: DecodedType,
-    opts?: {
-      /** (default: false) copy bytes to a new buffer, instead of returning an unsafe view */
-      safe?: boolean
-    },
+    safe?: boolean,
   ): Uint8Array {
-    if (this._w === undefined) {
-      // init global buffer if needed
-      if (SETTINGS.useGlobalEncodingBuffer && BufferFormat.globalBuffer === undefined) {
-        // lazy init
-        BufferFormat.globalBuffer = new ArrayBuffer(SETTINGS.encodingBufferMaxSize);
-        if (SETTINGS.debug) {
-          console.debug(`[tinybuf] init global encoding buffer (${SETTINGS.encodingBufferMaxSize} bytes)`);
-        }
-      }
+    // lazy init
+    if (!this._$writer) this._$writer = BufferFormat._$initWriter();
 
-      // create writer
-      this._w = new BufferWriter(
-        SETTINGS.useGlobalEncodingBuffer ? BufferFormat.globalBuffer! : SETTINGS.encodingBufferInitialSize
-      );
-    }
-    else {
-      // reset
-      this._w.o = 0;
-    }
+    // reset byteOffset
+    this._$writer.$byteOffset = 0;
+    if (this._$hasValidationOrTransforms) data = this._$preprocess(data);
+    this._$write(data, this._$writer, '');
 
-    if (this._vt) data = this._preEncode(data);
-    this.write(data, this._w, '');
-
-    return opts?.safe ? this._w.asCopy() : this._w.asView();
+    return safe ? this._$writer.$asCopy() : this._$writer.$asView();
   }
 
   /**
@@ -228,27 +213,27 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @throws if fails to decode bytes to schema.
    */
   public decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType {
-    return this.read(new BufferReader(b, this.header === undefined ? 0 : 2));
+    return this._$read(new BufferReader(b, this.header === undefined ? 0 : 2));
   }
 
   /**
    * Set additional transform functions to apply before encoding and after decoding.
    */
   public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
-    this._vt = true;
+    this._$hasValidationOrTransforms = true;
 
     if (transforms instanceof Function || (Array.isArray(transforms) && transforms[0] instanceof Function)) {
-      this._transforms = transforms;
+      this._$transforms = transforms;
     }
     else {
       for (const name of Object.keys(transforms)) {
-        const field = this.fieldsMap.get(name);
+        const field = this._$fieldsMap.get(name);
         if (!field) {
           throw new TypeError(`Failed to set transforms for field '${name}'`);
         }
 
         // Set validation for object.
-        field.coder.setTransforms(transforms[name]);
+        field.$coder.setTransforms(transforms[name]);
       }
     }
 
@@ -262,19 +247,19 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * - Anything else is treated as successfully passing validation.
    */
   public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
-    this._vt = true;
+    this._$hasValidationOrTransforms = true;
 
     if (validations instanceof Function) {
-      this._validate = validations;
+      this._$validate = validations;
     }
     else {
       for (const name of Object.keys(validations)) {
-        const field = this.fieldsMap.get(name);
+        const field = this._$fieldsMap.get(name);
         if (!field) {
           throw new TypeError(`Failed to set validation function for field '${name}'`);
         }
 
-        field.coder.setValidation(validations[name]);
+        field.$coder.setValidation(validations[name]);
       }
     }
 
@@ -289,12 +274,15 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param path
    * @throws if the value is invalid
    */
-  protected write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
-    if (this._header !== undefined) this._w.writeUInt16(this._header);
-    if (this.type !== Type.Object) {
-      const safeValue = (this._validate || this._transforms) ? this._preEncode(value) : value;
+  private _$write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
+    // write header
+    if (this._$header !== undefined) this._$writer.$writeUInt16(this._$header);
 
-      return this.getCoder(this.type).write(safeValue, bw, path);
+    // write scalar
+    if (this._$type !== undefined) {
+      const safeValue = (this._$validate || this._$transforms) ? this._$preprocess(value) : value;
+
+      return CODERS[this._$type].$write(safeValue, bw, path);
     }
 
     // Check for object type
@@ -303,88 +291,57 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // Write each field
-    for (const field of this.fields) {
-      const subpath = path ? `${path}.${field.name}` : field.name;
-      const subValue = value[field.name];
+    for (const field of this._$fields) {
+      const subpath = path ? `${path}.${field.$name}` : field.$name;
+      const subValue = value[field.$name];
 
-      if (field.isOptional) {
+      if (field.$isOptional) {
 
-        // Add 'presence' flag
+        // add 'presence' flag
         if (subValue === undefined || subValue === null) {
-          coders.booleanCoder.write(false, bw);
+          coders.boolCoder.$write(false, bw);
           continue;
         }
         else {
-          coders.booleanCoder.write(true, bw);
+          coders.boolCoder.$write(true, bw);
         }
       }
 
-      if (!field.isArray) {
-        // Scalar field
-        field.coder.write(subValue, bw, subpath);
+      if (!field.$isArray) {
+        // scalar field
+        field.$coder._$write(subValue, bw, subpath);
         continue;
       }
 
       // Array field
-      this._writeArray(subValue, bw, subpath, field.coder);
+      this._$writeArray(subValue, bw, subpath, field.$coder);
     }
   }
 
-  /**
-   * Helper to get the right coder.
-   */
-  protected getCoder(type: Type): coders.BinaryTypeCoder<any> {
-    switch (type) {
-      case Type.Bool: return coders.booleanCoder;
-      case Type.Bools: return coders.booleanArrayCoder;
-      case Type.Bools16: return coders.bitmask16Coder;
-      case Type.Bools32: return coders.bitmask32Coder;
-      case Type.Bools8: return coders.bitmask8Coder;
-      case Type.Buffer: return coders.bufferCoder;
-      case Type.Date: return coders.dateCoder;
-      case Type.Float16: return coders.float16Coder;
-      case Type.Float32: return coders.float32Coder;
-      case Type.Float64: return coders.float64Coder;
-      case Type.Int: return coders.intCoder;
-      case Type.Int16: return coders.int16Coder;
-      case Type.Int32: return coders.int32Coder;
-      case Type.Int8: return coders.int8Coder;
-      case Type.JSON: return coders.jsonCoder;
-      case Type.RegExp: return coders.regexCoder;
-      case Type.Scalar: return coders.scalarCoder;
-      case Type.String: return coders.stringCoder;
-      case Type.UInt: return coders.uintCoder;
-      case Type.UInt16: return coders.uint16Coder;
-      case Type.UInt32: return coders.uint32Coder;
-      case Type.UInt8: return coders.uint8Coder;
-      case Type.UScalar: return coders.uscalarCoder;
-    }
-  }
-
-  // ----- Private methods: -----
-
-  private _preEncode<T extends Record<string, any>>(data: T): T {
-    if (this._validate && this._validate(data) === false) {
-      throw new Error('custom validation failed');
+  /** pre-process: validation and/or transforms */
+  private _$preprocess<T extends Record<string, any>>(data: T): T {
+    if (this._$validate && this._$validate(data) === false) {
+      throw new Error('failed validation');
     }
 
-    if (this._transforms instanceof Function) {
-      return this._transforms(data);
+    if (this._$transforms instanceof Function) {
+      return this._$transforms(data);
     }
-    else if (Array.isArray(this._transforms) && this._transforms[0] instanceof Function) {
-      return this._transforms[0](data);
+    else if (Array.isArray(this._$transforms) && this._$transforms[0] instanceof Function) {
+      return this._$transforms[0](data);
     }
 
     return data;
   }
 
-  private _postDecode<T extends Record<string, any>>(data: T): T {
-    if (Array.isArray(this._transforms) && this._transforms[1] instanceof Function) {
-      data = this._transforms[1](data);
+  /** post-process: validation and/or transforms */
+  private _$postprocess<T extends Record<string, any>>(data: T): T {
+    if (Array.isArray(this._$transforms) && this._$transforms[1] instanceof Function) {
+      data = this._$transforms[1](data);
     }
 
-    if (this._validate instanceof Function) {
-      this._validate(data);
+    if (this._$validate instanceof Function) {
+      this._$validate(data);
     }
 
     return data;
@@ -397,14 +354,14 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @returns
    * @throws if fails
    */
-  private read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
+  private _$read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
     // This function will be executed only the first time to compile the read routine.
     // After that, we'll compile the read routine and add it directly to the instance
 
     // Update the read method implementation.
-    this.read = this.compileRead();
+    this._$read = this._$compileFormatReadFn();
 
-    return this.read(state);
+    return this._$read(state);
   }
 
   /**
@@ -418,43 +375,40 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *   b: this._readField(1, state),
    * }`
    */
-  private generateObjectReadCode(): string {
-    const fieldsStr: string = this.fields
-      .map(({ name }, i) => `${name}:this.${this._readField.name}(${i},state)`)
+  private _$makeReadObjectCode(): string {
+    const fieldsStr: string = this._$fields
+      .map(({ $name: name }, i) => `${name}:this.${this._$readField.name}(${i},state)`)
       .join(',');
 
     return `return{${fieldsStr}}`;
   }
 
   /** Read an individual field. */
-  private _readField(fieldIndex: number, state: BufferReader): any {
-    const field = this.fields[fieldIndex];
+  private _$readField(fieldId: number, state: BufferReader): any {
+    const field = this._$fields[fieldId];
 
-    if (field.isOptional && !this._readOptional(state)) {
+    if (field.$isOptional && !this._$readOptional(state)) {
       return undefined;
     }
 
-    if (field.isArray) {
-      return this._readArray(field.coder, state);
+    if (field.$isArray) {
+      return this._$readArray(field.$coder, state);
     }
 
-    return field.coder.read(state);
-  }
-
-  private readValueType<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
-    return this._postDecode(this.getCoder(this.type).read(state));
+    return field.$coder._$read(state);
   }
 
   /** Compile the decode() method for this object. */
-  private compileRead<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
-    if (this.type !== Type.Object && this.type !== Type.Array) {
-      // Scalar type - in this case, there is no need to write custom code.
-      return (this._validate !== undefined || this._transforms !== undefined) ? this.readValueType : this.getCoder(this.type).read;
+  private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
+    // scalar type
+    if (this._$type !== undefined) {
+      return this._$hasValidationOrTransforms
+        ? (s) => this._$postprocess(CODERS[this._$type].$read(s))
+        : CODERS[this._$type].$read;
     }
 
-    const code = this.generateObjectReadCode();
-
-    return new Function('state', code) as any;
+    // scalar type
+    return new Function('state', this._$makeReadObjectCode()) as any;
   }
 
   /**
@@ -464,32 +418,32 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param type
    * @throws if the value is invalid
    */
-  private _writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
-    let i: string | number, len: number;
+  private _$writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
     if (!Array.isArray(value)) {
-      throw new WriteTypeError(`Array<${type.type}>`, data, path);
+      throw new EncodeError(`Array<${type._$type}>`, data, path);
     }
 
+    let i: string | number, len: number;
     len = value.length;
-    coders.uintCoder.write(len, data);
+    coders.uintCoder.$write(len, data);
     for (i = 0; i < len; i++) {
-      type.write(value[i], data, path + '.' + i);
+      type._$write(value[i], data, path + '.' + i);
     }
   }
 
   /**
    * @throws if invalid data
    */
-  private _readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
-    const arr = new Array(coders.uintCoder.read(state));
+  private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
+    const arr = new Array(coders.uintCoder.$read(state));
     for (let j = 0; j < arr.length; j++) {
-      arr[j] = type.read(state);
+      arr[j] = type._$read(state);
     }
     return arr;
   }
 
-  private _readOptional(state: BufferReader): boolean {
-    return coders.booleanCoder.read(state);
+  private _$readOptional(state: BufferReader): boolean {
+    return coders.boolCoder.$read(state);
   }
 }
 
@@ -497,19 +451,17 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
  * Parses and represents an object field.
  */
 export class Field {
-  public readonly name: string;
-  public readonly coder: BufferFormat<any>;
-  public readonly isOptional: boolean;
-  public readonly isArray: boolean;
+  public readonly $name: string;
+  public readonly $coder: BufferFormat<any>;
+  public readonly $isOptional: boolean;
+  public readonly $isArray: boolean;
 
-  protected _format?: string;
+  private _$formatString?: string;
 
   public constructor(name: string, rawType: FieldDefinition) {
-    this.isOptional = rawType instanceof OptionalType;
-
+    this.$isOptional = rawType instanceof OptionalType;
     let type = rawType instanceof OptionalType ? rawType.type : rawType;
-
-    this.name = name;
+    this.$name = name;
 
     if (Array.isArray(type)) {
       if (type.length !== 1) {
@@ -517,20 +469,21 @@ export class Field {
       }
 
       type = type[0];
-      this.isArray = true;
+      this.$isArray = true;
     }
     else {
-      this.isArray = false;
+      this.$isArray = false;
     }
 
-    this.coder = new BufferFormat<any>(type, null);
+    this.$coder = new BufferFormat<any>(type, null);
   }
 
-  public get format(): string {
-    if (this._format === undefined) {
-      this._format = `${(this.coder as any).format}${this.isArray ? '[]' : ''}${this.isOptional ? '?' : ''}`;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public get f(): string {
+    if (this._$formatString === undefined) {
+      this._$formatString = `${(this.$coder as any).f}${this.$isArray ? '[]' : ''}${this.$isOptional ? '?' : ''}`;
     }
 
-    return this._format;
+    return this._$formatString;
   }
 }
