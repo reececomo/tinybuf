@@ -20,6 +20,7 @@ type Uint16FormatHeader = number;
 export const bufferParser = (): BufferParserInstance => new BufferParserInstance();
 
 export class BufferParserInstance {
+  /** @internal */
   private _$formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
 
   /**

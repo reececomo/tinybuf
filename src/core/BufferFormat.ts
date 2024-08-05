@@ -71,7 +71,7 @@ function isValidHeader(h: FormatHeader): boolean {
  * @see {decode(binary)}
  */
 export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
-  /** Global encoding buffer that can be used by anyh format */
+  /** @internal */
   private static _$globalEncodingBuffer?: ArrayBuffer;
 
   /**
@@ -83,15 +83,24 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    */
   public readonly header!: HeaderType;
 
+  /** @internal */
   private readonly _$header!: number; // always uint16 vesion
+  /** @internal */
   private readonly _$type!: Type;
+  /** @internal */
   private readonly _$fields!: Field[];
+  /** @internal */
   private readonly _$fieldsMap!: Map<string, Field>;
 
+  /** @internal */
   private _$format?: string;
+  /** @internal */
   private _$transforms?: Transforms<any> | undefined;
+  /** @internal */
   private _$validate?: ValidationFn<any> | undefined;
+  /** @internal */
   private _$hasValidationOrTransforms = false;
+  /** @internal */
   private _$writer?: BufferWriter;
 
   public constructor(
@@ -156,7 +165,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   // ----- Accessors: -----
 
-  /** @example "{uint8,str[]?}" */
+  /**
+   * @example "{uint8,str[]?}"
+   * @internal
+   */
   // eslint-disable-next-line @typescript-eslint/naming-convention
   private get f(): string {
     if (this._$format === undefined) {
@@ -168,6 +180,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return this._$format;
   }
 
+  /** @internal */
   private static _$initWriter(): BufferWriter {
     if (cfg.useGlobalEncodingBuffer) {
       if (!BufferFormat._$globalEncodingBuffer) {
@@ -273,6 +286,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param bw
    * @param path
    * @throws if the value is invalid
+   *
+   * @internal
    */
   private _$write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
     // write header
@@ -318,7 +333,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
   }
 
-  /** pre-process: validation and/or transforms */
+  /**
+   * pre-process: validation and/or transforms
+   * @internal
+   */
   private _$preprocess<T extends Record<string, any>>(data: T): T {
     if (this._$validate && this._$validate(data) === false) {
       throw new Error('failed validation');
@@ -334,7 +352,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return data;
   }
 
-  /** post-process: validation and/or transforms */
+  /**
+   * post-process: validation and/or transforms
+   * @internal
+   */
   private _$postprocess<T extends Record<string, any>>(data: T): T {
     if (Array.isArray(this._$transforms) && this._$transforms[1] instanceof Function) {
       data = this._$transforms[1](data);
@@ -353,6 +374,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param state
    * @returns
    * @throws if fails
+   *
+   * @internal
    */
   private _$read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
     // This function will be executed only the first time to compile the read routine.
@@ -374,8 +397,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *   a: this._readField(0, state),
    *   b: this._readField(1, state),
    * }`
+   *
+   * @internal
    */
-  private _$makeReadObjectCode(): string {
+  private _$makeObjectReader(): string {
     const fieldsStr: string = this._$fields
       .map(({ $name: name }, i) => `${name}:this.${this._$readField.name}(${i},state)`)
       .join(',');
@@ -383,7 +408,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return `return{${fieldsStr}}`;
   }
 
-  /** Read an individual field. */
+  /**
+   * Read an individual field.
+   * @internal
+   */
   private _$readField(fieldId: number, state: BufferReader): any {
     const field = this._$fields[fieldId];
 
@@ -398,7 +426,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return field.$coder._$read(state);
   }
 
-  /** Compile the decode() method for this object. */
+  /**
+   * Compile the decode() method for this object.
+   *
+   * @internal
+   */
   private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
     // scalar type
     if (this._$type !== undefined) {
@@ -408,7 +440,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // scalar type
-    return new Function('state', this._$makeReadObjectCode()) as any;
+    return new Function('state', this._$makeObjectReader()) as any;
   }
 
   /**
@@ -417,6 +449,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @param path
    * @param type
    * @throws if the value is invalid
+   *
+   * @internal
    */
   private _$writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
     if (!Array.isArray(value)) {
@@ -433,6 +467,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
   /**
    * @throws if invalid data
+   *
+   * @internal
    */
   private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
     const arr = new Array(coders.uintCoder.$read(state));
@@ -442,6 +478,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     return arr;
   }
 
+  /** @internal */
   private _$readOptional(state: BufferReader): boolean {
     return coders.boolCoder.$read(state);
   }
@@ -449,8 +486,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
 /**
  * Parses and represents an object field.
+ *
+ * @internal
  */
-export class Field {
+class Field {
   public readonly $name: string;
   public readonly $coder: BufferFormat<any>;
   public readonly $isOptional: boolean;

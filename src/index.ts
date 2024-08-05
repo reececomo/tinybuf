@@ -13,10 +13,6 @@ export {
 
   // settings:
   setTinybufConfig,
-
-  // classes:
-  BufferFormat,
-  BufferParserInstance
 };
 
 // Utilities:
@@ -27,5 +23,7 @@ export * from './core/lib/scalar';
 
 // Utility types:
 export type {
-  Decoded
+  Decoded,
+  BufferFormat,
+  BufferParserInstance,
 };

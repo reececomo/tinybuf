@@ -41,8 +41,6 @@ declare let cfg: {
  * @see {decode(binary)}
  */
 export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
-	/** Global encoding buffer that can be used by anyh format */
-	private static _$globalEncodingBuffer?;
 	/**
 	 * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
 	 *
@@ -51,15 +49,6 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {$hashCode}
 	 */
 	readonly header: HeaderType;
-	private readonly _$header;
-	private readonly _$type;
-	private readonly _$fields;
-	private readonly _$fieldsMap;
-	private _$format?;
-	private _$transforms?;
-	private _$validate?;
-	private _$hasValidationOrTransforms;
-	private _$writer?;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
 	 * Read the header of a buffer as a number.
@@ -75,9 +64,6 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @throws {RangeError} if buffer size < 2
 	 */
 	static peekHeaderStr: typeof peekHeaderStr;
-	/** @example "{uint8,str[]?}" */
-	private get f();
-	private static _$initWriter;
 	/**
 	 * Encode an object to bytes.
 	 *
@@ -107,57 +93,8 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * - Anything else is treated as successfully passing validation.
 	 */
 	setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
-	/**
-	 * @param value
-	 * @param bw
-	 * @param path
-	 * @throws if the value is invalid
-	 */
-	private _$write;
-	/** pre-process: validation and/or transforms */
-	private _$preprocess;
-	/** post-process: validation and/or transforms */
-	private _$postprocess;
-	/**
-	 * This function will be executed only the first time
-	 * After that, we'll compile the read routine and add it directly to the instance
-	 * @param state
-	 * @returns
-	 * @throws if fails
-	 */
-	private _$read;
-	/**
-	 * Generate read function code for this coder.
-	 *
-	 * @example
-	 * // new Type({a:'int', 'b?':['string']}) would emit:
-	 *
-	 * `return {
-	 *   a: this._readField(0, state),
-	 *   b: this._readField(1, state),
-	 * }`
-	 */
-	private _$makeReadObjectCode;
-	/** Read an individual field. */
-	private _$readField;
-	/** Compile the decode() method for this object. */
-	private _$compileFormatReadFn;
-	/**
-	 * @param value
-	 * @param data
-	 * @param path
-	 * @param type
-	 * @throws if the value is invalid
-	 */
-	private _$writeArray;
-	/**
-	 * @throws if invalid data
-	 */
-	private _$readArray;
-	private _$readOptional;
 }
 export declare class BufferParserInstance {
-	private _$formats;
 	/**
 	 * Decode an array buffer and trigger the relevant data handler.
 	 *
@@ -205,7 +142,11 @@ export declare const $f16mask: (v: number) => number;
  * myHandler.processBuffer(bytes);
  */
 export declare const bufferParser: () => BufferParserInstance;
-/** Binary coder types */
+/**
+ * Binary coder types.
+ *
+ * @see {ValueTypes} for corresponding type definitions
+ */
 export declare const enum Type {
 	/**
 	 * Unsigned integer (1 - 8 bytes).

@@ -1,4 +1,8 @@
-/** Binary coder types */
+/**
+ * Binary coder types.
+ *
+ * @see {ValueTypes} for corresponding type definitions
+ */
 export const enum Type {
   /**
    * Unsigned integer (1 - 8 bytes).
