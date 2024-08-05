@@ -12,7 +12,7 @@ export {
 };
 
 // utilities:
-export { setTinybufConfig } from './core/settings';
+export { setTinybufConfig } from './core/config';
 export { TinybufError, DecodeError, EncodeError } from './core/lib/errors';
 export { peekHeader, peekHeaderStr } from './core/lib/peek';
 export { scalarRound, uScalarRound} from './core/lib/scalar';

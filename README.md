@@ -54,10 +54,16 @@ bytes.byteLength
 ```
 
 > [!CAUTION]
-> `encode(…)` runs returns a `Uint8Array` view of the shared encoding buffer.
-
-> [!TIP]
-> `encode(…)` returns a `Uint8Array` view of shared encoding buffer, which is great if
+> By default `BufferFormat.encode(…)` optimizes performance and memory by
+> encoding data to a shared buffer, and returning a `Uint8Array` pointer
+> to the encoded bytes.
+>
+> Subsequent calls to `encode(…)` are destructive, so this would be
+> unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+> `encode(…)` returns an unsafe `Uint8Array` view of the shared encoding buffer.
+>
+> Call `encode({ … }, true)` to copy bytes to a safe buffer on encode, or set
+> `setTinybufConfig({ safe: true })` (but be mindful of memory fragmentation).
 
 #### Decode
 

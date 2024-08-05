@@ -1,4 +1,4 @@
-import { cfg } from "../settings";
+import { cfg } from "../config";
 import { EncodeError } from "./errors";
 import { $f16mask } from "./float16";
 

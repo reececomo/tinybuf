@@ -11,6 +11,19 @@ export const setTinybufConfig = (newSettings: Partial<typeof cfg>): void => {
 
 export let cfg = {
   /**
+   * (default: false)
+   * By default `BufferFormat.encode(…)` optimizes performance and memory by
+   * encoding data to a shared buffer, and returning a `Uint8Array` pointer
+   * to the encoded bytes.
+   *
+   * Subsequent calls to `encode(…)` are destructive, so this would be
+   * unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+   *
+   * Set `safe` to true to copy bytes to a new buffer and return that.
+   */
+  safe: false,
+
+  /**
    * (default: 1500)
    * The maximum bytes to allocate to an encoding buffer. If using the global
    * encoding buffer, this is the size it is initialized to.
@@ -40,5 +53,5 @@ export let cfg = {
    * Enable to maximise performance and memory re-use, just be cautious of
    * possible race conditions.
    */
-  useGlobalEncodingBuffer: false,
+  useGlobalEncodingBuffer: true,
 };

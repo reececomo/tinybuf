@@ -16,7 +16,7 @@ import {
   FieldDefinition
 } from './Type';
 import { EncodeError } from './lib/errors';
-import { cfg } from './settings';
+import { cfg } from './config';
 
 export type FormatHeader = string | number;
 
@@ -200,10 +200,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * performance, and to minimize memory allocation and fragmentation.
    *
    * @param data - data to encode
-   * @param safe - (default: false) safely copies bytes, instead of returning a pointer to the encoding buffer
+   * @param safe - (default: `setTinybufConfig().safe`) safely copy bytes, instead of returning a pointer to the encoded buffer
    *
-   * @returns An unsafe Uint8Array view of the encoded byte array buffer.
-   * @throws if fails to encode value to schema.
+   * @returns An Uint8Array view of the encoded bytes
+   * @throws if fails to encode value to schema
    */
   public encode<DecodedType extends InferredDecodedType<EncoderType>>(
     data: DecodedType,
@@ -211,13 +211,15 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   ): Uint8Array {
     // lazy init
     if (!this._$writer) this._$writer = BufferFormat._$initWriter();
-
-    // reset byteOffset
-    this._$writer.$byteOffset = 0;
+    this._$writer.$byteOffset = 0; // reset
     if (this._$hasValidationOrTransforms) data = this._$preprocess(data);
     this._$write(data, this._$writer, '');
 
-    return safe ? this._$writer.$asCopy() : this._$writer.$asView();
+    if (safe ?? cfg.safe) {
+      return this._$writer.$asCopy();
+    }
+
+    return this._$writer.$asView();
   }
 
   /**

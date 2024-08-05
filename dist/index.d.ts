@@ -4,6 +4,18 @@ declare class OptionalType<T extends FieldDefinition> {
 }
 declare let cfg: {
 	/**
+	 * (default: false)
+	 * By default `BufferFormat.encode(…)` optimizes performance and memory by
+	 * encoding data to a shared buffer, and returning a `Uint8Array` pointer
+	 * to the encoded bytes.
+	 *
+	 * Subsequent calls to `encode(…)` are destructive, so this would be
+	 * unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+	 *
+	 * Set `safe` to true to copy bytes to a new buffer and return that.
+	 */
+	safe: boolean;
+	/**
 	 * (default: 1500)
 	 * The maximum bytes to allocate to an encoding buffer. If using the global
 	 * encoding buffer, this is the size it is initialized to.
@@ -70,10 +82,10 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * performance, and to minimize memory allocation and fragmentation.
 	 *
 	 * @param data - data to encode
-	 * @param safe - (default: false) safely copies bytes, instead of returning a pointer to the encoding buffer
+	 * @param safe - (default: `setTinybufConfig().safe`) safely copy bytes, instead of returning a pointer to the encoded buffer
 	 *
-	 * @returns An unsafe Uint8Array view of the encoded byte array buffer.
-	 * @throws if fails to encode value to schema.
+	 * @returns An Uint8Array view of the encoded bytes
+	 * @throws if fails to encode value to schema
 	 */
 	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, safe?: boolean): Uint8Array;
 	/**
