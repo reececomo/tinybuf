@@ -7,8 +7,8 @@
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
-| 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md)  |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
+| 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🌐 Node / browser | 🛡️ Built-in validation / transforms |
 | 🤏 `~5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
@@ -51,8 +51,19 @@ const bytes = GameWorldData.encode({ /*…*/ });
 
 bytes.byteLength
 // 17
-
 ```
+
+> [!CAUTION]
+> By default `BufferFormat.encode(…)` optimizes performance and memory by
+> encoding data to a shared buffer, and returning a `Uint8Array` pointer
+> to the encoded bytes.
+>
+> Subsequent calls to `encode(…)` are destructive, so this would be
+> unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+> `encode(…)` returns an unsafe `Uint8Array` view of the shared encoding buffer.
+>
+> Call `encode({ … }, true)` to copy bytes to a safe buffer on encode, or set
+> `setTinybufConfig({ safe: true })` (but be mindful of memory fragmentation).
 
 #### Decode
 
@@ -79,7 +90,7 @@ const data = GameWorldData.decode(bytes);
 | ---------------- |
 | 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
 | 🤔  [Types table](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
-| 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/headers.md) |
+| 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md) |
 | 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
 | ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
 

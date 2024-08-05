@@ -1,31 +1,26 @@
-import { bufferParser, BufferParserInstance } from './core/BufferParser';
+import { bufferParser, BufferParser } from './core/BufferParser';
 import { defineFormat, BufferFormat, Decoded } from './core/BufferFormat';
 import { Type, optional } from './core/Type';
-import { setTinybufConfig } from './core/settings';
 
 
-// Core API:
+// core API:
 export {
   defineFormat,
   bufferParser,
   Type,
   optional,
-
-  // settings:
-  setTinybufConfig,
-
-  // classes:
-  BufferFormat,
-  BufferParserInstance
 };
 
-// Utilities:
-export * from './core/lib/errors';
-export * from './core/lib/float16';
-export * from './core/lib/peek';
-export * from './core/lib/scalar';
+// utilities:
+export { setTinybufConfig } from './core/config';
+export { TinybufError, DecodeError, EncodeError } from './core/lib/errors';
+export { peekHeader, peekHeaderStr } from './core/lib/peek';
+export { scalarRound, uScalarRound} from './core/lib/scalar';
+export { fround16 } from './core/lib/float16';
 
-// Utility types:
+// types:
 export type {
-  Decoded
+  Decoded,
+  BufferFormat,
+  BufferParser,
 };

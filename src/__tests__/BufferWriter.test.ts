@@ -8,16 +8,16 @@ describe('BufferWriter', () => {
     const writer = new BufferWriter(32);
 
     // cheeky check of the underlying implementation
-    expect((writer as any).view.byteOffset).toBe(0);
-    expect((writer as any).view.byteLength).toBe(32);
+    expect((writer as any)._$dataView.byteOffset).toBe(0);
+    expect((writer as any)._$dataView.byteLength).toBe(32);
 
     const textBuffer = new TextEncoder().encode(input);
-    writer.writeBuffer(textBuffer);
+    writer.$writeBuffer(textBuffer);
 
-    expect((writer as any).view.byteOffset).toBe(0);
-    expect((writer as any).view.byteLength).toBeGreaterThan(32);
+    expect((writer as any)._$dataView.byteOffset).toBe(0);
+    expect((writer as any)._$dataView.byteLength).toBeGreaterThan(32);
 
-    const text = new TextDecoder('utf-8').decode(writer.asCopy());
+    const text = new TextDecoder('utf-8').decode(writer.$asCopy());
     expect(text).toBe(input);
   });
 });

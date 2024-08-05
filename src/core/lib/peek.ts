@@ -1,4 +1,4 @@
-import { hashCodeToStr } from "./hashCode";
+import { $hashCodeToStr } from "./hashCode";
 
 
 /**
@@ -16,5 +16,5 @@ export function peekHeader(b: ArrayBuffer | ArrayBufferView): number {
  * @throws {RangeError} if buffer length < 2
  */
 export function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string {
-  return hashCodeToStr(peekHeader(b));
+  return $hashCodeToStr(peekHeader(b));
 }

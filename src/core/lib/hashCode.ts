@@ -6,14 +6,13 @@
  *
  * @returns 16-bit unsigned integer
  */
-function djb2HashUInt16(str: string): number {
+export function $hashCode(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = (hash * 33) ^ str.charCodeAt(i);
   }
   return hash & 0xFFFF; // Ensure the result is a Uint16
 }
-export const hashCode = djb2HashUInt16;
 
 /**
  * Returns an unsigned 16-bit integer hashcode for some string.
@@ -21,18 +20,14 @@ export const hashCode = djb2HashUInt16;
  *
  * @returns A UInt16 between 0 and 65535 (inclusive).
  */
-export function strToHashCode(str: string): number {
-  // Prefer 2 character string
-  if (str.length === 2) {
-    return str.charCodeAt(0) * 256 + str.charCodeAt(1);
-  }
-
-  return djb2HashUInt16(str); // Fallback to DJB2
+export function $strToHashCode(str: string): number {
+  if (str.length !== 2) return $hashCode(str);
+  return str.charCodeAt(0) * 256 + str.charCodeAt(1);
 }
 
 /**
  * Convert a UInt16 hashcode to a 2-byte string.
  */
-export function hashCodeToStr(hashCode: number): string {
+export function $hashCodeToStr(hashCode: number): string {
   return String.fromCharCode(Math.floor(hashCode / 256)) + String.fromCharCode(hashCode % 256);
 }

@@ -1,21 +1,19 @@
 {
   "name": "tinybuf",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "author": "Reece Como <reece.como@gmail.com>",
   "authors": [
     "Reece Como <reece.como@gmail.com>",
     "Sitegui <sitegui@sitegui.com.br>"
   ],
   "license": "MIT",
-  "description": "Fast, tiny binary serialization for Node.js and browser",
+  "description": "Fast, compressed binary serializers in Node.js and HTML5",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": [
-    "./dist"
-  ],
+  "files": ["./dist"],
   "scripts": {
-    "build": "rimraf dist && rollup -c --bundleConfigAsCjs && rimraf dist/core && ./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/index.ts --sort --no-banner --export-referenced-types ",
+    "build": "rimraf dist && rollup -c --bundleConfigAsCjs && rimraf dist/core && ./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/index.ts --sort --no-banner --export-referenced-types",
     "coverage": "jest --collectCoverage",
     "lint": "eslint src --ext .ts",
     "test": "jest"

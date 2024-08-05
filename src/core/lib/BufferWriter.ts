@@ -1,133 +1,122 @@
-import { SETTINGS } from "../settings";
-import { BufferEncodingError } from "./errors";
-import { f16mask } from "./float16";
+import { cfg } from "../config";
+import { EncodeError } from "./errors";
+import { $f16mask } from "./float16";
 
 /**
  * Wraps a view into an underlying buffer, and can be dynamically resized.
+ *
+ * @internal
  */
 export class BufferWriter {
-  /** byteOffset */
-  public o: number = 0;
+  public $byteOffset: number = 0;
 
-  private view: DataView;
-  private buf: ArrayBuffer;
-  private resize: boolean = true;
+  private _$dataView: DataView;
+  private _$buf: ArrayBuffer;
+  private readonly _$autoResize: boolean;
 
   public constructor(value: number | ArrayBuffer) {
     if (value instanceof ArrayBuffer) {
-      this.buf = value;
-      this.resize = false;
-      if (SETTINGS.debug) {
-        console.debug(`[tinybuf] assigning buffer writer to global encoding buffer`);
-      }
+      this._$buf = value;
+      this._$autoResize = false;
     }
     else {
-      if (SETTINGS.debug) {
-        console.debug(`[tinybuf] allocating new buffer (${value} bytes)`);
-      }
-      this.buf = new ArrayBuffer(value);
+      this._$buf = new ArrayBuffer(value);
+      this._$autoResize = true;
     }
-    this.view = new DataView(this.buf, 0, this.buf.byteLength);
+
+    this._$dataView = new DataView(this._$buf, 0, this._$buf.byteLength);
   }
 
-  public asView(): Uint8Array {
-    return new Uint8Array(this.view.buffer, 0, this.o);
+  public $asView(): Uint8Array {
+    return new Uint8Array(this._$dataView.buffer, 0, this.$byteOffset);
   }
 
-  public asCopy(): Uint8Array {
-    return new Uint8Array(this.view.buffer.slice(0, this.o));
+  public $asCopy(): Uint8Array {
+    return new Uint8Array(this._$dataView.buffer.slice(0, this.$byteOffset));
   }
 
   // ----- Writers: -----
 
-  public writeInt8(value: number): void {
-    this.view.setInt8(this.alloc(1), value);
+  public $writeInt8(value: number): void {
+    this._$dataView.setInt8(this._$alloc(1), value);
   }
 
-  public writeInt16(value: number): void {
-    this.view.setInt16(this.alloc(2), value, true);
+  public $writeInt16(value: number): void {
+    this._$dataView.setInt16(this._$alloc(2), value, true);
   }
 
-  public writeInt32(value: number): void {
-    this.view.setInt32(this.alloc(4), value, true);
+  public $writeInt32(value: number): void {
+    this._$dataView.setInt32(this._$alloc(4), value, true);
   }
 
-  public writeUInt8(value: number): void {
-    this.view.setUint8(this.alloc(1), value);
+  public $writeUInt8(value: number): void {
+    this._$dataView.setUint8(this._$alloc(1), value);
   }
 
-  public writeUInt16(value: number): void {
-    this.view.setUint16(this.alloc(2), value);
+  public $writeUInt16(value: number): void {
+    this._$dataView.setUint16(this._$alloc(2), value); // big-endian
   }
 
-  public writeUInt32(value: number): void {
-    this.view.setUint32(this.alloc(4), value);
+  public $writeUInt32(value: number): void {
+    this._$dataView.setUint32(this._$alloc(4), value); // big-endian
   }
 
-  public writeFloat16(value: number): void {
-    this.view.setUint16(this.alloc(2), f16mask(value));
+  public $writeFloat16(value: number): void {
+    this._$dataView.setUint16(this._$alloc(2), $f16mask(value));
   }
 
-  public writeFloat32(value: number): void {
-    this.view.setFloat32(this.alloc(4), value);
+  public $writeFloat32(value: number): void {
+    this._$dataView.setFloat32(this._$alloc(4), value, true);
   }
 
-  public writeFloat64(value: number): void {
-    this.view.setFloat64(this.alloc(8), value);
+  public $writeFloat64(value: number): void {
+    this._$dataView.setFloat64(this._$alloc(8), value, true);
   }
 
-  public writeBuffer(b: ArrayBuffer | ArrayBufferView): void {
-    const byteOffset = this.alloc(b.byteLength);
+  public $writeBuffer(b: ArrayBuffer | ArrayBufferView): void {
+    const byteOffset = this._$alloc(b.byteLength);
     const readView = b instanceof Uint8Array ? b
       : b instanceof ArrayBuffer ? new Uint8Array(b)
         : new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
-    new Uint8Array(this.view.buffer, byteOffset, b.byteLength).set(readView);
+    new Uint8Array(this._$dataView.buffer, byteOffset, b.byteLength).set(readView);
   }
 
   // ----- Private methods: -----
 
   /** Allocate the given number of bytes, and then return the current header position (byteOffset). */
-  private alloc(bytes: number): number {
-    const byteOffset = this.o;
+  private _$alloc(bytes: number): number {
+    if (this.$byteOffset + bytes <= this._$dataView.byteLength) {
+      const i = this.$byteOffset; // copy
+      this.$byteOffset += bytes;
 
-    if (this.o + bytes <= this.view.byteLength) {
-      this.o += bytes;
-
-      return byteOffset;
+      return i;
     }
 
-    if (!this.resize) {
-      throw new BufferEncodingError(`Write buffer exceeded maximum size of global buffer.`);
-    }
-
-    const currentAlloc = this.view.byteLength;
+    const currentAlloc = this._$dataView.byteLength;
     const minRequestedSize = currentAlloc + bytes;
-    if (minRequestedSize > SETTINGS.encodingBufferMaxSize) {
-      throw new BufferEncodingError(`Write buffer exceeded maximum size. Bytes requested: ${minRequestedSize}. Max size: ${SETTINGS.encodingBufferMaxSize}.`);
+    if (!this._$autoResize || minRequestedSize > cfg.encodingBufferMaxSize) {
+      throw new EncodeError(`exceeded max encoding buffer size: ${cfg.encodingBufferMaxSize}`);
     }
 
-    let newLength = this.view.byteLength;
+    let newLength = this._$dataView.byteLength;
     do {
-      newLength = Math.min(newLength + SETTINGS.encodingBufferIncrement, SETTINGS.encodingBufferMaxSize);
+      newLength = Math.min(newLength + cfg.encodingBufferIncrement, cfg.encodingBufferMaxSize);
     }
-    while (newLength < this.o + bytes);
-
-    if (SETTINGS.debug) {
-      console.debug(`[tinybuf] resizing buffer ${currentAlloc} -> ${newLength}`);
-    }
+    while (newLength < this.$byteOffset + bytes);
 
     // copy bytes to new buffer
     const newBuffer = new ArrayBuffer(newLength);
-    const currentData = new Uint8Array(this.view.buffer, this.view.byteOffset, currentAlloc);
+    const currentData = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, currentAlloc);
     new Uint8Array(newBuffer).set(currentData);
 
     // update the view
-    this.buf = newBuffer;
-    this.view = new DataView(newBuffer);
+    this._$buf = newBuffer;
+    this._$dataView = new DataView(newBuffer);
 
     // increment the pointer
-    this.o += bytes;
+    const i = this.$byteOffset; // copy
+    this.$byteOffset += bytes;
 
-    return byteOffset;
+    return i;
   }
 }

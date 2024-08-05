@@ -1,11 +1,7 @@
 import { BufferFormat } from "./BufferFormat";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
-import {
-  BufferDecodingError,
-  FormatHeaderCollisionError,
-  UnrecognizedFormatError
-} from "./lib/errors";
-import { hashCodeToStr, strToHashCode } from "./lib/hashCode";
+import { DecodeError, TinybufError } from "./lib/errors";
+import { $hashCodeToStr, $strToHashCode } from "./lib/hashCode";
 import { peekHeader } from "./lib/peek";
 
 type AnyFormat = BufferFormat<any, any>;
@@ -21,49 +17,37 @@ type Uint16FormatHeader = number;
  *
  * myHandler.processBuffer(bytes);
  */
-export const bufferParser = (): BufferParserInstance => new BufferParserInstance();
+export const bufferParser = (): BufferParser => new BufferParser();
 
-export class BufferParserInstance {
-  private formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
-
-  /** All available formats */
-  public get availableFormats(): Set<AnyFormat> {
-    return new Set([...this.formats.values()].map(v => v[0]));
-  }
+export class BufferParser {
+  /** @internal */
+  private _$formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
 
   /**
    * Decode an array buffer and trigger the relevant data handler.
    *
    * When passed an ArrayBufferView, accesses the underlying 'buffer' instance directly.
    *
-   * @throws {BufferDecodingError} if the buffer failed to decode to the registered format, or header was bad
-   * @throws {UnrecognizedFormatError} if no format is registered that can handle this data
+   * @throws {TinybufError} if fails to decode, or no handler is registered
    */
   public processBuffer(b: ArrayBuffer | ArrayBufferView): void {
-    let header: number;
+    let f: any, data: any, cb: (data: any) => any;
 
     try {
-      header = peekHeader(b);
-    }
-    catch (e) {
-      throw new BufferDecodingError(`Failed to process buffer`, e);
-    }
+      const header = peekHeader(b);
 
-    if (!this.formats.has(header)) {
-      throw new UnrecognizedFormatError(`Unrecognized format (uint16: ${header}, str: '${hashCodeToStr(header)}')`);
-    }
+      if (!this._$formats.has(header)) {
+        throw new TinybufError(`Unknown format: ${header} '${$hashCodeToStr(header)}')`);
+      }
 
-    const [f, onData] = this.formats.get(header);
-    let data: any;
-
-    try {
+      [f, cb] = this._$formats.get(header);
       data = f.decode(b);
     }
     catch (e) {
-      throw new BufferDecodingError(`Failed to decode data to format '${f.header}'`, e);
+      throw new DecodeError('Failed to decode', e);
     }
 
-    onData(data);
+    cb(data);
   }
 
   /**
@@ -75,16 +59,16 @@ export class BufferParserInstance {
     overwritePrevious: boolean = false,
   ): this {
     if (format.header == null) {
-      throw new TypeError('Cannot register a headerless encoding format.');
+      throw new TinybufError('Format requires header');
     }
 
-    const header = typeof format.header === 'string' ? strToHashCode(format.header) : format.header;
+    const header = typeof format.header === 'string' ? $strToHashCode(format.header) : format.header;
 
-    if (this.formats.has(header) && !overwritePrevious) {
-      throw new FormatHeaderCollisionError(`Format with identical header was already registered: ${format.header}`);
+    if (this._$formats.has(header) && !overwritePrevious) {
+      throw new TinybufError(`Format header collision: ${format.header}`);
     }
 
-    this.formats.set(header, [format, callback]);
+    this._$formats.set(header, [format, callback]);
 
     return this;
   }
@@ -97,6 +81,6 @@ export class BufferParserInstance {
 
   /** Clears all registered formats and handlers. */
   public clear(): void {
-    this.formats.clear();
+    this._$formats.clear();
   }
 }

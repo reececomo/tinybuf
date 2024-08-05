@@ -1,8 +1,5 @@
 {
   "root": true,
-  "ignorePatterns": [
-    "dist"
-  ],
   "rules": {
     "newline-before-return": 0,
     "prefer-const": 0,
@@ -34,6 +31,21 @@
     "jsdoc/no-types": 1,
     "no-trailing-spaces": "warn",
     "@typescript-eslint/ban-types": "warn",
+    "@typescript-eslint/naming-convention": [
+      "warn",
+      {
+        // private properties
+        "selector": ["default"],
+        "modifiers": ["private"],
+        "filter": {
+          "regex": "^.{2,}$", // minlen: 1
+          "match": true
+        },
+        "format": ["camelCase"],
+        "prefix": ["$"],
+        "leadingUnderscore": "allow"
+      }
+    ],
     "max-len": [
       "warn",
       200

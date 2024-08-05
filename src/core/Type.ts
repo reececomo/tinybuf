@@ -1,25 +1,26 @@
-
 /**
  * Binary coder types.
+ *
+ * @see {ValueTypes} for corresponding type definitions
  */
 export const enum Type {
   /**
-   * Boolean value (1 byte).
-   * @see {Bools8} for packing multiple booleans into a single byte.
+   * Unsigned integer (1 - 8 bytes).
+   * - 0 → 127 = 1 byte
+   * - 128 → 16,384 = 2 bytes
+   * - 16,385 → 536,870,911 = 4 bytes
+   * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  Bool = 'bool',
+  UInt,
 
-  /** A string (1† byte header + string bytes). */
-  String = 'str',
+  /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
+  UInt8,
 
-  /** Floating-point number (16-bit, half precision, 2 bytes). */
-  Float16 = 'float16',
+  /** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
+  UInt16,
 
-  /** Floating-point number (32-bit, single precision, 4 bytes). */
-  Float32 = 'float32',
-
-  /** Floating-point number (64-bit, double precision, 8 bytes). Default JavaScript `number` type. */
-  Float64 = 'float64',
+  /** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
+  UInt32,
 
   /**
    * Signed integer (1 - 8 bytes).
@@ -28,134 +29,72 @@ export const enum Type {
    * - … → ±268,435,456 = 4 bytes
    * - … → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  Int = 'int',
+  Int,
 
   /** Signed 1 byte integer (between -127 and 127). */
-  Int8 = 'int8',
+  Int8,
 
   /** Signed 2 byte integer (between -32,767 and 32,767). */
-  Int16 = 'int16',
+  Int16,
 
   /** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-  Int32 = 'int32',
+  Int32,
 
-  /**
-   * Unsigned integer (1 - 8 bytes).
-   * - 0 → 127 = 1 byte
-   * - 128 → 16,384 = 2 bytes
-   * - 16,385 → 536,870,911 = 4 bytes
-   * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
-   */
-  UInt = 'uint',
+  /** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
+  Float64,
 
-  /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-  UInt8 = 'uint8',
+  /** Floating-point number (32-bit, single precision, 4 bytes). */
+  Float32,
 
-  /** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-  UInt16 = 'uint16',
-
-  /** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-  UInt32 = 'uint32',
+  /** Floating-point number (16-bit, half precision, 2 bytes). */
+  Float16,
 
   /** A signed scalar between -1.00 and 1.00 (1 byte). */
-  Scalar = 'scalar',
+  Scalar,
 
   /** An unsigned scalar between 0.00 and 1.00 (1 byte). */
-  UScalar = 'uscalar',
-
-  // ---- Advanced types: -----
-
-  /** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
-  Buffer = 'buf',
+  UScalar,
 
   /**
-   * A JavaScript date object.
+   * Boolean value (1 byte).
+   * @see {Bools8} for packing multiple booleans into a single byte.
+   */
+  Bool,
+
+  /** Any array of booleans (0¶ byte / 2-bit header). */
+  Bools,
+
+  /** Up to 8 booleans (1 byte). */
+  Bools8,
+
+  /** Up to 16 booleans (2 bytes). */
+  Bools16,
+
+  /** Up to 32 booleans (4 bytes). */
+  Bools32,
+
+  /** A string (1† byte header + string bytes). */
+  String,
+
+  /** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+  Buffer,
+
+  /** Any JSON-serializable data. Encodes as a UTF-8 string. */
+  JSON,
+
+  /** JavaScript regular expression. */
+  RegExp,
+
+  /**
+   * JavaScript date object.
    *
    * Encoded as an 8 byte (64-bit) integer UTC timestamp from as the number
    * of milliseconds since the Unix Epoch (January 1, 1970, 00:00:00 UTC).
    *
    * @see {Date}
    */
-  Date = 'date',
-
-  /** A JavaScript regular expression. */
-  RegExp = 'regex',
-
-  /** Any JSON-serializable data. Encodes as a UTF-8 string. */
-  JSON = 'json',
-
-  /** Up to 8 booleans (1 byte). */
-  Bools8 = 'bitmask8',
-
-  /** Up to 16 booleans (2 bytes). */
-  Bools16 = 'bitmask16',
-
-  /** Up to 32 booleans (4 bytes). */
-  Bools32 = 'bitmask32',
-
-  /** Any array of booleans (0¶ byte / 2-bit header). */
-  Bools = 'booltuple',
-
-  // ----- Data structures: -----
-
-  /** [INTERNAL ONLY] Use "[T]" array syntax instead. */
-  Array = '[array]',
-
-  /** [INTERNAL ONLY] Use "{}" object syntax instead. */
-  Object = '{object}',
-
-  // ----- Aliases: -----
-
-  /** Alias for `Type.Float16` @see {Float16} */
-  Half = 'float16',
-
-  /** Alias for `Type.Float32` @see {Float32} */
-  Single = 'float32',
-
-  /** Alias for `Type.Float64` @see {Float64} */
-  Double = 'float64',
-
-  /** Alias for `Type.Float64 @see {Float64} */
-  Number = 'float64',
-
-  /** Alias for `Type.Bool` @see {Bool} */
-  Boolean = 'bool',
-
-  /** Alias for 'Type.UInt' @see {UInt} */
-  Enum = 'uint',
+  Date,
 }
-
-/** All value types - excluding array, object and optional */
-export const VALID_VALUE_TYPES: readonly string[] = [
-  // Floats
-  Type.Float16,
-  Type.Float32,
-  Type.Float64,
-  // Integers
-  Type.Int,
-  Type.Int8,
-  Type.Int16,
-  Type.Int32,
-  Type.UInt,
-  Type.UInt8,
-  Type.UInt16,
-  Type.UInt32,
-  // Scalars
-  Type.UScalar,
-  Type.Scalar,
-  // Boolean
-  Type.Bool,
-  Type.Bools,
-  Type.Bools8,
-  Type.Bools16,
-  Type.Bools32,
-  // Other
-  Type.String,
-  Type.Date,
-  Type.RegExp,
-  Type.JSON,
-  Type.Buffer,
-] as const;
 
 /**
  * Mappings for the value types.
