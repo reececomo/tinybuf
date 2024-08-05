@@ -10,7 +10,7 @@
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
 | 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🌐 Node / browser | 🛡️ Built-in validation / transforms |
-| 🤏 `~5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
+| 🤏 `~4kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
 ## 💿 Install
 
@@ -53,15 +53,6 @@ bytes.byteLength
 // 17
 ```
 
-> [!WARNING]
-> **Safe mode:** `encode(…)` optimizes performance and memory by encoding bytes
-> into a shared buffer, and returning a `Uint8Array` pointer. Subsequent calls
-> are destructive and unsuitable for asyncronous workflows (e.g. Promises, Web Workers).
->
-> Enable safe encode to automatically copy bytes to a safe buffer instead:
-> - `myFormat.encode({ /*…*/ }, true )`
-> - `setTinybufConfig({ safe: true })`
-
 #### Decode
 
 ```ts
@@ -87,6 +78,7 @@ const data = GameWorldData.decode(bytes);
 | ---------------- |
 | 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
 | 🤔  [Types table](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
+| 💀  [Async / safe mode](https://github.com/reececomo/tinybuf/blob/main/docs/safe_encode.md) |
 | 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md) |
 | 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
 | ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
