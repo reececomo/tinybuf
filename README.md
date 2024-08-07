@@ -7,9 +7,9 @@
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
+| 🗜️ Powerful & performant compression | 💾 ^50% smaller vs. [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
-| 🗜️ Powerful & performant compression | 💾 50% smaller vs [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
-| 🌐 Node / browser | 🛡️ Built-in validation / transforms |
+| 🌐 Node / browser | 🛡️ Built-in validation/transforms |
 | 🤏 `~4kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
 ## 💿 Install
@@ -28,19 +28,17 @@ export const GameWorldData = defineFormat({
     seqNo: Type.UInt,
     time: Type.Float16
   },
-  players: [
-    {
-      id: Type.UInt,
-      position: {
-        x: Type.Float32,
-        y: Type.Float32
-      },
-      input: {
-        move: Type.Scalar,
-        buttons: Type.Bools // [ jump, crouch ]
-      }
+  players: [{
+    id: Type.UInt,
+    position: {
+      x: Type.Float32,
+      y: Type.Float32
+    },
+    input: {
+      movedX: Type.Scalar, // -1.0 -> 1.0
+      buttons: Type.Bools  // e.g. [jump, crouch, special]
     }
-  ]
+  }]
 });
 ```
 
