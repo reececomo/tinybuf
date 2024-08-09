@@ -1,116 +1,84 @@
-/* eslint-disable @typescript-eslint/no-extraneous-class */
-
-const FLOAT16_PRECALCULATE_SUBNORMAL = Math.pow(2, -24);
-
 /**
- * The fround16() method returns the nearest 16-bit half precision float representation of a number.
+ * The f16round() method returns the nearest 16-bit half precision float representation of a number.
  *
  * @param doubleFloat A number.
  * @returns The nearest 16-bit half precision float representation of x.
  */
-export function fround16(doubleFloat: number): number {
+export function f16round(doubleFloat: number): number {
   return $f16unmask($f16mask(doubleFloat));
 }
 
 /**
- * Convert a number to the nearest 16-bit half precision float representation (as a UInt16 bitmask).
+ * Convert a float64 to float16 binary format (to be stored as uint)
  *
- * @param doubleFloat A number.
- * @returns A UInt16 bitmask representation of a half precision float.
- *
+ * @author greggman, Sam Hocevar, James Tursa
  * @see https://stackoverflow.com/a/32633586
  */
 export const $f16mask = (function() {
-  const floatView = new Float32Array(1);
-  const int32View = new Int32Array(floatView.buffer);
+  const f32 = new Float32Array(1);
+  const i32 = new Uint32Array(f32.buffer);
 
-  // This method is faster than the OpenEXR implementation (very often
-  // used, eg. in Ogre), with the additional benefit of rounding, inspired
-  // by James Tursa's half-precision code.
-  return function toHalf(v: number): number {
-    floatView[0] = v;
-    const x = int32View[0];
+  return function (v: number): number {
+    f32[0] = v;
 
-    let b = (x >> 16) & 0b1000000000000000;
-    let m = (x >> 12) & 0b0000011111111111;
-    const e = (x >> 23) & 0b0000000011111111;
+    const i = i32[0];
+    const e = i >> 23 & 255; // exponent (0b0000000011111111)
 
-    // If zero, or denormal, or exponent underflows too much for a denormal
-    // half, return signed zero.
-    if (e < 103) return b;
-
-    // If NaN, return NaN. If Inf or exponent overflow, return Inf.
-    if (e > 142) {
-      if (isNaN(v)) return 0b0111110000000001; // Float 16 NaN
-
-      b |= 0x7c00;
-
-      // If exponent was 0xff and one significand bit was set, it means NaN,
-      // not Inf, so make sure we set one significand bit too.
-      b |= ((e == 255) ? 0 : 1) && (x & 0x007fffff);
-      return b;
-    }
-
-    // If exponent underflows but not too much, return a denormal
+    // check underflow
     if (e < 113) {
-      m |= 0x0800;
-      // Extra rounding may overflow and set significand to 0 and exponent
-      // to 1, which is OK.
-      b |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
-      return b;
+      // if zero, or denormal, or exponent underflows too much for a denormal half
+      if (e < 103) return i >> 16 & 32768; // signed zero
+
+      let m = i >> 12 & 2047; //  mantissa (0b0000011111111111)
+
+      // exponent underflows but not too much, return a denormal
+      m |= 2048; // (0b0000100000000000)
+
+      // extra rounding may overflow and set significand to 0 and exponent
+      // to 1, which is ok
+      return i >> 16 & 32768 /* <-- sign bit */ | m >> (113 - e) + (m >> (112 - e)) & 1;
+    }
+    else if (e >= 142) { // check overflow: NaN or Infinity (incl. exponent overflow)
+      if (v > 65_504) return 31744; // f16 Infinity (0b0111110000000000)
+      if (v < -65_504) return 64512; // f16 -Infinity (0b1111110000000000)
+      if (v !== v) return 31745; // f16 NaN (0b0111110000000001)
     }
 
-    b |= ((e - 112) << 10) | (m >> 1);
+    const m = i >> 12 & 2047; //  mantissa (0b0000011111111111)
 
-    // Extra rounding. An overflow will set significand to 0 and increment
-    // the exponent, which is OK.
-    b += m & 1;
-
-    return b;
+    // extra rounding. an overflow will set significand to 0 and increment
+    // the exponent, which is ok.
+    return i >> 16 & 32768 /* <-- sign bit */ | (e - 112) << 10 | (m >> 1) + (m & 1);
   };
 }());
 
-
 /**
- * Convert a UInt16 bitmask of a 16-bit half precision float representation into
- * a double precision float (number).
- *
- * @param b A UInt16 bitmask representation of a half precision float.
- * @returns A number (standard 64-bit double precision representation).
+ * Convert a uint binary representation of a float16 into a float64
  */
-export function $f16unmask(b: number): number {
-  // eslint-disable-next-line max-len
-  if ((b & 0x8000) === 0) return f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
-  else return -f16.t[(((/* exponent: */ b >> 10 /* FLOAT16_SIGNIFICAND_BITS */) & 0x1F) << 10 /* FLOAT16_SIGNIFICAND_BITS */) + (/* significand: */ b & 0x3FF  /* FLOAT16_SIGNIFICAND_MASK */)];
-}
+export const $f16unmask = (function() {
+  let t!: Record<number, number>;
 
-// ----- Precomputed table: -----
+  return function $f16unmask(b: number): number {
+    if (!t) {
+      const sub = Math.pow(2, -24); // precalculate subnormal
 
-/** precomputed table of the conversion factors for each possible combination of exponent and significand bits (unsigned) */
-class f16 {
-  public static readonly t = this._$initF16LookupTable(); // static: lazy initializer
+      const precalc = function(e: number, s: number): number {
+        if (e === 0) return (s === 0) ? 0 : sub * (s / 1024); // subnormal
+        if (e === 0x1F /* expo */) return s === 0 ? Infinity : NaN; // Infinity or NaN
+        e -= 15; // adjust exponent bias
+        return Math.pow(2, e) * (1 + s / 1024);
+      };
 
-  private static _$initF16LookupTable(): number[] {
-    const t = [];
-    for (let exponent = 0; exponent < 1 << 5 /* FLOAT16_EXPONENT_BITS */; exponent++) {
-      for (let significand = 0; significand < 1 << 10 /* FLOAT16_SIGNIFICAND_BITS */; significand++) {
-        const value = f16._$precalculate(exponent, significand);
-        t[(exponent << 10 /* FLOAT16_SIGNIFICAND_BITS */) + significand] = value;
+      t = [];
+      for (let exponent = 0; exponent < 1 << 5 /* expo bits */; exponent++) {
+        for (let significand = 0; significand < 1 << 10 /* signif bits */; significand++) {
+          const value = precalc(exponent, significand);
+          t[(exponent << 10 /* signif bits */) + significand] = value;
+        }
       }
     }
-    return t;
-  }
 
-
-  /** precalculate the value for a given exponent and significand */
-  private static _$precalculate(exponent: number, significand: number): number {
-    if (exponent === 0) {
-      if (significand === 0) return 0; // subnormal or zero
-      return FLOAT16_PRECALCULATE_SUBNORMAL * (significand / 1024); // Subnormal
-    }
-    if (exponent === 0x1F /* FLOAT16_EXPONENT_MASK */) return significand === 0 ? Infinity : NaN; // Infinity or NaN
-    // normalize
-    exponent -= 15 /* FLOAT16_EXPONENT_BIAS */; // adjust exponent bias
-    return Math.pow(2, exponent) * (1 + significand / 1024);
-  }
-}
+    if ((b & 0x8000) === 0) return t[(((/* exponent: */ b >> 10 /* signif bits */) & 0x1F) << 10 /* signif bits */) + (/* signif: */ b & 0x3FF  /* signif mask */)];
+    else return -t[(((/* exponent: */ b >> 10 /* signif bits */) & 0x1F) << 10 /* signif bits */) + (/* signif: */ b & 0x3FF  /* signif mask */)];
+  };
+}());

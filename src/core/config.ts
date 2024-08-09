@@ -2,14 +2,11 @@
 const MTU = 1500;
 
 /** Set Tinybuf global config */
-export const setTinybufConfig = (newSettings: Partial<typeof cfg>): void => {
-  cfg = {
-    ...cfg,
-    ...newSettings
-  };
+export const setTinybufConfig = (c: Partial<TinybufConfig>): void => {
+  cfg = { ...cfg, ...c };
 };
 
-export let cfg = {
+export type TinybufConfig = {
   /**
    * (default: false)
    * By default `BufferFormat.encode(…)` optimizes performance and memory by
@@ -21,26 +18,7 @@ export let cfg = {
    *
    * Set `safe` to true to copy bytes to a new buffer and return that.
    */
-  safe: false,
-
-  /**
-   * (default: 1500)
-   * The maximum bytes to allocate to an encoding buffer. If using the global
-   * encoding buffer, this is the size it is initialized to.
-   */
-  encodingBufferMaxSize: MTU,
-
-  /**
-   * (default: 256)
-   * Initial bytes to allocate to individual format encoding buffers, if used.
-   */
-  encodingBufferInitialSize: 256,
-
-  /**
-   * (default: 256)
-   * Additional bytes when resizing individual format encoding buffers, if used.
-   */
-  encodingBufferIncrement: 256,
+  safe: boolean,
 
   /**
    * (default: true)
@@ -53,5 +31,33 @@ export let cfg = {
    * Enable to maximise performance and memory re-use, just be cautious of
    * possible race conditions.
    */
+  useGlobalEncodingBuffer: boolean,
+
+  /**
+   * (default: 1500)
+   * The maximum bytes to allocate to an encoding buffer. If using the global
+   * encoding buffer, this is the size it is initialized to.
+   */
+  encodingBufferMaxSize: number,
+
+  /**
+   * (default: 256)
+   * Initial bytes to allocate to individual format encoding buffers, if used.
+   */
+  encodingBufferInitialSize: number,
+
+  /**
+   * (default: 256)
+   * Additional bytes when resizing individual format encoding buffers, if used.
+   */
+  encodingBufferIncrement: number,
+};
+
+/** @internal */
+export let cfg: TinybufConfig = {
+  safe: false,
   useGlobalEncodingBuffer: true,
+  encodingBufferMaxSize: MTU,
+  encodingBufferInitialSize: 256,
+  encodingBufferIncrement: 256,
 };

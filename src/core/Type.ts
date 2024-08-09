@@ -1,7 +1,7 @@
 /**
- * Binary coder types.
+ * Field types for defining encoding formats.
  *
- * @see {ValueTypes} for corresponding type definitions
+ * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
 export const enum Type {
   /**
@@ -25,9 +25,9 @@ export const enum Type {
   /**
    * Signed integer (1 - 8 bytes).
    * - 0 → ±64 = 1 byte
-   * - … → ±8,192 = 2 bytes
-   * - … → ±268,435,456 = 4 bytes
-   * - … → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
+   * - ±65 → ±8,192 = 2 bytes
+   * - ±8,193 → ±268,435,456 = 4 bytes
+   * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
    */
   Int,
 
@@ -46,7 +46,15 @@ export const enum Type {
   /** Floating-point number (32-bit, single precision, 4 bytes). */
   Float32,
 
-  /** Floating-point number (16-bit, half precision, 2 bytes). */
+  /**
+   * Floating-point number (16-bit, half precision, 2 bytes).
+   *
+   * **Warning:** ±4,096Maximum value: ±65,504.
+   *
+   * Reasonable precision between -1024 and 1024.
+   *
+   * @see `f16round()` for `Math.fround()` equivalent.
+   */
   Float16,
 
   /** A signed scalar between -1.00 and 1.00 (1 byte). */
