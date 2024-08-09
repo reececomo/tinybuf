@@ -108,7 +108,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   ) {
     // set definition
     if (def instanceof OptionalType) {
-      throw new TypeError("Invalid encoding format: Root object cannot be optionals.");
+      throw new TypeError("Invalid encoding format: Root object cannot be optional.");
     }
     else if (def !== undefined && typeof def === 'number') {
       this._$type = def;

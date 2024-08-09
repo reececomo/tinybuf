@@ -1,26 +1,40 @@
 import { bufferParser, BufferParser } from './core/BufferParser';
 import { defineFormat, BufferFormat, Decoded } from './core/BufferFormat';
+import { f16round } from './core/lib/float16';
+import { peekHeader, peekHeaderStr } from './core/lib/peek';
+import { scalarRound, uScalarRound } from './core/lib/scalar';
+import { TinybufError, DecodeError, EncodeError } from './core/lib/errors';
 import { Type, optional } from './core/Type';
 
 
-// core API:
+export { setTinybufConfig } from './core/config';
+
 export {
-  defineFormat,
+  // core API:
   bufferParser,
-  Type,
+  defineFormat,
   optional,
+  peekHeader,
+  peekHeaderStr,
+  Type,
+
+  // errors:
+  TinybufError,
+  DecodeError,
+  EncodeError,
+
+  // utils:
+  f16round,
+  scalarRound,
+  uScalarRound,
 };
 
-// utilities:
-export { setTinybufConfig } from './core/config';
-export { TinybufError, DecodeError, EncodeError } from './core/lib/errors';
-export { peekHeader, peekHeaderStr } from './core/lib/peek';
-export { scalarRound, uScalarRound} from './core/lib/scalar';
-export { fround16 } from './core/lib/float16';
-
-// types:
 export type {
+  // types:
   Decoded,
   BufferFormat,
   BufferParser,
 };
+
+/** @deprecated renamed to @see {f16round} */
+export const fround16 = f16round;

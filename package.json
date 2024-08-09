@@ -1,6 +1,6 @@
 {
   "name": "tinybuf",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "author": "Reece Como <reece.como@gmail.com>",
   "authors": [
     "Reece Como <reece.como@gmail.com>",
@@ -12,8 +12,9 @@
   "module": "dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": ["./dist"],
+  "sideEffects": false,
   "scripts": {
-    "build": "rimraf dist && rollup -c --bundleConfigAsCjs && rimraf dist/core && ./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/index.ts --sort --no-banner --export-referenced-types",
+    "build": "rimraf dist && rollup -c --bundleConfigAsCjs && rimraf dist/core && ./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/index.ts --no-banner --export-referenced-types",
     "coverage": "jest --collectCoverage",
     "lint": "eslint src --ext .ts",
     "test": "jest"
@@ -23,14 +24,16 @@
     "url": "git+https://github.com/reececomo/tinybuf.git"
   },
   "keywords": [
-    "buffer",
+    "arraybuffer",
     "binary",
-    "parse",
-    "encode",
+    "buffer",
     "decode",
-    "json",
+    "encode",
     "js-binary",
+    "json",
+    "parse",
     "ts-binary",
+    "typedarray",
     "typescript-binary"
   ],
   "devDependencies": {

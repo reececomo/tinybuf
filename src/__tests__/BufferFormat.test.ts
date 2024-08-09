@@ -198,6 +198,18 @@ describe('BufferFormat', () => {
     expect(BufferFormat.peekHeaderStr(data)).toBe('AB');
   });
 
+  it('should work', () => {
+    const myFormat = defineFormat('Ha', {
+      $exampleA: optional(Type.String),
+      $b: {
+        $c: Type.UInt,
+        $d: Type.UInt
+      },
+    });
+
+    myFormat.encode({ $exampleA: undefined, $b: { $c: 2, $d: 1 }});
+  });
+
   it('should throw TypeError when passed an invalid header', () => {
     expect(() => defineFormat(true as any, { data: Type.UInt })).toThrow(TypeError);
     expect(() => defineFormat(-1, { data: Type.UInt })).toThrow(TypeError);
