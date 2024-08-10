@@ -60,25 +60,19 @@ export declare const enum Type {
 	UScalar = 12,
 	/**
 	 * Boolean value (1 byte).
-	 * @see {Bools8} for packing multiple booleans into a single byte.
+	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
 	Bool = 13,
-	/** Any array of booleans (0¶ byte / 2-bit header). */
+	/** Any array of booleans (1 bit overhead, encoded as UInt). */
 	Bools = 14,
-	/** Up to 8 booleans (1 byte). */
-	Bools8 = 15,
-	/** Up to 16 booleans (2 bytes). */
-	Bools16 = 16,
-	/** Up to 32 booleans (4 bytes). */
-	Bools32 = 17,
 	/** A string (1† byte header + string bytes). */
-	String = 18,
+	String = 15,
 	/** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
-	Buffer = 19,
+	Buffer = 16,
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = 20,
+	JSON = 17,
 	/** JavaScript regular expression. */
-	RegExp = 21,
+	RegExp = 18,
 	/**
 	 * JavaScript date object.
 	 *
@@ -87,7 +81,7 @@ export declare const enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = 22
+	Date = 19
 }
 /**
  * Mappings for the value types.
@@ -108,9 +102,6 @@ export type ValueTypes = {
 	[Type.Scalar]: number;
 	[Type.Bool]: boolean;
 	[Type.Bools]: boolean[];
-	[Type.Bools8]: boolean[];
-	[Type.Bools16]: boolean[];
-	[Type.Bools32]: boolean[];
 	[Type.String]: string;
 	[Type.Date]: Date;
 	[Type.RegExp]: RegExp;
@@ -309,22 +300,18 @@ export declare function f16round(x: number): number;
 /**
  * Quantize a number to an 8-bit scalar between 0.0 and 1.0.
  *
- * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function uScalarRound(doubleFloat: number): number;
+export declare function uscalround(x: number): number;
 /**
  * Quantize a number to an 8-bit signed scalar between -1.0 and 1.0.
  *
- * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function scalarRound(doubleFloat: number): number;
+export declare function scalround(x: number): number;
+export declare const mask: (x: boolean[], pad?: number) => number;
+export declare const unmask: (x: number, len?: number) => boolean[];
 export declare class TinybufError extends Error {
-}
-export declare class EncodeError extends TinybufError {
-	constructor(message: string);
-	constructor(expectedType: string, value: any, path: string);
 }
 export declare class DecodeError extends TinybufError {
 	readonly cause: Error;
@@ -374,7 +361,5 @@ export type TinybufConfig = {
 	 */
 	encodingBufferIncrement: number;
 };
-/** @deprecated renamed to @see {f16round} */
-export declare const fround16: typeof f16round;
 
 export {};

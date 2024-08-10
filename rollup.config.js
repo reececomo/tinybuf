@@ -23,14 +23,21 @@ export default [
       commonjs(),
       typescript(),
       terser({
-        keep_classnames: true,
-        keep_fnames: true,
+        // keep_classnames: true,
+        // keep_fnames: true,
         mangle: {
           properties: {
             regex: /^_?\$/, // starts with $ or _$
             keep_quoted: true,
           },
-        }
+        },
+        compress: {
+          module: true,
+          toplevel: true,
+        },
+        format: {
+          comments: false,
+        },
       }),
     ],
   }

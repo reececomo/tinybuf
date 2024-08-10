@@ -15,7 +15,7 @@ export class BufferReader {
   }
 
   /** Read the next byte, without moving the read head pointer. */
-  public $peekUInt8(): number {
+  public $peek(): number {
     return this._$dataView.getUint8(this.i);
   }
 

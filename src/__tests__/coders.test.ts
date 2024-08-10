@@ -5,7 +5,6 @@ import * as coders from '../core/lib/coders';
 
 import { uintData } from './data/uint';
 import { intData } from './data/int';
-import { EncodeError } from '../core/lib/errors';
 
 describe('coders', () => {
   describe('uintCoder', () => {
@@ -23,12 +22,6 @@ describe('coders', () => {
         const decoded: number = _readArrayBuffer(coder, encoded);
         expect(decoded).toEqual(value);
       });
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, -1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, Number.MAX_SAFE_INTEGER + 1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
     });
   });
 
@@ -48,11 +41,6 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, Number.MAX_SAFE_INTEGER + 1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('int8Coder', () => {
@@ -65,12 +53,6 @@ describe('coders', () => {
         const decoded: number = _readArrayBuffer(coder, encoded);
         expect(decoded).toEqual(value);
       });
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 128)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -128)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
     });
   });
 
@@ -85,12 +67,6 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 32_768)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -32_768)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('int32Coder', () => {
@@ -103,12 +79,6 @@ describe('coders', () => {
         const decoded: number = _readArrayBuffer(coder, encoded);
         expect(decoded).toEqual(value);
       });
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 2_147_483_648)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -2_147_483_648)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
     });
   });
 
@@ -123,12 +93,6 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 256)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('uint16Coder', () => {
@@ -142,12 +106,6 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 65_536)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('uint32Coder', () => {
@@ -160,12 +118,6 @@ describe('coders', () => {
         const decoded: number = _readArrayBuffer(coder, encoded);
         expect(decoded).toEqual(value);
       });
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 4_294_967_296)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, -1)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
     });
   });
 
@@ -186,10 +138,6 @@ describe('coders', () => {
       check(coder, -1 / Infinity);
       check(coder, NaN);
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('float32Coder', () => {
@@ -209,10 +157,6 @@ describe('coders', () => {
       check(coder, -1 / Infinity);
       check(coder, NaN);
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('float64Coder', () => {
@@ -227,10 +171,6 @@ describe('coders', () => {
       check(coder, 1 / Infinity);
       check(coder, -1 / Infinity);
       check(coder, NaN);
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
     });
   });
 
@@ -251,11 +191,7 @@ describe('coders', () => {
       check(coder, 1.1, 1);
       check(coder, Infinity, 1);
       check(coder, -Infinity, 0);
-      check(coder, NaN, NaN);
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
+      check(coder, NaN, 0);
     });
   });
 
@@ -278,11 +214,7 @@ describe('coders', () => {
       check(coder, 1.1, 1);
       check(coder, Infinity, 1);
       check(coder, -Infinity, -1);
-      check(coder, NaN, NaN);
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '1' as any)).toThrow(EncodeError);
+      check(coder, NaN, -1);
     });
   });
 
@@ -316,11 +248,6 @@ describe('coders', () => {
       check(coder, exampleFreshUint8s, expected);
       check(coder, exampleFreshUint8s.buffer, expected);
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, 1 as any)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, 'abcdefg' as any)).toThrow(EncodeError);
-    });
   });
 
   describe('boolCoder', () => {
@@ -340,129 +267,27 @@ describe('coders', () => {
       check(coder, [true, false, true]);
       check(coder, [false, true, false]);
       check(coder, [false, true, false, true, true, false, true, false, true]);
-    });
-  });
-
-  describe('bools8Coder', () => {
-    const coder = coders.bools8Coder;
-
-    it('should handle valid values', () => {
-      check(
-        coder,
-        [],
-        [false, false, false, false, false, false, false, false]
-      );
-      check(
-        coder,
-        [false, true],
-        [false, true, false, false, false, false, false, false]
-      );
-      check(
-        coder,
-        [true, true],
-        [true, true, false, false, false, false, false, false]
-      );
-      check(
-        coder,
-        [false, true, false, true, true, false, true, false, true],
-        [false, true, false, true, true, false, true, false]
-      );
-    });
-  });
-
-  describe('bools16Coder', () => {
-    const coder = coders.bools16Coder;
-
-    it('should handle valid values', () => {
-      check(
-        coder,
-        [],
-        [
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [false, true],
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [true, true],
-        [
-          true, true, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, true, false, false, false, false, false,
-          false, false, false, false, false, true, false, false,
-        ],
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, true, false, false, false, false, false,
-        ],
-      );
-    });
-  });
-
-  describe('bools32Coder', () => {
-    const coder = coders.bools32Coder;
-
-    it('should handle valid values', () => {
-      check(
-        coder,
-        [],
-        [
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [false, true],
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [true, true],
-        [
-          true, true, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-          false, false, false, false, false, false, false, false,
-        ]
-      );
-      check(
-        coder,
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, true, false, false, false, false, false,
-          false, false, false, true, false, false, false, false,
-          false, false, false, false, true, false, false, false,
-          false, false, false, false, false, true, false, false,
-        ],
-        [
-          false, true, false, false, false, false, false, false,
-          false, false, true, false, false, false, false, false,
-          false, false, false, true, false, false, false, false,
-          false, false, false, false, true, false, false, false,
-        ],
-      );
+      check(coder, [
+        false, true, false, false, true, true, false, true, // 01001101
+        false, true, false, false, true, true, false, true, // 01001101
+      ]);
+      check(coder, [
+        true, false, true, true, false, false, true, false, // 10110010
+        true, false, true, true, false, false, true, false, // 10110010
+        false, true, false, false, true, true, false, true, // 01001101
+        true, false, true, true, false, false, // 101100
+      ]);
+      check(coder, [
+        true, false, true, true, false, false, true, false, // 10110010
+        true, false, true, true, false, false, true, false, // 10110010
+        false, true, false, false, true, true, false, true, // 01001101
+        true, false, true, true, false, false, true, true   // 10110011
+      ], [
+        true, false, true, true, false, false, true, false, // 10110010
+        true, false, true, true, false, false, true, false, // 10110010
+        false, true, false, false, true, true, false, true, // 01001101
+        true, false, true, true, false, false, // 101100
+      ]);
     });
   });
 
@@ -482,10 +307,6 @@ describe('coders', () => {
         }
       });
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, { myBigInt: BigInt(1234) })).toThrow(EncodeError);
-    });
   });
 
   describe('regexCoder', () => {
@@ -495,11 +316,6 @@ describe('coders', () => {
       check(coder, /my-regex/);
       check(coder, /^\.{3,}[\][2-5-]|(?:2)$/igm);
     });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, '/^\\.{3,}[\\][2-5-]|(?:2)$/ig' as any)).toThrow(EncodeError);
-      expect(() => _writeAndGetHex(coder, 1 as any)).toThrow(EncodeError);
-    });
   });
 
   describe('dateCoder', () => {
@@ -507,11 +323,6 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       check(coder, new Date);
-    });
-
-    it('should throw EncodeError for invalid values', () => {
-      expect(() => _writeAndGetHex(coder, new Date('October 35, 1996 12:35:32'))).toThrow(EncodeError); // NaN
-      expect(() => _writeAndGetHex(coder, 1 as any)).toThrow(EncodeError);
     });
   });
 });
@@ -531,13 +342,6 @@ function _readArrayBuffer<T>(coder: any, buffer: ArrayBuffer): T {
   const r = coder.$read(state);
   expect(state.i).toBe(buffer.byteLength); // hasEnded
   return r;
-}
-
-/**
- * @returns hex string
- */
-function _writeAndGetHex<T>(type: BinaryTypeCoder<T>, value: T): string {
-  return arrayBufferToHexString(_write(type, value));
 }
 
 function _write<T>(type: BinaryTypeCoder<T>, value: T): ArrayBuffer {

@@ -2,8 +2,9 @@ import { bufferParser, BufferParser } from './core/BufferParser';
 import { defineFormat, BufferFormat, Decoded } from './core/BufferFormat';
 import { f16round } from './core/lib/float16';
 import { peekHeader, peekHeaderStr } from './core/lib/peek';
-import { scalarRound, uScalarRound } from './core/lib/scalar';
-import { TinybufError, DecodeError, EncodeError } from './core/lib/errors';
+import { scalround, uscalround } from './core/lib/scalar';
+import { mask, unmask } from './core/lib/bitmask';
+import { TinybufError, DecodeError } from './core/lib/errors';
 import { Type, optional } from './core/Type';
 
 
@@ -21,12 +22,13 @@ export {
   // errors:
   TinybufError,
   DecodeError,
-  EncodeError,
 
   // utils:
   f16round,
-  scalarRound,
-  uScalarRound,
+  scalround,
+  uscalround,
+  mask,
+  unmask,
 };
 
 export type {
@@ -35,6 +37,3 @@ export type {
   BufferFormat,
   BufferParser,
 };
-
-/** @deprecated renamed to @see {f16round} */
-export const fround16 = f16round;

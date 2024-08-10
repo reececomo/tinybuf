@@ -61,21 +61,12 @@ export const enum Type {
 
   /**
    * Boolean value (1 byte).
-   * @see {Bools8} for packing multiple booleans into a single byte.
+   * @see {Bools} for packing multiple booleans into a single byte.
    */
   Bool,
 
-  /** Any array of booleans (0¶ byte / 2-bit header). */
+  /** Any array of booleans (1 bit overhead, encoded as UInt). */
   Bools,
-
-  /** Up to 8 booleans (1 byte). */
-  Bools8,
-
-  /** Up to 16 booleans (2 bytes). */
-  Bools16,
-
-  /** Up to 32 booleans (4 bytes). */
-  Bools32,
 
   /** A string (1† byte header + string bytes). */
   String,
@@ -123,9 +114,6 @@ export type ValueTypes = {
   // Boolean
   [Type.Bool]: boolean;
   [Type.Bools]: boolean[];
-  [Type.Bools8]: boolean[];
-  [Type.Bools16]: boolean[];
-  [Type.Bools32]: boolean[];
   // Other
   [Type.String]: string;
   [Type.Date]: Date;
