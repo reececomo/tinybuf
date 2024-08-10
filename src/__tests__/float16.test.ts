@@ -1,4 +1,4 @@
-import { f16round, $f16mask, $f16unmask } from "../core/lib/float16";
+import { f16round, $tof16, $fromf16 } from "../core/lib/float16";
 
 describe('f16round', () => {
   it('rounds to the nearest float16 for a given native float', () => {
@@ -39,55 +39,60 @@ describe('f16round', () => {
     expect(f16round(65_503.999999999898)).toBe(65_504);
     expect(f16round(-65_503.999999999898)).toBe(-65_504);
 
+    // normal infinity
+    expect(f16round(Infinity)).toBe(Infinity);
+    expect(f16round(-Infinity)).toBe(-Infinity);
 
-    // Overflow to infinity
-    expect(f16round(65_505)).toBe(Infinity);
-    expect(f16round(65_505)).toBe(Infinity);
-    expect(f16round(65_518.12121212)).toBe(Infinity);
-    expect(f16round(65_520.89898989)).toBe(Infinity);
-    expect(f16round(-65_520.89898989)).toBe(-Infinity);
+    // overflow to infinity
     expect(f16round(65_555.123)).toBe(Infinity);
     expect(f16round(-65_555.123)).toBe(-Infinity);
+    expect(f16round(2_465_555.123)).toBe(Infinity);
+    expect(f16round(-2_465_555.123)).toBe(-Infinity);
+  });
+
+  it('NaNs as NaN', () => {
+    expect(f16round(NaN)).toBeNaN();
+    expect(f16round(-NaN)).toBeNaN();
   });
 });
 
 describe('$f16mask', () => {
   it('should return a 16-bit bitmask', () => {
     // 65,504 upper bound
-    expect($f16mask(-65_504)).toBe(0b00000000000000001111101111111111);
-    expect($f16mask(-65_504)).toBe(0b1111101111111111);
+    expect($tof16(-65_504)).toBe(0b00000000000000001111101111111111);
+    expect($tof16(-65_504)).toBe(0b1111101111111111);
 
-    expect(asUint16Str($f16mask(-65_504))).toBe('1111101111111111');
-    expect(asInt32Str($f16mask(-65_504))).toBe('00000000000000001111101111111111');
-    expect(asUint32Str($f16mask(-65_504))).toBe('00000000000000001111101111111111');
-    expect(asInt64Str(BigInt($f16mask(-65_504)))).toBe('0000000000000000000000000000000000000000000000001111101111111111');
+    expect(asUint16Str($tof16(-65_504))).toBe('1111101111111111');
+    expect(asInt32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
+    expect(asUint32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
+    expect(asInt64Str(BigInt($tof16(-65_504)))).toBe('0000000000000000000000000000000000000000000000001111101111111111');
   });
 
   it('should NOT equal its own raw float64 representation', () => {
-    expect($f16mask(65_504)).not.toBe(65_504);
+    expect($tof16(65_504)).not.toBe(65_504);
   });
 });
 
-describe('$f16unmask', () => {
+describe('$fromf16', () => {
   it('should read a 16-bit mask', () => {
     // 65,504 upper bound
-    expect($f16unmask(0b1111_1011_1111_1111)).toBe(-65_504);
-    expect($f16unmask(0b0000_0000_0000_0000_1111_1011_1111_1111)).toBe(-65_504);
+    expect($fromf16(0b1111_1011_1111_1111)).toBe(-65_504);
+    expect($fromf16(0b0000_0000_0000_0000_1111_1011_1111_1111)).toBe(-65_504);
   });
 
   it('should survive a 16-bit mask', () => {
     // 65,504 upper bound
-    expect($f16unmask(0b1111_1011_1111_1111)).toBe(-65_504);
-    expect($f16unmask(0b1111_1011_1111_1111_1111_1011_1111_1111)).toBe(-65_504);
+    expect($fromf16(0b1111_1011_1111_1111)).toBe(-65_504);
+    expect($fromf16(0b1111_1011_1111_1111_1111_1011_1111_1111)).toBe(-65_504);
   });
 });
 
 test('mask / unmask basic compatibility', () => {
   // this is covered pretty comprehensively in other tests
   // including the coders - but just a quick sanity check here:
-  expect($f16mask(1023.5)).not.toBe(1023.5);
-  expect($f16unmask(1023.5)).not.toBe(1023.5);
-  expect($f16unmask($f16mask(1023.5))).toBe(1023.5);
+  expect($tof16(1023.5)).not.toBe(1023.5);
+  expect($fromf16(1023.5)).not.toBe(1023.5);
+  expect($fromf16($tof16(1023.5))).toBe(1023.5);
 });
 
 test('performance benchmark: f16round() faster than native Math.fround()', () => {

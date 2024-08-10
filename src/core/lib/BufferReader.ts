@@ -1,4 +1,4 @@
-import { $f16unmask } from "./float16";
+import { $fromf16 } from "./float16";
 
 /**
  * Wraps a buffer with a read head pointer.
@@ -61,7 +61,7 @@ export class BufferReader {
   public $readFloat16(): number {
     const r = this._$dataView.getUint16(this.i);
     this.i += 2;
-    return $f16unmask(r);
+    return $fromf16(r);
   }
 
   public $readFloat32(): number {

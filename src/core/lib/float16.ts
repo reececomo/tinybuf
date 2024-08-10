@@ -1,84 +1,53 @@
 /**
- * The f16round() method returns the nearest 16-bit half precision float representation of a number.
- *
- * @param doubleFloat A number.
- * @returns The nearest 16-bit half precision float representation of x.
+ * Returns the nearest half precision float representation of a number.
+ * @param x A numeric expression.
  */
-export function f16round(doubleFloat: number): number {
-  return $f16unmask($f16mask(doubleFloat));
+export function f16round(x: number): number {
+  return $fromf16($tof16(x));
 }
 
 /**
- * Convert a float64 to float16 binary format (to be stored as uint)
- *
- * @author greggman, Sam Hocevar, James Tursa
- * @see https://stackoverflow.com/a/32633586
+ * Returns the nearest half precision float representation of a number as a 16-bit bitmask.
  */
-export const $f16mask = (function() {
-  const f32 = new Float32Array(1);
-  const i32 = new Uint32Array(f32.buffer);
+export const $tof16 = (function() {
+  const x = new Float32Array(1);
+  const y = new Int32Array(x.buffer);
 
-  return function (v: number): number {
-    f32[0] = v;
+  return function (f: number) {
+    x[0] = f;
+    let i = y[0]; // 32-bit int
+    let s = (i >> 16) & 0X8000; // sign
+    let z = (i & 0X7FFFFFFF) + 0X1000 | 0;
 
-    const i = i32[0];
-    const e = i >> 23 & 255; // exponent (0b0000000011111111)
-
-    // check underflow
-    if (e < 113) {
-      // if zero, or denormal, or exponent underflows too much for a denormal half
-      if (e < 103) return i >> 16 & 32768; // signed zero
-
-      let m = i >> 12 & 2047; //  mantissa (0b0000011111111111)
-
-      // exponent underflows but not too much, return a denormal
-      m |= 2048; // (0b0000100000000000)
-
-      // extra rounding may overflow and set significand to 0 and exponent
-      // to 1, which is ok
-      return i >> 16 & 32768 /* <-- sign bit */ | m >> (113 - e) + (m >> (112 - e)) & 1;
+    if (z >= 0X47800000) {
+      if ((i & 0X7FFFFFFF) < 0X47800000) return s | 0X7BFF;
+      if (z < 0X7F800000) return s | 0X7C00;
+      return s | 0X7C00 | (i & 0X007FFFFF) >> 13;
     }
-    else if (e >= 142) { // check overflow: NaN or Infinity (incl. exponent overflow)
-      if (v > 65_504) return 31744; // f16 Infinity (0b0111110000000000)
-      if (v < -65_504) return 64512; // f16 -Infinity (0b1111110000000000)
-      if (v !== v) return 31745; // f16 NaN (0b0111110000000001)
-    }
-
-    const m = i >> 12 & 2047; //  mantissa (0b0000011111111111)
-
-    // extra rounding. an overflow will set significand to 0 and increment
-    // the exponent, which is ok.
-    return i >> 16 & 32768 /* <-- sign bit */ | (e - 112) << 10 | (m >> 1) + (m & 1);
+    if (z >= 0X38800000) return s | z - 0X38000000 >> 13;
+    else if (z < 0X33000000) return s;
+    z = (i & 0X7FFFFFFF) >> 23;
+    return s | ((i & 0X7FFFFF | 0X800000)
+      + (0X800000 >>> z - 102)
+      >> 126 - z);
   };
 }());
 
 /**
- * Convert a uint binary representation of a float16 into a float64
+ * Returns the nearest half precision float value for a 16-bit bitmask.
  */
-export const $f16unmask = (function() {
-  let t!: Record<number, number>;
+export const $fromf16 = (function() {
+  const x = Float64Array.from({ length: 32 }, (_, e) => Math.pow(2, e - 15)); // biased exponents
+  const y = Float64Array.from({ length: 1024 }, (_, m) => 1 + m / 1024); // normalized mantissas
+  const z = Math.pow(2, -24); // subnormal constant
 
-  return function $f16unmask(b: number): number {
-    if (!t) {
-      const sub = Math.pow(2, -24); // precalculate subnormal
+  return function (b: number): number {
+    const s = (b & 32768) === 32768 ? -1 : 1; // sign: 1 bit
+    const e = b & 31744; // exponent: 5 bits
+    const m = b & 1023; // mantissa: 10 bits
 
-      const precalc = function(e: number, s: number): number {
-        if (e === 0) return (s === 0) ? 0 : sub * (s / 1024); // subnormal
-        if (e === 0x1F /* expo */) return s === 0 ? Infinity : NaN; // Infinity or NaN
-        e -= 15; // adjust exponent bias
-        return Math.pow(2, e) * (1 + s / 1024);
-      };
-
-      t = [];
-      for (let exponent = 0; exponent < 1 << 5 /* expo bits */; exponent++) {
-        for (let significand = 0; significand < 1 << 10 /* signif bits */; significand++) {
-          const value = precalc(exponent, significand);
-          t[(exponent << 10 /* signif bits */) + significand] = value;
-        }
-      }
-    }
-
-    if ((b & 0x8000) === 0) return t[(((/* exponent: */ b >> 10 /* signif bits */) & 0x1F) << 10 /* signif bits */) + (/* signif: */ b & 0x3FF  /* signif mask */)];
-    else return -t[(((/* exponent: */ b >> 10 /* signif bits */) & 0x1F) << 10 /* signif bits */) + (/* signif: */ b & 0x3FF  /* signif mask */)];
+    if (e === 0) return m === 0 ? s * 0 : s * z;
+    if (e === 31744) return m === 0 ? s * Infinity : NaN;
+    return s * x[e >> 10] * y[m];
   };
 }());

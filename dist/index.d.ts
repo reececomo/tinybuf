@@ -51,11 +51,7 @@ export declare const enum Type {
 	/**
 	 * Floating-point number (16-bit, half precision, 2 bytes).
 	 *
-	 * **Warning:** ±4,096Maximum value: ±65,504.
-	 *
-	 * Reasonable precision between -1024 and 1024.
-	 *
-	 * @see `f16round()` for `Math.fround()` equivalent.
+	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
 	Float16 = 10,
 	/** A signed scalar between -1.00 and 1.00 (1 byte). */
@@ -306,12 +302,10 @@ export declare class BufferParser {
 	clear(): void;
 }
 /**
- * The f16round() method returns the nearest 16-bit half precision float representation of a number.
- *
- * @param doubleFloat A number.
- * @returns The nearest 16-bit half precision float representation of x.
+ * Returns the nearest half precision float representation of a number.
+ * @param x A numeric expression.
  */
-export declare function f16round(doubleFloat: number): number;
+export declare function f16round(x: number): number;
 /**
  * Quantize a number to an 8-bit scalar between 0.0 and 1.0.
  *

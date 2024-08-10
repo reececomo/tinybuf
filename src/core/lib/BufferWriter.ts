@@ -1,6 +1,6 @@
 import { cfg } from "../config";
 import { EncodeError } from "./errors";
-import { $f16mask } from "./float16";
+import { $tof16 } from "./float16";
 
 /**
  * Wraps a view into an underlying buffer, and can be dynamically resized.
@@ -62,7 +62,7 @@ export class BufferWriter {
   }
 
   public $writeFloat16(value: number): void {
-    this._$dataView.setUint16(this._$alloc(2), $f16mask(value));
+    this._$dataView.setUint16(this._$alloc(2), $tof16(value));
   }
 
   public $writeFloat32(value: number): void {

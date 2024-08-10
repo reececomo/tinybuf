@@ -49,11 +49,7 @@ export const enum Type {
   /**
    * Floating-point number (16-bit, half precision, 2 bytes).
    *
-   * **Warning:** ±4,096Maximum value: ±65,504.
-   *
-   * Reasonable precision between -1024 and 1024.
-   *
-   * @see `f16round()` for `Math.fround()` equivalent.
+   * **Warning:** Low precision; maximum range: ±65,504.
    */
   Float16,
 
