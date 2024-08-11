@@ -42,11 +42,11 @@ export class BufferWriter {
   }
 
   public $writeInt16(value: number): void {
-    this._$dataView.setInt16(this._$alloc(2), value, true);
+    this._$dataView.setInt16(this._$alloc(2), value, true); // little-endian
   }
 
   public $writeInt32(value: number): void {
-    this._$dataView.setInt32(this._$alloc(4), value, true);
+    this._$dataView.setInt32(this._$alloc(4), value, true); // little-endian
   }
 
   public $writeUInt8(value: number): void {
@@ -54,15 +54,15 @@ export class BufferWriter {
   }
 
   public $writeUInt16(value: number): void {
-    this._$dataView.setUint16(this._$alloc(2), value); // big-endian
+    this._$dataView.setUint16(this._$alloc(2), value, false); // big-endian
   }
 
   public $writeUInt32(value: number): void {
-    this._$dataView.setUint32(this._$alloc(4), value); // big-endian
+    this._$dataView.setUint32(this._$alloc(4), value, false); // big-endian
   }
 
   public $writeFloat16(value: number): void {
-    this._$dataView.setUint16(this._$alloc(2), $tof16(value));
+    this._$dataView.setUint16(this._$alloc(2), $tof16(value), true);
   }
 
   public $writeFloat32(value: number): void {

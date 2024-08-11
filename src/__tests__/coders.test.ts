@@ -346,7 +346,7 @@ function _readArrayBuffer<T>(coder: any, buffer: ArrayBuffer): T {
 
 function _write<T>(type: BinaryTypeCoder<T>, value: T): ArrayBuffer {
   const data = new BufferWriter(64);
-  type.$write(value, data, '');
+  type.$write(value, data);
 
   return data.$asView();
 

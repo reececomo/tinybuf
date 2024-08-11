@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/unified-signatures */
+
 export class TinybufError extends Error {}
 
 export class EncodeError extends TinybufError {
   public constructor(message: string)
-  public constructor(expectedType: string, value: any, path: string)
-  public constructor(a: string, b?: any, c?: string) {
-    super(`Failed to encode ${b} as '${a}'${c ? ` (path: '${c}')` : ''}`);
+  public constructor(expectedType: string, value: any)
+  public constructor(a: string, b?: any) {
+    super(`failed to encode '${a}' (data: ${b})`);
   }
 }
 

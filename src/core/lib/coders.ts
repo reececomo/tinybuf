@@ -1,6 +1,5 @@
 import { BufferWriter } from './BufferWriter';
 import { BufferReader } from './BufferReader';
-import { $floor } from './math';
 import {
   $fromuscal8,
   $fromscal8,
@@ -21,8 +20,8 @@ const MAX_VARUINT8 = 128,
   POW_32 = 0x100000000;
 
 export interface BinaryTypeCoder<T, R = T> {
-  $write(value: T, data: BufferWriter, path?: string): void;
-  $read(state: BufferReader): R;
+  $write(value: T, writer: BufferWriter): void;
+  $read(reader: BufferReader): R;
 }
 
 /**
@@ -33,65 +32,53 @@ export interface BinaryTypeCoder<T, R = T> {
  * 61b  111x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
  */
 export const uintCoder: BinaryTypeCoder<number> = {
-  $write: (value, data) => {
+  $write: function (value, writer) {
     if (value < MAX_VARUINT8) {
-      data.$writeUInt8(value);
+      writer.$writeUInt8(value);
     }
     else if (value < MAX_VARUINT16) {
-      data.$writeUInt16(value + 0x8000);
+      writer.$writeUInt16(value + 0x8000);
     }
     else if (value < MAX_VARUINT32) {
-      data.$writeUInt32(value + 0xc0000000);
+      writer.$writeUInt32(value + 0xc0000000);
     }
     else {
-      data.$writeUInt32($floor(value / POW_32) + 0b11100000000000000000000000000000);
-      data.$writeUInt32(value >>> 0);
+      writer.$writeUInt32(Math.floor(value / POW_32) + 0xe0000000);
+      writer.$writeUInt32(value >>> 0);
     }
   },
-  $read: (state) => {
-    const firstByte = state.$peek();
+  $read: (reader) => {
+    const firstByte = reader.$peek();
 
-    if (!(firstByte & 0b10000000)) {
-      state.$skipByte();
+    if (!(firstByte & 0x80)) {
+      reader.$skipByte();
       return firstByte;
     }
     else if (!(firstByte & 0x40)) {
-      return state.$readUint16() - 0x8000;
+      return reader.$readUint16() - 0x8000;
     }
     else if (!(firstByte & 0x20)) {
-      return state.$readUint32() - 0xc0000000;
+      return reader.$readUint32() - 0xc0000000;
     }
-    else {
-      return (state.$readUint32() - 0xe0000000) * POW_32 + state.$readUint32();
-    }
+
+    return (reader.$readUint32() - 0xe0000000) * POW_32
+      + reader.$readUint32();
   }
 };
 
 export const uint8Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => {
-    data.$writeUInt8(value);
-  },
-  $read: (state) => {
-    return state.$readUint8();
-  }
+  $write: (value, writer) => writer.$writeUInt8(value),
+  $read: (reader) => reader.$readUint8(),
 };
 
 export const uint16Coder: BinaryTypeCoder<number> = {
-  $write: (value, data) => {
-    data.$writeUInt16(value);
-  },
-  $read: (state) => {
-    return state.$readUint16();
-  }
+  $write: (value, writer) => writer.$writeUInt16(value),
+  $read: (reader) => reader.$readUint16(),
 };
 
 export const uint32Coder: BinaryTypeCoder<number> = {
-  $write: (value, data) => {
-    data.$writeUInt32(value);
-  },
-  $read: (state) => {
-    return state.$readUint32();
-  }
+  $write: (value, writer) => writer.$writeUInt32(value),
+  $read: (reader) => reader.$readUint32(),
 };
 
 /**
@@ -100,131 +87,131 @@ export const uint32Coder: BinaryTypeCoder<number> = {
  * @see {uintCoder}
  */
 export const intCoder: BinaryTypeCoder<number> = {
-  $write: (value, data) => {
+  $write: function (value, writer) {
     if (value >= -MAX_VARINT8 && value < MAX_VARINT8) {
-      data.$writeUInt8(value & 0x7f);
+      writer.$writeUInt8(value & 0x7f);
     }
     else if (value >= -MAX_VARINT16 && value < MAX_VARINT16) {
-      data.$writeUInt16((value & 0x3fff) + 0x8000);
+      writer.$writeUInt16((value & 0x3fff) + 0x8000);
     }
     else if (value >= -MAX_VARINT32 && value < MAX_VARINT32) {
-      data.$writeUInt32((value & 0x1fffffff) + 0xc0000000);
+      writer.$writeUInt32((value & 0x1fffffff) + 0xc0000000);
     }
     else {
       const intValue = value;
       // Split in two 32b uints
-      data.$writeUInt32(($floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
-      data.$writeUInt32(intValue >>> 0);
+      writer.$writeUInt32((Math.floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
+      writer.$writeUInt32(intValue >>> 0);
     }
   },
-  $read: (state) => {
-    let firstByte = state.$peek(), i: number;
+  $read: (reader) => {
+    let firstByte = reader.$peek(), i: number;
 
     if (!(firstByte & 0x80)) {
-      state.$skipByte();
+      reader.$skipByte();
       return (firstByte & 0x40) ? (firstByte | 0xffffff80) : firstByte;
     }
     else if (!(firstByte & 0x40)) {
-      i = state.$readUint16() - 0x8000;
+      i = reader.$readUint16() - 0x8000;
       return (i & 0x2000) ? (i | 0xffffc000) : i;
     }
     else if (!(firstByte & 0x20)) {
-      i = state.$readUint32() - 0xc0000000;
+      i = reader.$readUint32() - 0xc0000000;
       return (i & 0x10000000) ? (i | 0xe0000000) : i;
     }
     else {
-      i = state.$readUint32() - 0xe0000000;
+      i = reader.$readUint32() - 0xe0000000;
       i = (i & 0x10000000) ? (i | 0xe0000000) : i;
-      return i * POW_32 + state.$readUint32();
+      return i * POW_32 + reader.$readUint32();
     }
   }
 };
 
 export const int8Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeInt8(value),
-  $read: (state) => state.$readInt8(),
+  $write: (value, writer) => writer.$writeInt8(value),
+  $read: (reader) => reader.$readInt8(),
 };
 
 export const int16Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeInt16(value),
-  $read: (state) => state.$readInt16(),
+  $write: (value, writer) => writer.$writeInt16(value),
+  $read: (reader) => reader.$readInt16(),
 };
 
 export const int32Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeInt32(value),
-  $read: (state) => state.$readInt32(),
+  $write: (value, writer) => writer.$writeInt32(value),
+  $read: (reader) => reader.$readInt32(),
 };
 
 export const float16Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeFloat16(value),
-  $read: (state) => state.$readFloat16(),
+  $write: (value, writer) => writer.$writeFloat16(value),
+  $read: (reader) => reader.$readFloat16(),
 };
 
 export const float32Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeFloat32(value),
-  $read: (state) => state.$readFloat32(),
+  $write: (value, writer) => writer.$writeFloat32(value),
+  $read: (reader) => reader.$readFloat32(),
 };
 
 export const float64Coder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeFloat64(value),
-  $read: (state) => state.$readFloat64(),
+  $write: (value, writer) => writer.$writeFloat64(value),
+  $read: (reader) => reader.$readFloat64(),
 };
 
 export const uscalarCoder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeUInt8($touscal8(value)),
-  $read: (state) => $fromuscal8(state.$readUint8()),
+  $write: (value, writer) => writer.$writeUInt8($touscal8(value)),
+  $read: (reader) => $fromuscal8(reader.$readUint8()),
 };
 
 export const scalarCoder: BinaryTypeCoder<number> = {
-  $write: (value, data, path) => data.$writeUInt8($toscal8(value)),
-  $read: (state) => $fromscal8(state.$readUint8()),
+  $write: (value, writer) => writer.$writeUInt8($toscal8(value)),
+  $read: (reader) => $fromscal8(reader.$readUint8()),
 };
 
 export const dateCoder: BinaryTypeCoder<Date> = {
-  $write: (value, data, path) => intCoder.$write(value.getTime(), data, path),
-  $read: (state) => new Date(intCoder.$read(state)),
+  $write: (value, writer) => intCoder.$write(value.getTime(), writer),
+  $read: (reader) => new Date(intCoder.$read(reader)),
 };
 
 export const stringCoder: BinaryTypeCoder<string> = {
-  $write: (value, data, path) => {
-    bufferCoder.$write($utf8encode(value), data, path);
+  $write: function (value, writer) {
+    bufferCoder.$write($utf8encode(value), writer);
   },
-  $read: (state) => {
-    return $utf8decode(bufferCoder.$read(state));
+  $read: (reader) => {
+    return $utf8decode(bufferCoder.$read(reader));
   }
 };
 
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
-  $write: (value, data, path) => {
-    uintCoder.$write(value.byteLength, data, path);
-    data.$writeBuffer(value);
+  $write: function (value, writer) {
+    uintCoder.$write(value.byteLength, writer);
+    writer.$writeBuffer(value);
   },
-  $read: (state) => state.$readBuffer(uintCoder.$read(state)),
+  $read: (reader) => reader.$readBuffer(uintCoder.$read(reader)),
 };
 
 export const boolCoder: BinaryTypeCoder<boolean> = {
-  $write: (value, data) => data.$writeUInt8(value ? 1 : 0),
-  $read: (state) => state.$readUint8() !== 0,
+  $write: (value, writer) => writer.$writeUInt8(value ? 1 : 0),
+  $read: (reader) => reader.$readUint8() !== 0,
 };
 
 export const boolsCoder: BinaryTypeCoder<boolean[]> = {
-  $write: (value, data) => uintCoder.$write(mask(value), data),
-  $read: (state) => unmask(uintCoder.$read(state)),
+  $write: (value, writer) => uintCoder.$write(mask(value), writer),
+  $read: (reader) => unmask(uintCoder.$read(reader)),
 };
 
 export const jsonCoder: BinaryTypeCoder<any> = {
-  $write: (value, data, path) => stringCoder.$write(JSON.stringify(value), data, path),
-  $read: (state) => JSON.parse(stringCoder.$read(state)),
+  $write: (value, writer) => stringCoder.$write(JSON.stringify(value), writer),
+  $read: (reader) => JSON.parse(stringCoder.$read(reader)),
 };
 
 export const regexCoder: BinaryTypeCoder<RegExp> = {
-  $write: (value, data, path) => {
-    data.$writeUInt8(mask([value.global, value.ignoreCase, value.multiline]));
-    stringCoder.$write(value.source, data, path);
+  $write: function (value, writer) {
+    writer.$writeUInt8(mask([value.global, value.ignoreCase, value.multiline]));
+    stringCoder.$write(value.source, writer);
   },
-  $read: (state) => {
-    const [g, i, m] = unmask(state.$readUint8());
-    return new RegExp(stringCoder.$read(state), (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : ''));
+  $read: (reader) => {
+    const [g, i, m] = unmask(reader.$readUint8());
+    return new RegExp(stringCoder.$read(reader), (g ? 'g' : '') + (i ? 'i' : '') + (m ? 'm' : ''));
   }
 };
 

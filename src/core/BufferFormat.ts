@@ -213,7 +213,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (!this._$writer) this._$writer = BufferFormat._$initWriter();
     this._$writer.$byteOffset = 0; // reset
     if (this._$hasValidationOrTransforms) data = this._$preprocess(data);
-    this._$write(data, this._$writer, '');
+    this._$write(data, this._$writer);
 
     if (safe ?? cfg.safe) {
       return this._$writer.$asCopy();
@@ -285,12 +285,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /**
    * @param value
    * @param bw
-   * @param path
    * @throws if the value is invalid
    *
    * @internal
    */
-  private _$write(value: { [x: string]: any; }, bw: BufferWriter, path: string): void {
+  private _$write(value: { [x: string]: any; }, bw: BufferWriter): void {
     // write header
     if (this._$header !== undefined) this._$writer.$writeUInt16(this._$header);
 
@@ -298,17 +297,16 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (this._$type !== undefined) {
       const safeValue = (this._$validate || this._$transforms) ? this._$preprocess(value) : value;
 
-      return CODERS[this._$type].$write(safeValue, bw, path);
+      return CODERS[this._$type].$write(safeValue, bw);
     }
 
-    // Check for object type
+    // check for object type
     if (!value || typeof value !== 'object') {
-      throw new TypeError(`Expected an object at ${path}`);
+      throw new TypeError(`expected object type`);
     }
 
-    // Write each field
+    // write each field
     for (const field of this._$fields) {
-      const subpath = path ? `${path}.${field.$name}` : field.$name;
       const subValue = value[field.$name];
 
       if (field.$isOptional) {
@@ -325,12 +323,12 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
 
       if (!field.$isArray) {
         // scalar field
-        field.$coder._$write(subValue, bw, subpath);
+        field.$coder._$write(subValue, bw);
         continue;
       }
 
       // Array field
-      this._$writeArray(subValue, bw, subpath, field.$coder);
+      this._$writeArray(subValue, bw, field.$coder);
     }
   }
 
@@ -453,16 +451,16 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @internal
    */
-  private _$writeArray(value: string | any[], data: any, path: string, type: BufferFormat<any, any>): void {
+  private _$writeArray(value: string | any[], data: any, type: BufferFormat<any, any>): void {
     if (!Array.isArray(value)) {
-      throw new EncodeError(`Array<${type._$type}>`, data, path);
+      throw new EncodeError(`Array<${type._$type}>`, data);
     }
 
     let i: string | number, len: number;
     len = value.length;
     coders.uintCoder.$write(len, data);
     for (i = 0; i < len; i++) {
-      type._$write(value[i], data, path + '.' + i);
+      type._$write(value[i], data);
     }
   }
 
