@@ -431,8 +431,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @internal
    */
   private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
-    // scalar type
     if (this._$type !== undefined) {
+      // object type
       return this._$hasValidationOrTransforms
         ? (s) => this._$postprocess(CODERS[this._$type].$read(s))
         : CODERS[this._$type].$read;
@@ -443,12 +443,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   }
 
   /**
-   * @param value
-   * @param data
-   * @param path
-   * @param type
-   * @throws if the value is invalid
-   *
    * @internal
    */
   private _$writeArray(value: string | any[], data: any, type: BufferFormat<any, any>): void {
@@ -456,21 +450,18 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       throw new EncodeError(`Array<${type._$type}>`, data);
     }
 
-    let i: string | number, len: number;
-    len = value.length;
-    coders.uintCoder.$write(len, data);
-    for (i = 0; i < len; i++) {
+    coders.uintCoder.$write(value.length, data);
+    for (let i = 0; i < value.length; i++) {
       type._$write(value[i], data);
     }
   }
 
   /**
    * @throws if invalid data
-   *
    * @internal
    */
   private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
-    const arr = new Array(coders.uintCoder.$read(state));
+    const arr = new Array(/* length: */ coders.uintCoder.$read(state));
     for (let j = 0; j < arr.length; j++) {
       arr[j] = type._$read(state);
     }
