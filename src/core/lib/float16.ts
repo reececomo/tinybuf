@@ -37,9 +37,10 @@ export const $tof16 = (function() {
  * Returns the nearest half precision float value for a 16-bit bitmask.
  */
 export const $fromf16 = (function() {
-  const x = Float64Array.from({ length: 32 }, (_, e) => Math.pow(2, e - 15)); // biased exponents
-  const y = Float64Array.from({ length: 1024 }, (_, m) => 1 + m / 1024); // normalized mantissas
   const z = Math.pow(2, -24); // subnormal constant
+  const d = new Float32Array(32 + 1024);
+  for (let e = 0; e < 32; e++) d[e] = Math.pow(2, e - 15); // biased exponents
+  for (let m = 0; m < 1024; m++) d[m + 0x20] = 1 + m / 1024; // normalized offset mantissas
 
   return function (b: number): number {
     const s = (b & 32768) === 32768 ? -1 : 1; // sign: 1 bit
@@ -48,6 +49,6 @@ export const $fromf16 = (function() {
 
     if (e === 0) return m === 0 ? s * 0 : s * z;
     if (e === 31744) return m === 0 ? s * Infinity : NaN;
-    return s * x[e >> 10] * y[m];
+    return d[e >> 10] * d[m + 0x20] * s;
   };
 }());
