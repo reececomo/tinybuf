@@ -9,6 +9,7 @@ import {
 import { Type } from '../Type';
 import { mask, unmask } from './bitmask';
 import { $utf8decode, $utf8encode } from './utf8';
+import { $floor } from './math';
 
 // Pre-calculated constants
 const MAX_VARUINT8 = 128,
@@ -32,7 +33,7 @@ export interface BinaryTypeCoder<T, R = T> {
  * 61b  111x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
  */
 export const uintCoder: BinaryTypeCoder<number> = {
-  $write: function (value, writer) {
+  $write: (value, writer) => {
     if (value < MAX_VARUINT8) {
       writer.$writeUInt8(value);
     }
@@ -43,7 +44,7 @@ export const uintCoder: BinaryTypeCoder<number> = {
       writer.$writeUInt32(value + 0xc0000000);
     }
     else {
-      writer.$writeUInt32(Math.floor(value / POW_32) + 0xe0000000);
+      writer.$writeUInt32($floor(value / POW_32) + 0xe0000000);
       writer.$writeUInt32(value >>> 0);
     }
   },
@@ -51,7 +52,7 @@ export const uintCoder: BinaryTypeCoder<number> = {
     const firstByte = reader.$peek();
 
     if (!(firstByte & 0x80)) {
-      reader.$skipByte();
+      reader.$skip();
       return firstByte;
     }
     else if (!(firstByte & 0x40)) {
@@ -87,7 +88,7 @@ export const uint32Coder: BinaryTypeCoder<number> = {
  * @see {uintCoder}
  */
 export const intCoder: BinaryTypeCoder<number> = {
-  $write: function (value, writer) {
+  $write: (value, writer) => {
     if (value >= -MAX_VARINT8 && value < MAX_VARINT8) {
       writer.$writeUInt8(value & 0x7f);
     }
@@ -100,7 +101,7 @@ export const intCoder: BinaryTypeCoder<number> = {
     else {
       const intValue = value;
       // Split in two 32b uints
-      writer.$writeUInt32((Math.floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
+      writer.$writeUInt32(($floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
       writer.$writeUInt32(intValue >>> 0);
     }
   },
@@ -108,7 +109,7 @@ export const intCoder: BinaryTypeCoder<number> = {
     let firstByte = reader.$peek(), i: number;
 
     if (!(firstByte & 0x80)) {
-      reader.$skipByte();
+      reader.$skip();
       return (firstByte & 0x40) ? (firstByte | 0xffffff80) : firstByte;
     }
     else if (!(firstByte & 0x40)) {
@@ -173,17 +174,13 @@ export const dateCoder: BinaryTypeCoder<Date> = {
 };
 
 export const stringCoder: BinaryTypeCoder<string> = {
-  $write: function (value, writer) {
-    bufferCoder.$write($utf8encode(value), writer);
-  },
-  $read: (reader) => {
-    return $utf8decode(bufferCoder.$read(reader));
-  }
+  $write: (value, writer) => bufferCoder.$write($utf8encode(value), writer),
+  $read: (reader) => $utf8decode(bufferCoder.$read(reader)),
 };
 
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
-  $write: function (value, writer) {
-    uintCoder.$write(value.byteLength, writer);
+  $write: (value, writer) => {
+    uintCoder.$write(value.byteLength, writer); // header byte (length)
     writer.$writeBuffer(value);
   },
   $read: (reader) => reader.$readBuffer(uintCoder.$read(reader)),
@@ -205,7 +202,7 @@ export const jsonCoder: BinaryTypeCoder<any> = {
 };
 
 export const regexCoder: BinaryTypeCoder<RegExp> = {
-  $write: function (value, writer) {
+  $write: (value, writer) => {
     writer.$writeUInt8(mask([value.global, value.ignoreCase, value.multiline]));
     stringCoder.$write(value.source, writer);
   },

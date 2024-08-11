@@ -19,8 +19,8 @@ export class BufferReader {
     return this._$dataView.getUint8(this.i);
   }
 
-  /** used to skip bytes for reading type headers. */
-  public $skipByte(): void {
+  /** Skip the next byte without reading it. */
+  public $skip(): void {
     this.i++;
   }
 

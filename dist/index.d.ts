@@ -309,7 +309,7 @@ export declare function uscalround(x: number): number;
  * @returns A number (double) in its closest signed scalar representation.
  */
 export declare function scalround(x: number): number;
-export declare const mask: (x: boolean[], pad?: number) => number;
+export declare const mask: (x: boolean[]) => number;
 export declare const unmask: (x: number, len?: number) => boolean[];
 export declare class TinybufError extends Error {
 }
