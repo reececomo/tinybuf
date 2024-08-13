@@ -53,11 +53,11 @@ export const enum Type {
    */
   Float16,
 
-  /** A signed scalar between -1.00 and 1.00 (1 byte). */
-  Scalar,
+  /** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
+  Scalar8,
 
-  /** An unsigned scalar between 0.00 and 1.00 (1 byte). */
-  UScalar,
+  /** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
+  UScalar8,
 
   /**
    * Boolean value (1 byte).
@@ -68,11 +68,11 @@ export const enum Type {
   /** Any array of booleans (1 bit overhead, encoded as UInt). */
   Bools,
 
-  /** A string (1† byte header + string bytes). */
-  String,
-
-  /** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+  /** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
   Buffer,
+
+  /** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
+  String,
 
   /** Any JSON-serializable data. Encodes as a UTF-8 string. */
   JSON,
@@ -95,11 +95,6 @@ export const enum Type {
  * Mappings for the value types.
  */
 export type ValueTypes = {
-  // Floats
-  [Type.Float16]: number;
-  [Type.Float32]: number;
-  [Type.Float64]: number;
-  // Integers
   [Type.Int]: number;
   [Type.Int8]: number;
   [Type.Int16]: number;
@@ -108,18 +103,18 @@ export type ValueTypes = {
   [Type.UInt8]: number;
   [Type.UInt16]: number;
   [Type.UInt32]: number;
-  // Scalar
-  [Type.UScalar]: number;
-  [Type.Scalar]: number;
-  // Boolean
+  [Type.Float64]: number;
+  [Type.Float32]: number;
+  [Type.Float16]: number;
+  [Type.Scalar8]: number;
+  [Type.UScalar8]: number;
   [Type.Bool]: boolean;
   [Type.Bools]: boolean[];
-  // Other
-  [Type.String]: string;
-  [Type.Date]: Date;
-  [Type.RegExp]: RegExp;
-  [Type.JSON]: any;
   [Type.Buffer]: Uint8Array | ArrayBuffer | ArrayBufferView;
+  [Type.String]: string;
+  [Type.JSON]: any;
+  [Type.RegExp]: RegExp;
+  [Type.Date]: Date;
 };
 
 /** @throws any error too */

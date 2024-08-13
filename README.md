@@ -35,8 +35,8 @@ export const GameWorldData = defineFormat({
       y: Type.Float32
     },
     input: {
-      movedX: Type.Scalar, // -1.0 -> 1.0
-      buttons: Type.Bools  // e.g. [jump, crouch, special]
+      xAnalog: Type.Scalar8,
+      buttons: Type.Bools,  // e.g. [jump, attack]
     }
   }]
 });
@@ -48,7 +48,7 @@ export const GameWorldData = defineFormat({
 const bytes = GameWorldData.encode({ /*…*/ });
 
 bytes.byteLength
-// 17
+// 15
 ```
 
 #### Decode

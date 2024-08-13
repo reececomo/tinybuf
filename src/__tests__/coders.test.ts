@@ -175,7 +175,7 @@ describe('coders', () => {
   });
 
   describe('scalarCoder', () => {
-    const coder = coders.uscalarCoder;
+    const coder = coders.uscalar8Coder;
 
     it('should handle valid values', () => {
       check(coder, 0);
@@ -196,7 +196,7 @@ describe('coders', () => {
   });
 
   describe('signedScalarCoder', () => {
-    const coder = coders.scalarCoder;
+    const coder = coders.scalar8Coder;
 
     it('should handle valid values', () => {
       check(coder, -1);
