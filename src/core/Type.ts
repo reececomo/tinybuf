@@ -11,7 +11,7 @@ export const enum Type {
    * - 16,385 → 536,870,911 = 4 bytes
    * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  UInt,
+  UInt = 0,
 
   /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
   UInt8,

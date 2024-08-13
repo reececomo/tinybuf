@@ -14,12 +14,12 @@ describe('coders', () => {
       Object.keys(uintData).forEach(function (rawValue) {
         const value = Number(rawValue);
 
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         const expected = uintData[value];
-        expect(arrayBufferToHexString(encoded)).toEqual(expected.hex);
+        expect(hexBytes(encoded)).toEqual(expected.hex);
         expect(`${value}: ${encoded.byteLength}`).toEqual(`${value}: ${expected.bytes}`);
 
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -32,12 +32,12 @@ describe('coders', () => {
       Object.keys(intData).forEach(function (rawValue) {
         const value = Number(rawValue);
 
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         const expected = intData[value];
-        expect(arrayBufferToHexString(encoded)).toEqual(expected.hex);
+        expect(hexBytes(encoded)).toEqual(expected.hex);
         expect(`${value}: ${encoded.byteLength}`).toEqual(`${value}: ${expected.bytes}`);
 
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -48,9 +48,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 1, 2, 100, 127, -1, -2, -100, -127].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(1);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -61,9 +61,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 1, -1, 128, -128, 32_767, -32_767].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(2);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -74,9 +74,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 1, -1, 32_767, -32_767, 32_768, -2_147_483_647, 2_147_483_647].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(4);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -87,9 +87,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 1, 2, 100, 127, 254, 255].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(1);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -100,9 +100,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 256, 65_535].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(2);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -113,9 +113,9 @@ describe('coders', () => {
 
     it('should handle valid values', () => {
       [0, 255, 65_536, 4_294_967_295].forEach((value: number): void => {
-        const encoded = _writeAndReturnArrayBuffer(coder, value);
+        const encoded = write(coder, value);
         expect(encoded.byteLength).toBe(4);
-        const decoded: number = _readArrayBuffer(coder, encoded);
+        const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
     });
@@ -331,44 +331,28 @@ describe('coders', () => {
 // ----- Helpers: -----
 //
 
-function _writeAndReturnArrayBuffer<T>(coder: any, value: T): ArrayBuffer {
-  const  data = new BufferWriter(64);
-  coder.$write(value, data, '');
-  return data.$asView();
+function check<T, R = T>(type: BinaryTypeCoder<T>, inputValue: T, expectedDecodedValue?: R): void {
+  const encodedBytes = write(type, inputValue);
+  const decodedValue = read(type, encodedBytes);
+
+  expect(decodedValue).toEqual(expectedDecodedValue ?? inputValue);
 }
 
-function _readArrayBuffer<T>(coder: any, buffer: ArrayBuffer): T {
-  const state = new BufferReader(buffer);
-  const r = coder.$read(state);
-  expect(state.i).toBe(buffer.byteLength); // hasEnded
+function write<T>(coder: any, value: T): Uint8Array {
+  const  data = new BufferWriter(64);
+  coder.$write(value, data);
+  return data.$viewBytes();
+}
+
+function read<T>(type: BinaryTypeCoder<T>, bytes: Uint8Array, ): T {
+  const state = new BufferReader(bytes);
+  const r = type.$read(state);
+  expect(state.i).toBe(bytes.byteLength); // hasEnded
   return r;
 }
 
-function _write<T>(type: BinaryTypeCoder<T>, value: T): ArrayBuffer {
-  const data = new BufferWriter(64);
-  type.$write(value, data);
-
-  return data.$asView();
-
-}
-
-function _read<T>(buffer: ArrayBuffer, type: BinaryTypeCoder<T>): T {
-  const state = new BufferReader(buffer);
-  const data = type.$read(state);
-  expect(state.i).toBe(buffer.byteLength); // hasEnded
-  return data;
-}
-
-/**
- * Check encode/decode.
- */
-function check<T>(type: coders.BinaryTypeCoder<T>, value: T, afterValue?: T): void {
-  expect(_read(_write(type, value), type)).toEqual(afterValue ?? value);
-}
-
-function arrayBufferToHexString(arrayBuffer: ArrayBuffer): string {
-  const uint8Array = new Uint8Array(arrayBuffer);
-  return Array.from(uint8Array)
+function hexBytes(bytes: Uint8Array): string {
+  return Array.from(bytes)
     .map(byte => byte.toString(16).padStart(2, '0'))
     .join('');
 }

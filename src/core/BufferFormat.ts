@@ -1,4 +1,4 @@
-import { CODERS } from './lib/coders';
+import { writers, readers } from './lib/coders';
 import * as coders from './lib/coders';
 import { $hashCode, $strToHashCode } from './lib/hashCode';
 import { peekHeader, peekHeaderStr } from './lib/peek';
@@ -72,7 +72,7 @@ function isValidHeader(h: FormatHeader): boolean {
  */
 export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType extends FormatHeader = number> {
   /** @internal */
-  private static _$globalEncodingBuffer?: ArrayBuffer;
+  private static _$globalWriter?: BufferWriter;
 
   /**
    * A unique identifier encoded as the first 2 bytes (or `undefined` if headerless).
@@ -107,11 +107,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     header?: HeaderType | null,
   ) {
     // set definition
-    if (def instanceof OptionalType) {
-      throw new TypeError("Invalid encoding format: Root object cannot be optional.");
-    }
-    else if (def !== undefined && typeof def === 'number') {
+    if (typeof def === 'number') {
       this._$type = def;
+    }
+    else if (def instanceof OptionalType) {
+      throw new TypeError("Invalid encoding format: Root object cannot be optional.");
     }
     else if (def instanceof Object) {
       this._$type = undefined; // object
@@ -182,12 +182,12 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /** @internal */
   private static _$initWriter(): BufferWriter {
     if (cfg.useGlobalEncodingBuffer) {
-      if (!BufferFormat._$globalEncodingBuffer) {
+      if (!BufferFormat._$globalWriter) {
         // lazy init: global encoding buffer created at max size
-        BufferFormat._$globalEncodingBuffer = new ArrayBuffer(cfg.encodingBufferMaxSize);
+        this._$globalWriter = new BufferWriter(cfg.encodingBufferInitialSize);
       }
 
-      return new BufferWriter(BufferFormat._$globalEncodingBuffer);
+      return this._$globalWriter;
     }
 
     return new BufferWriter(cfg.encodingBufferInitialSize);
@@ -200,26 +200,34 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * performance, and to minimize memory allocation and fragmentation.
    *
    * @param data - data to encode
-   * @param safe - (default: `setTinybufConfig().safe`) safely copy bytes, instead of returning a pointer to the encoded buffer
+   * @param preserveBytes - (default: `setTinybufConfig().safe`) When set to true, copies encoded
+   * bytes to a new buffer. When set to false, returns an unsafe view of bytes but prevents
+   * unnnecessary memory allocation and fragmentation.
    *
-   * @returns An Uint8Array view of the encoded bytes
+   * @returns a copy of encoded bytes
    * @throws if fails to encode value to schema
    */
   public encode<DecodedType extends InferredDecodedType<EncoderType>>(
     data: DecodedType,
-    safe?: boolean,
+    preserveBytes?: boolean,
   ): Uint8Array {
-    // lazy init
-    if (!this._$writer) this._$writer = BufferFormat._$initWriter();
-    this._$writer.$byteOffset = 0; // reset
-    if (this._$hasValidationOrTransforms) data = this._$preprocess(data);
-    this._$write(data, this._$writer);
-
-    if (safe ?? cfg.safe) {
-      return this._$writer.$asCopy();
+    if (!this._$writer) {
+      // lazy init
+      this._$writer = BufferFormat._$initWriter();
     }
 
-    return this._$writer.$asView();
+    // reset
+    this._$writer.i = 0;
+
+    if (this._$hasValidationOrTransforms) {
+      data = this._$preprocess(data);
+    }
+
+    this._$write(data, this._$writer);
+
+    return (preserveBytes ?? cfg.safe)
+      ? this._$writer.$copyBytes()
+      : this._$writer.$viewBytes();
   }
 
   /**
@@ -236,7 +244,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
     this._$hasValidationOrTransforms = true;
 
-    if (transforms instanceof Function || (Array.isArray(transforms) && transforms[0] instanceof Function)) {
+    if (typeof transforms === 'function' || (Array.isArray(transforms) && typeof transforms[0]  === 'function')) {
       this._$transforms = transforms;
     }
     else {
@@ -263,7 +271,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
     this._$hasValidationOrTransforms = true;
 
-    if (validations instanceof Function) {
+    if (typeof validations === 'function') {
       this._$validate = validations;
     }
     else {
@@ -291,13 +299,13 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    */
   private _$write(value: { [x: string]: any; }, bw: BufferWriter): void {
     // write header
-    if (this._$header !== undefined) this._$writer.$writeUInt16(this._$header);
+    if (this._$header !== undefined) this._$writer.$writeUint16(this._$header);
 
     // write scalar
     if (this._$type !== undefined) {
       const safeValue = (this._$validate || this._$transforms) ? this._$preprocess(value) : value;
 
-      return CODERS[this._$type].$write(safeValue, bw);
+      return writers[this._$type](safeValue, bw);
     }
 
     // check for object type
@@ -341,10 +349,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       throw new Error('failed validation');
     }
 
-    if (this._$transforms instanceof Function) {
+    if (typeof this._$transforms === 'function') {
       return this._$transforms(data);
     }
-    else if (Array.isArray(this._$transforms) && this._$transforms[0] instanceof Function) {
+    else if (Array.isArray(this._$transforms) && typeof this._$transforms[0] === 'function') {
       return this._$transforms[0](data);
     }
 
@@ -356,11 +364,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @internal
    */
   private _$postprocess<T extends Record<string, any>>(data: T): T {
-    if (Array.isArray(this._$transforms) && this._$transforms[1] instanceof Function) {
+    if (Array.isArray(this._$transforms) && typeof this._$transforms[1] === 'function') {
       data = this._$transforms[1](data);
     }
 
-    if (this._$validate instanceof Function) {
+    if (this._$validate !== undefined) {
       this._$validate(data);
     }
 
@@ -434,8 +442,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (this._$type !== undefined) {
       // object type
       return this._$hasValidationOrTransforms
-        ? (s) => this._$postprocess(CODERS[this._$type].$read(s))
-        : CODERS[this._$type].$read;
+        ? (s) => this._$postprocess(readers[this._$type](s))
+        : readers[this._$type];
     }
 
     // scalar type

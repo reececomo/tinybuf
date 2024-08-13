@@ -1,5 +1,3 @@
-import { $fromf16 } from "./float16";
-
 /**
  * Wraps a buffer with a read head pointer.
  *
@@ -9,9 +7,12 @@ export class BufferReader {
   public i: number;
   private _$dataView: DataView;
 
-  public constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, byteOffset?: number) {
-    this._$dataView = b instanceof ArrayBuffer ? new DataView(b) : new DataView(b.buffer, b.byteOffset, b.byteLength);
-    this.i = byteOffset ?? 0; // internal offset (header)
+  public constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, headerBytes?: number) {
+    this._$dataView = ArrayBuffer.isView(b)
+      ? new DataView(b.buffer, b.byteOffset, b.byteLength)
+      : new DataView(b);
+
+    this.i = headerBytes ?? 0; // internal offset (header)
   }
 
   /** Read the next byte, without moving the read head pointer. */
@@ -56,12 +57,6 @@ export class BufferReader {
     const r = this._$dataView.getInt32(this.i, true); // little-endian
     this.i += 4;
     return r;
-  }
-
-  public $readFloat16(): number {
-    const r = this._$dataView.getUint16(this.i, true); // little-endian
-    this.i += 2;
-    return $fromf16(r);
   }
 
   public $readFloat32(): number {

@@ -10,6 +10,7 @@ import { Type } from '../Type';
 import { mask, unmask } from './bitmask';
 import { $utf8decode, $utf8encode } from './utf8';
 import { $floor } from './math';
+import { $fromf16, $tof16 } from './float16';
 
 // Pre-calculated constants
 const MAX_VARUINT8 = 128,
@@ -20,13 +21,16 @@ const MAX_VARUINT8 = 128,
   MAX_VARINT32 = 268_435_456,
   POW_32 = 0x100000000;
 
+type WriterFn<T> = (value: T, writer: BufferWriter) => void;
+type ReaderFn<T> = (reader: BufferReader) => T;
+
 export interface BinaryTypeCoder<T, R = T> {
-  $write(value: T, writer: BufferWriter): void;
-  $read(reader: BufferReader): R;
+  $write: WriterFn<T>;
+  $read: ReaderFn<R>;
 }
 
 /**
- * Formats (big-endian):
+ * Format (big-endian):
  * 7b   0xxx xxxx
  * 14b  10xx xxxx  xxxx xxxx
  * 29b  110x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
@@ -35,17 +39,17 @@ export interface BinaryTypeCoder<T, R = T> {
 export const uintCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
     if (value < MAX_VARUINT8) {
-      writer.$writeUInt8(value);
+      writer.$writeUint8(value);
     }
     else if (value < MAX_VARUINT16) {
-      writer.$writeUInt16(value + 0x8000);
+      writer.$writeUint16(value + 0x8000);
     }
     else if (value < MAX_VARUINT32) {
-      writer.$writeUInt32(value + 0xc0000000);
+      writer.$writeUint32(value + 0xc0000000);
     }
     else {
-      writer.$writeUInt32($floor(value / POW_32) + 0xe0000000);
-      writer.$writeUInt32(value >>> 0);
+      writer.$writeUint32($floor(value / POW_32) + 0xe0000000);
+      writer.$writeUint32(value >>> 0);
     }
   },
   $read: (reader) => {
@@ -68,41 +72,43 @@ export const uintCoder: BinaryTypeCoder<number> = {
 };
 
 export const uint8Coder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeUInt8(value),
+  $write: (value, writer) => writer.$writeUint8(value),
   $read: (reader) => reader.$readUint8(),
 };
 
 export const uint16Coder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeUInt16(value),
+  $write: (value, writer) => writer.$writeUint16(value),
   $read: (reader) => reader.$readUint16(),
 };
 
 export const uint32Coder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeUInt32(value),
+  $write: (value, writer) => writer.$writeUint32(value),
   $read: (reader) => reader.$readUint32(),
 };
 
 /**
- * Same formats as uintCoder.
- *
- * @see {uintCoder}
+ * Format (big-endian):
+ * 7b   0xxx xxxx
+ * 14b  10xx xxxx  xxxx xxxx
+ * 29b  110x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
+ * 61b  111x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
  */
 export const intCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
     if (value >= -MAX_VARINT8 && value < MAX_VARINT8) {
-      writer.$writeUInt8(value & 0x7f);
+      writer.$writeUint8(value & 0x7f);
     }
     else if (value >= -MAX_VARINT16 && value < MAX_VARINT16) {
-      writer.$writeUInt16((value & 0x3fff) + 0x8000);
+      writer.$writeUint16((value & 0x3fff) + 0x8000);
     }
     else if (value >= -MAX_VARINT32 && value < MAX_VARINT32) {
-      writer.$writeUInt32((value & 0x1fffffff) + 0xc0000000);
+      writer.$writeUint32((value & 0x1fffffff) + 0xc0000000);
     }
     else {
       const intValue = value;
       // Split in two 32b uints
-      writer.$writeUInt32(($floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
-      writer.$writeUInt32(intValue >>> 0);
+      writer.$writeUint32(($floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
+      writer.$writeUint32(intValue >>> 0);
     }
   },
   $read: (reader) => {
@@ -144,8 +150,8 @@ export const int32Coder: BinaryTypeCoder<number> = {
 };
 
 export const float16Coder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeFloat16(value),
-  $read: (reader) => reader.$readFloat16(),
+  $write: (value, writer) => writer.$writeUint16($tof16(value)),
+  $read: (reader) => $fromf16(reader.$readUint16()),
 };
 
 export const float32Coder: BinaryTypeCoder<number> = {
@@ -159,12 +165,12 @@ export const float64Coder: BinaryTypeCoder<number> = {
 };
 
 export const uscalarCoder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeUInt8($touscal8(value)),
+  $write: (value, writer) => writer.$writeUint8($touscal8(value)),
   $read: (reader) => $fromuscal8(reader.$readUint8()),
 };
 
 export const scalarCoder: BinaryTypeCoder<number> = {
-  $write: (value, writer) => writer.$writeUInt8($toscal8(value)),
+  $write: (value, writer) => writer.$writeUint8($toscal8(value)),
   $read: (reader) => $fromscal8(reader.$readUint8()),
 };
 
@@ -187,7 +193,7 @@ export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Ar
 };
 
 export const boolCoder: BinaryTypeCoder<boolean> = {
-  $write: (value, writer) => writer.$writeUInt8(value ? 1 : 0),
+  $write: (value, writer) => writer.$writeUint8(value ? 1 : 0),
   $read: (reader) => reader.$readUint8() !== 0,
 };
 
@@ -203,7 +209,7 @@ export const jsonCoder: BinaryTypeCoder<any> = {
 
 export const regexCoder: BinaryTypeCoder<RegExp> = {
   $write: (value, writer) => {
-    writer.$writeUInt8(mask([value.global, value.ignoreCase, value.multiline]));
+    writer.$writeUint8(mask([value.global, value.ignoreCase, value.multiline]));
     stringCoder.$write(value.source, writer);
   },
   $read: (reader) => {
@@ -213,27 +219,50 @@ export const regexCoder: BinaryTypeCoder<RegExp> = {
 };
 
 /**
- * Array of coders, indexed by type
+ * Array of write coders. Indices must match @see {Type}
  */
-export const CODERS: Record<Type, BinaryTypeCoder<any>> = [
-  uintCoder, // Type.UInt
-  uint8Coder, // Type.UInt8
-  uint16Coder, // Type.UInt16
-  uint32Coder, // Type.UInt32
-  intCoder, // Type.Int
-  int8Coder, // Type.Int8
-  int16Coder, // Type.Int16
-  int32Coder, // Type.Int32
-  float64Coder, // Type.Float64
-  float32Coder, // Type.Float32
-  float16Coder, // Type.Float16
-  scalarCoder, // Type.Scalar
-  uscalarCoder, // Type.UScalar
-  boolCoder, // Type.Bool
-  boolsCoder, // Type.Bools
-  stringCoder, // Type.String
-  bufferCoder, // Type.Buffer
-  jsonCoder, // Type.JSON
-  regexCoder, // Type.RegExp
-  dateCoder, // Type.Date
+export const writers: Record<Type, WriterFn<any>> = [
+  uintCoder.$write, // Type.UInt
+  uint8Coder.$write, // Type.UInt8
+  uint16Coder.$write, // Type.UInt16
+  uint32Coder.$write, // Type.UInt32
+  intCoder.$write, // Type.Int
+  int8Coder.$write, // Type.Int8
+  int16Coder.$write, // Type.Int16
+  int32Coder.$write, // Type.Int32
+  float64Coder.$write, // Type.Float64
+  float32Coder.$write, // Type.Float32
+  float16Coder.$write, // Type.Float16
+  scalarCoder.$write, // Type.Scalar
+  uscalarCoder.$write, // Type.UScalar
+  boolCoder.$write, // Type.Bool
+  boolsCoder.$write, // Type.Bools
+  stringCoder.$write, // Type.String
+  bufferCoder.$write, // Type.Buffer
+  jsonCoder.$write, // Type.JSON
+  regexCoder.$write, // Type.RegExp
+  dateCoder.$write, // Type.Date
+];
+
+export const readers: Record<Type, ReaderFn<any>> = [
+  uintCoder.$read, // Type.UInt
+  uint8Coder.$read, // Type.UInt8
+  uint16Coder.$read, // Type.UInt16
+  uint32Coder.$read, // Type.UInt32
+  intCoder.$read, // Type.Int
+  int8Coder.$read, // Type.Int8
+  int16Coder.$read, // Type.Int16
+  int32Coder.$read, // Type.Int32
+  float64Coder.$read, // Type.Float64
+  float32Coder.$read, // Type.Float32
+  float16Coder.$read, // Type.Float16
+  scalarCoder.$read, // Type.Scalar
+  uscalarCoder.$read, // Type.UScalar
+  boolCoder.$read, // Type.Bool
+  boolsCoder.$read, // Type.Bools
+  stringCoder.$read, // Type.String
+  bufferCoder.$read, // Type.Buffer
+  jsonCoder.$read, // Type.JSON
+  regexCoder.$read, // Type.RegExp
+  dateCoder.$read, // Type.Date
 ];

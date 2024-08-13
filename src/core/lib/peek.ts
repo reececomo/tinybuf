@@ -7,7 +7,7 @@ import { $hashCodeToStr } from "./hashCode";
  * @throws {RangeError} if buffer size < 2
  */
 export function peekHeader(b: ArrayBuffer | ArrayBufferView): number {
-  return new DataView(b instanceof ArrayBuffer ? b : b.buffer).getUint16(0, false);
+  return (ArrayBuffer.isView(b) ? new DataView(b.buffer, b.byteOffset, 2) : new DataView(b, 0, 2)).getUint16(0, false);
 }
 
 /**

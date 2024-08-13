@@ -17,7 +17,7 @@ describe('BufferWriter', () => {
     expect((writer as any)._$dataView.byteOffset).toBe(0);
     expect((writer as any)._$dataView.byteLength).toBeGreaterThan(32);
 
-    const text = new TextDecoder('utf-8').decode(writer.$asCopy());
+    const text = new TextDecoder('utf-8').decode(writer.$copyBytes());
     expect(text).toBe(input);
   });
 });

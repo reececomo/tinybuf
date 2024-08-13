@@ -239,12 +239,14 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * performance, and to minimize memory allocation and fragmentation.
 	 *
 	 * @param data - data to encode
-	 * @param safe - (default: `setTinybufConfig().safe`) safely copy bytes, instead of returning a pointer to the encoded buffer
+	 * @param preserveBytes - (default: `setTinybufConfig().safe`) When set to true, copies encoded
+	 * bytes to a new buffer. When set to false, returns an unsafe view of bytes but prevents
+	 * unnnecessary memory allocation and fragmentation.
 	 *
-	 * @returns An Uint8Array view of the encoded bytes
+	 * @returns a copy of encoded bytes
 	 * @throws if fails to encode value to schema
 	 */
-	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, safe?: boolean): Uint8Array;
+	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, preserveBytes?: boolean): Uint8Array;
 	/**
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
@@ -322,14 +324,20 @@ export declare const setTinybufConfig: (c: Partial<TinybufConfig>) => void;
 export type TinybufConfig = {
 	/**
 	 * (default: false)
-	 * By default `BufferFormat.encode(…)` optimizes performance and memory by
-	 * encoding data to a shared buffer, and returning a `Uint8Array` pointer
-	 * to the encoded bytes.
 	 *
-	 * Subsequent calls to `encode(…)` are destructive, so this would be
-	 * unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+	 * This sets the default value for `preserveBytes` on
+	 * `encode(data, preserveBytes?)`.
 	 *
-	 * Set `safe` to true to copy bytes to a new buffer and return that.
+	 * By default, `encode()` returns its encoded bytes as a `Uint8Array`
+	 * view of the bytes in the shared encoding buffer.
+	 *
+	 * This is suitable for synchronous use (e.g. high-performance applications)
+	 * as it avoids slow and expensive memory allocation and fragmentation on
+	 * each call to `encode()`.
+	 *
+	 * However, susbsequent calls are destructive to the underlying bytes, so
+	 * for asynchronous uses (e.g. Promises, Workers, long-lived storage), set
+	 * `preserveBytes` to `true`.
 	 */
 	safe: boolean;
 	/**
@@ -337,8 +345,7 @@ export type TinybufConfig = {
 	 * By default, format encoders share a global encoding buffer for performance
 	 * and memory management reasons.
 	 *
-	 * When set to false, each format will be allocated its own resizable
-	 * encoding buffer.
+	 * When set to false, each format is allocated an individual encoding buffer.
 	 *
 	 * Enable to maximise performance and memory re-use, just be cautious of
 	 * possible race conditions.
@@ -346,18 +353,19 @@ export type TinybufConfig = {
 	useGlobalEncodingBuffer: boolean;
 	/**
 	 * (default: 1500)
-	 * The maximum bytes to allocate to an encoding buffer. If using the global
-	 * encoding buffer, this is the size it is initialized to.
+	 * The maximum bytes that can be allocated to an encoding buffer.
+	 *
+	 * Default is 1500 bytes, the standard "Maximum Transmission Unit".
 	 */
 	encodingBufferMaxSize: number;
 	/**
 	 * (default: 256)
-	 * Initial bytes to allocate to individual format encoding buffers, if used.
+	 * Initial bytes to allocate for an encoding buffer.
 	 */
 	encodingBufferInitialSize: number;
 	/**
 	 * (default: 256)
-	 * Additional bytes when resizing individual format encoding buffers, if used.
+	 * Additional bytes to allocated when dynamically increasing the size of an encoding buffer.
 	 */
 	encodingBufferIncrement: number;
 };
