@@ -187,9 +187,9 @@ export const stringCoder: BinaryTypeCoder<string> = {
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
   $write: (value, writer) => {
     uintCoder.$write(value.byteLength, writer); // header byte (length)
-    writer.$writeBuffer(value);
+    writer.$writeBytes(value);
   },
-  $read: (reader) => reader.$readBuffer(uintCoder.$read(reader)),
+  $read: (reader) => reader.$readBytes(uintCoder.$read(reader)),
 };
 
 export const boolCoder: BinaryTypeCoder<boolean> = {

@@ -12,7 +12,7 @@ describe('BufferWriter', () => {
     expect((writer as any)._$dataView.byteLength).toBe(32);
 
     const textBuffer = new TextEncoder().encode(input);
-    writer.$writeBuffer(textBuffer);
+    writer.$writeBytes(textBuffer);
 
     expect((writer as any)._$dataView.byteOffset).toBe(0);
     expect((writer as any)._$dataView.byteLength).toBeGreaterThan(32);

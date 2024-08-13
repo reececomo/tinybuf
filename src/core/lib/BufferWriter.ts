@@ -10,15 +10,9 @@ export class BufferWriter {
   public i: number = 0;
   public _$dataView: DataView;
 
-  public constructor(value: number | ArrayBuffer) {
-    if (typeof value === 'number') {
-      // internal buffer
-      this._$dataView = new DataView(new ArrayBuffer(value));
-    }
-    else {
-      // external buffer
-      this._$dataView = new DataView(value);
-    }
+  public constructor(initialSize: number) {
+    console.debug(`initializing buffer to ${initialSize}`);
+    this._$dataView = new DataView(new ArrayBuffer(initialSize));
   }
 
   public $viewBytes(): Uint8Array {
@@ -63,16 +57,18 @@ export class BufferWriter {
     this._$dataView.setFloat64(this._$alloc(8), value, true);
   }
 
-  public $writeBuffer(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
-    // allocate bytes first
-    const offset = this._$alloc(b.byteLength);
+  public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
+  // allocate bytes first
+    const i = this._$alloc(b.byteLength);
 
     const bBytes = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+      ? b instanceof Uint8Array
+        ? b
+        : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
       : new Uint8Array(b);
 
     // copy bytes
-    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + offset, b.byteLength).set(bBytes);
+    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + i, b.byteLength).set(bBytes);
   }
 
   // ----- Private methods: -----
@@ -94,17 +90,17 @@ export class BufferWriter {
   private _$resizeBuffer(newSize: number): void {
     if (newSize > cfg.encodingBufferMaxSize) {
       // safety check
-      throw new TinybufError(`exceeded max encoding buffer size: ${cfg.encodingBufferMaxSize}`);
+      throw new TinybufError(`exceeded encodingBufferMaxSize: ${cfg.encodingBufferMaxSize}`);
     }
 
-    const newBuffer = new ArrayBuffer(newSize);
+    console.debug(`resized buffer from ${this._$dataView.byteLength} to ${newSize}`);
+    const newBuf = new ArrayBuffer(newSize);
 
     // copy bytes
     const oldView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this._$dataView.byteLength);
-    const newView = new Uint8Array(newBuffer);
-    newView.set(oldView);
+    new Uint8Array(newBuf).set(oldView);
 
     // update view
-    this._$dataView = new DataView(newBuffer, 0, newSize);
+    this._$dataView = new DataView(newBuf);
   }
 }
