@@ -58,18 +58,17 @@ export class BufferWriter {
   }
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
-  // allocate bytes first
-    const i = this._$alloc(b.byteLength);
+    console.debug(`writeBytes: buf size ${b.byteLength}`);
+    // allocate bytes first
+    const j = this._$alloc(b.byteLength);
 
     const bBytes: Uint8Array = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array
-        ? b
-        : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+      ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
       : new Uint8Array(b);
 
     // copy bytes
-    console.warn(`writing bytes from buffer with length: ${bBytes.byteLength} and ${bBytes.byteOffset} into local buffer with length: ${this._$dataView.byteLength} and offset: ${this._$dataView.byteOffset} with head pointer at ${i}`);
-    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + i, b.byteLength).set(bBytes);
+    console.warn(`writing bytes from buffer with length: ${bBytes.byteLength} and ${bBytes.byteOffset} into local buffer with length: ${this._$dataView.byteLength} and offset: ${this._$dataView.byteOffset} with head pointer at: ${j}`);
+    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength).set(bBytes);
   }
 
   // ----- Private methods: -----
@@ -81,6 +80,9 @@ export class BufferWriter {
       const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;
       this._$resizeBuffer(this._$dataView.byteLength + requestedNewBytes);
     }
+
+    if (bytes === undefined) throw new Error(`bytes undefined`);
+    if (isNaN(this.i)) throw new Error(`i is NaN`);
 
     const j = this.i;
     this.i += bytes;
