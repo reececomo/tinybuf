@@ -8,7 +8,7 @@ import { TinybufError } from "./errors";
  */
 export class BufferWriter {
   public i: number = 0;
-  private _$dataView: DataView;
+  public _$dataView: DataView;
 
   public constructor(value: number | ArrayBuffer) {
     if (typeof value === 'number') {

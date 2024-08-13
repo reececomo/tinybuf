@@ -101,6 +101,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /** @internal */
   private _$writer?: BufferWriter;
 
+  public get encodingBuffer(): DataView | undefined {
+    return this._$writer?._$dataView;
+  }
+
   public constructor(
     def: EncoderType,
     header?: HeaderType | null,

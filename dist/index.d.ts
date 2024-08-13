@@ -217,6 +217,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {peekHeaderStr(...)}
 	 */
 	readonly header: HeaderType;
+	get encodingBuffer(): DataView | undefined;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
 	 * Read the header of a buffer as a number.

@@ -28,12 +28,11 @@ export {
   uscalround,
   mask,
   unmask,
-  BufferFormat,
 };
 
 export type {
   // types:
   Decoded,
-  // BufferFormat,
+  BufferFormat,
   BufferParser,
 };
