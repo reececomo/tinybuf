@@ -180,7 +180,7 @@ export const dateCoder: BinaryTypeCoder<Date> = {
 };
 
 export const stringCoder: BinaryTypeCoder<string> = {
-  $write: (value, writer) => bufferCoder.$write($utf8encode(value), writer),
+  $write: (value, writer) => bufferCoder.$write($utf8encode(value ?? ''), writer),
   $read: (reader) => $utf8decode(bufferCoder.$read(reader)),
 };
 

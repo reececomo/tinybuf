@@ -72,7 +72,7 @@ export class BufferWriter {
       : new Uint8Array(b);
 
     // copy bytes
-    new Uint8Array(this._$dataView.buffer, offset, b.byteLength).set(bBytes);
+    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + offset, b.byteLength).set(bBytes);
   }
 
   // ----- Private methods: -----
@@ -91,19 +91,20 @@ export class BufferWriter {
     return j;
   }
 
-  private _$resizeBuffer(newLength: number): void {
-    if (newLength > cfg.encodingBufferMaxSize) {
+  private _$resizeBuffer(newSize: number): void {
+    if (newSize > cfg.encodingBufferMaxSize) {
       // safety check
       throw new TinybufError(`exceeded max encoding buffer size: ${cfg.encodingBufferMaxSize}`);
     }
 
-    const newBuffer = new ArrayBuffer(newLength);
+    const newBuffer = new ArrayBuffer(newSize);
 
     // copy bytes
-    const bytes = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this._$dataView.byteLength);
-    new Uint8Array(newBuffer).set(bytes);
+    const oldView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this._$dataView.byteLength);
+    const newView = new Uint8Array(newBuffer);
+    newView.set(oldView);
 
     // update view
-    this._$dataView = new DataView(newBuffer);
+    this._$dataView = new DataView(newBuffer, 0, newSize);
   }
 }
