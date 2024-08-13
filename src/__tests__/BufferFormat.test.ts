@@ -59,6 +59,7 @@ describe('BufferFormat', () => {
       },
       myOptionalObject: optional({
         myDate: Type.Date,
+        value2: Type.Float32,
       })
     });
 
@@ -98,6 +99,7 @@ describe('BufferFormat', () => {
       },
       myOptionalObject: {
         myDate: new Date(),
+        value2: 10.5,
       }
     };
 
@@ -105,6 +107,7 @@ describe('BufferFormat', () => {
     const after = MyCoder.decode(encoded);
 
     expect(after).toStrictEqual(before);
+    expect(after.myOptionalObject?.value2).toBeCloseTo(10.5);
 
     // eslint-disable-next-line max-len
     // expect((MyCoder as any)._$formatStr).toEqual('{20,14,15,13,12,5,7,8,6,21,22,19,19[]?,{1,3,4,2,{11,10,9}[]},{23,17,18,16}?}');

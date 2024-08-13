@@ -4,7 +4,7 @@ import { f16round } from './core/lib/float16';
 import { peekHeader, peekHeaderStr } from './core/lib/peek';
 import { scalround, uscalround } from './core/lib/scalar';
 import { mask, unmask } from './core/lib/bitmask';
-import { TinybufError, DecodeError } from './core/lib/errors';
+import { TinybufError } from './core/lib/errors';
 import { Type, optional } from './core/Type';
 
 
@@ -14,14 +14,13 @@ export {
   // core API:
   bufferParser,
   defineFormat,
+  Type,
   optional,
   peekHeader,
   peekHeaderStr,
-  Type,
 
   // errors:
   TinybufError,
-  DecodeError,
 
   // utils:
   f16round,

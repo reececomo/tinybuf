@@ -198,7 +198,10 @@ export const boolCoder: BinaryTypeCoder<boolean> = {
 };
 
 export const boolsCoder: BinaryTypeCoder<boolean[]> = {
-  $write: (value, writer) => uintCoder.$write(mask(value), writer),
+  $write: (value, writer) => {
+    if (value.length > 28) value = value.slice(0, 28); // stored as UInt
+    uintCoder.$write(mask(value), writer);
+  },
   $read: (reader) => unmask(uintCoder.$read(reader)),
 };
 

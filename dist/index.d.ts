@@ -311,13 +311,21 @@ export declare function uscalround(x: number): number;
  * @returns A number (double) in its closest signed scalar representation.
  */
 export declare function scalround(x: number): number;
-export declare const mask: (x: boolean[]) => number;
+/**
+ * Mask booleans to a uint32.
+ *
+ * @param x - A boolean array.
+ * @param padBit - A bit to pad the mask (for variable length data).
+ */
+export declare const mask: (x: boolean[], padBit?: 0 | 1) => number;
+/**
+ * Unmask booleans from a uint32.
+ *
+ * @param x - A uint32 number.
+ * @param len - number of booleans to expect (default: infer lenth from x where x is encoded with a pad bit)
+ */
 export declare const unmask: (x: number, len?: number) => boolean[];
 export declare class TinybufError extends Error {
-}
-export declare class DecodeError extends TinybufError {
-	readonly cause: Error;
-	constructor(summary: string, cause: Error);
 }
 /** Set Tinybuf global config */
 export declare const setTinybufConfig: (c: Partial<TinybufConfig>) => void;

@@ -15,7 +15,6 @@ import {
   Transforms,
   FieldDefinition
 } from './Type';
-import { EncodeError } from './lib/errors';
 import { cfg } from './config';
 
 export type FormatHeader = string | number;
@@ -111,7 +110,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       this._$type = def;
     }
     else if (def instanceof OptionalType) {
-      throw new TypeError("Invalid encoding format: Root object cannot be optional.");
+      throw new TypeError('Format cannot be optional');
     }
     else if (def instanceof Object) {
       this._$type = undefined; // object
@@ -140,7 +139,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       }
     }
     else {
-      throw new TypeError("Invalid encoding format: Must be an object, or a known coder type.");
+      throw new TypeError('Format must be object or Type');
     }
   }
 
@@ -455,7 +454,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    */
   private _$writeArray(value: string | any[], data: any, type: BufferFormat<any, any>): void {
     if (!Array.isArray(value)) {
-      throw new EncodeError(`Array<${type._$type}>`, data);
+      throw new TypeError(`expected array, instead got: ${data}`);
     }
 
     coders.uintCoder.$write(value.length, data);

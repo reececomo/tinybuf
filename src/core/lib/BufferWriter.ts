@@ -1,5 +1,5 @@
 import { cfg } from "../config";
-import { EncodeError } from "./errors";
+import { TinybufError } from "./errors";
 
 /**
  * Wraps a buffer with a write head pointer.
@@ -94,7 +94,7 @@ export class BufferWriter {
   private _$resizeBuffer(newLength: number): void {
     if (newLength > cfg.encodingBufferMaxSize) {
       // safety check
-      throw new EncodeError(`exceeded max encoding buffer size: ${cfg.encodingBufferMaxSize}`);
+      throw new TinybufError(`exceeded max encoding buffer size: ${cfg.encodingBufferMaxSize}`);
     }
 
     const newBuffer = new ArrayBuffer(newLength);

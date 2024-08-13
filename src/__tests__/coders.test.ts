@@ -174,7 +174,7 @@ describe('coders', () => {
     });
   });
 
-  describe('scalarCoder', () => {
+  describe('uscalar8Coder', () => {
     const coder = coders.uscalar8Coder;
 
     it('should handle valid values', () => {
@@ -275,19 +275,37 @@ describe('coders', () => {
         true, false, true, true, false, false, true, false, // 10110010
         true, false, true, true, false, false, true, false, // 10110010
         false, true, false, false, true, true, false, true, // 01001101
-        true, false, true, true, false, false, // 101100
+        true, false, true, // 101
       ]);
       check(coder, [
-        true, false, true, true, false, false, true, false, // 10110010
-        true, false, true, true, false, false, true, false, // 10110010
-        false, true, false, false, true, true, false, true, // 01001101
-        true, false, true, true, false, false, true, true   // 10110011
-      ], [
-        true, false, true, true, false, false, true, false, // 10110010
+        false, false, true, true, false, false, true, false, // 00110010
         true, false, true, true, false, false, true, false, // 10110010
         false, true, false, false, true, true, false, true, // 01001101
-        true, false, true, true, false, false, // 101100
+        true, false, true, true, // 1011
       ]);
+    });
+
+    // large data
+    const largeInputBools = [
+      true, false, true, true, false, false, true, false, // 10110010
+      true, false, true, true, false, false, true, false, // 10110010
+      false, true, false, false, true, true, false, true, // 01001101
+      true, false, true, true, false, false, true, true   // 10110011
+    ];
+
+    it('should trim arrays of greater than 28 booleans', () => {
+      check(coder, largeInputBools, [
+        true, false, true, true, false, false, true, false, // 10110010
+        true, false, true, true, false, false, true, false, // 10110010
+        false, true, false, false, true, true, false, true, // 01001101
+        true, false, true, true, // 1011
+      ]);
+    });
+
+
+    it('should encode no more than 4 bytes', () => {
+      expect(write(coder, [true, false, true]).byteLength).toBe(1);
+      expect(write(coder, largeInputBools).byteLength).toBe(4);
     });
   });
 

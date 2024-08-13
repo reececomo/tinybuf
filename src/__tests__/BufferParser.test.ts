@@ -1,6 +1,6 @@
 import { BufferFormat } from "../core/BufferFormat";
 import { bufferParser } from "../core/BufferParser";
-import { DecodeError, TinybufError } from "../core/lib/errors";
+import { TinybufError } from "../core/lib/errors";
 import { Type } from "../core/Type";
 
 describe('buffer parser', () => {
@@ -78,14 +78,14 @@ describe('buffer parser', () => {
       const binaryHandler = bufferParser();
       const uint8array = new Uint8Array([1]);
 
-      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(DecodeError);
+      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(TinybufError);
     });
 
     it('throws error if there is no registered format', () => {
       const binaryHandler = bufferParser();
       const uint8array = new Uint8Array([1, 2]);
 
-      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(DecodeError);
+      expect(() => binaryHandler.processBuffer(uint8array.buffer)).toThrow(TinybufError);
     });
   });
 
