@@ -34,6 +34,7 @@ export default [
         compress: {
           module: true,
           toplevel: true,
+          drop_console: true,
         },
         format: {
           comments: false,
