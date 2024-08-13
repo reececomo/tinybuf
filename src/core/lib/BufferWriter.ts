@@ -75,6 +75,15 @@ export class BufferWriter {
 
   /** @returns writer head (byteOffset) */
   private _$alloc(bytes: number): number {
+
+function hexBytes(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+    console.log(`bytes: ${hexBytes(new Uint8Array(this._$dataView.buffer,this._$dataView.byteOffset,this._$dataView.byteLength))}`);
+    
     if (this.i + bytes > this._$dataView.byteLength) {
       const minBytesNeeded = this.i + bytes - this._$dataView.byteLength;
       const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;

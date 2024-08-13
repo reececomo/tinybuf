@@ -312,7 +312,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // check for object type
-    if (!value || typeof value !== 'object') {
+    if (typeof value !== 'object' || !value) {
       throw new TypeError(`expected object type`);
     }
 
