@@ -61,13 +61,14 @@ export class BufferWriter {
   // allocate bytes first
     const i = this._$alloc(b.byteLength);
 
-    const bBytes = ArrayBuffer.isView(b)
+    const bBytes: Uint8Array = ArrayBuffer.isView(b)
       ? b instanceof Uint8Array
         ? b
         : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
       : new Uint8Array(b);
 
     // copy bytes
+    console.warn(`writing bytes from buffer with length: ${bBytes.byteLength} and ${bBytes.byteOffset} into local buffer with length: ${this._$dataView.byteLength} and offset: ${this._$dataView.byteOffset} with head pointer at ${i}`);
     new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + i, b.byteLength).set(bBytes);
   }
 
