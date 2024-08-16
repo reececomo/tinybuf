@@ -3,7 +3,7 @@
  *
  * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
-export const enum Type {
+export enum Type {
   /**
    * Unsigned integer (1 - 8 bytes).
    * - 0 → 127 = 1 byte
@@ -11,16 +11,16 @@ export const enum Type {
    * - 16,385 → 536,870,911 = 4 bytes
    * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  UInt = 'ui',
+  UInt = 'u',
 
   /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-  UInt8 = 'ui8',
+  UInt8 = 'u8',
 
   /** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-  UInt16 = 'ui16',
+  UInt16 = 'u16',
 
   /** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-  UInt32 = 'ui32',
+  UInt32 = 'u32',
 
   /**
    * Signed integer (1 - 8 bytes).
