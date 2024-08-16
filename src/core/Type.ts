@@ -53,35 +53,26 @@ export const enum Type {
    */
   Float16,
 
-  /** A signed scalar between -1.00 and 1.00 (1 byte). */
-  Scalar,
+  /** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
+  Scalar8,
 
-  /** An unsigned scalar between 0.00 and 1.00 (1 byte). */
-  UScalar,
+  /** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
+  UScalar8,
 
   /**
    * Boolean value (1 byte).
-   * @see {Bools8} for packing multiple booleans into a single byte.
+   * @see {Bools} for packing multiple booleans into a single byte.
    */
   Bool,
 
-  /** Any array of booleans (0¶ byte / 2-bit header). */
+  /** Any array of booleans (1 bit overhead, encoded as UInt). */
   Bools,
 
-  /** Up to 8 booleans (1 byte). */
-  Bools8,
-
-  /** Up to 16 booleans (2 bytes). */
-  Bools16,
-
-  /** Up to 32 booleans (4 bytes). */
-  Bools32,
-
-  /** A string (1† byte header + string bytes). */
-  String,
-
-  /** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
+  /** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
   Buffer,
+
+  /** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
+  String,
 
   /** Any JSON-serializable data. Encodes as a UTF-8 string. */
   JSON,
@@ -104,11 +95,6 @@ export const enum Type {
  * Mappings for the value types.
  */
 export type ValueTypes = {
-  // Floats
-  [Type.Float16]: number;
-  [Type.Float32]: number;
-  [Type.Float64]: number;
-  // Integers
   [Type.Int]: number;
   [Type.Int8]: number;
   [Type.Int16]: number;
@@ -117,21 +103,18 @@ export type ValueTypes = {
   [Type.UInt8]: number;
   [Type.UInt16]: number;
   [Type.UInt32]: number;
-  // Scalar
-  [Type.UScalar]: number;
-  [Type.Scalar]: number;
-  // Boolean
+  [Type.Float64]: number;
+  [Type.Float32]: number;
+  [Type.Float16]: number;
+  [Type.Scalar8]: number;
+  [Type.UScalar8]: number;
   [Type.Bool]: boolean;
   [Type.Bools]: boolean[];
-  [Type.Bools8]: boolean[];
-  [Type.Bools16]: boolean[];
-  [Type.Bools32]: boolean[];
-  // Other
-  [Type.String]: string;
-  [Type.Date]: Date;
-  [Type.RegExp]: RegExp;
-  [Type.JSON]: any;
   [Type.Buffer]: Uint8Array | ArrayBuffer | ArrayBufferView;
+  [Type.String]: string;
+  [Type.JSON]: any;
+  [Type.RegExp]: RegExp;
+  [Type.Date]: Date;
 };
 
 /** @throws any error too */
@@ -142,34 +125,34 @@ export type Transforms<T> = TransformFn<T> | [preEncode: TransformFn<T>] | [preE
 /**
  * A wrapper around any Type definition that declares it as optional.
  */
-export class OptionalType<T extends FieldDefinition> {
+export class MaybeType<T extends FieldDefinition> {
   public constructor(public type: T) {}
 }
 
 /**
  * Wrap any definition as optional.
  */
-export function optional<T extends FieldDefinition>(t: T): OptionalType<T> {
-  return new OptionalType(t);
+export function optional<T extends FieldDefinition>(t: T): MaybeType<T> {
+  return new MaybeType(t);
 }
 
 /**
  * A definition for an object binary encoder.
  */
 export type EncoderDefinition = {
-  [key: string]: FieldDefinition | OptionalType<FieldDefinition>;
+  [key: string]: FieldDefinition | MaybeType<FieldDefinition>;
 };
 
 /**
  * Definition for an object-field binary encoder.
  */
-export type FieldDefinition = keyof ValueTypes | [keyof ValueTypes] | EncoderDefinition | [EncoderDefinition] | OptionalType<FieldDefinition>;
+export type FieldDefinition = keyof ValueTypes | [keyof ValueTypes] | EncoderDefinition | [EncoderDefinition] | MaybeType<FieldDefinition>;
 
 /**
  * The resulting type of the decoded data, based on the encoder definition.
  */
 export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
-  [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes
+  [EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes
       ? ValueTypes[EncoderType[EKey]]
       : EncoderType[EKey] extends [keyof ValueTypes]
         ? Array<ValueTypes[EncoderType[EKey][0]]>
@@ -179,11 +162,11 @@ export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
             ? Array<InferredDecodedType<EncoderType[EKey][number]>>
             : never;
 } & {
-  [EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? EKey : never]?: EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes>
+  [EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? EKey : never]?: EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
     ? ValueTypes[OptionalValue] | undefined
-    : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [keyof ValueTypes]>
+    : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
       ? Array<ValueTypes[OptionalValue[0]]> | undefined
-      : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition>
+      : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
         ? InferredDecodedType<OptionalValue> | undefined
         : never;
 };
@@ -197,11 +180,11 @@ export type InferredTransformConfig<EncoderType extends EncoderDefinition> = {
          ? InferredTransformConfig<EncoderType[EKey]>
          : EncoderType[EKey] extends [EncoderDefinition]
            ? InferredTransformConfig<EncoderType[EKey][number]>
-           : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes>
+           : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
             ? Transforms<ValueTypes[OptionalValue]>
-            : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [keyof ValueTypes]>
+            : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
               ? Transforms<ValueTypes[OptionalValue[0]]>
-              : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition>
+              : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
                 ? InferredTransformConfig<OptionalValue> | undefined
                 : never;
 };
@@ -215,11 +198,11 @@ export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
          ? InferredValidationConfig<EncoderType[EKey]>
          : EncoderType[EKey] extends [EncoderDefinition]
            ? InferredValidationConfig<EncoderType[EKey][number]>
-           : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes>
+           : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
             ? ValidationFn<ValueTypes[OptionalValue]>
-            : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [keyof ValueTypes]>
+            : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
               ? ValidationFn<ValueTypes[OptionalValue[0]]>
-              : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition>
+              : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
                 ? InferredValidationConfig<OptionalValue> | undefined
                 : never;
 };

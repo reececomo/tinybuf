@@ -1,5 +1,3 @@
-import { $fromf16 } from "./float16";
-
 /**
  * Wraps a buffer with a read head pointer.
  *
@@ -9,18 +7,21 @@ export class BufferReader {
   public i: number;
   private _$dataView: DataView;
 
-  public constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, byteOffset?: number) {
-    this._$dataView = b instanceof ArrayBuffer ? new DataView(b) : new DataView(b.buffer, b.byteOffset, b.byteLength);
-    this.i = byteOffset ?? 0;
+  public constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, headerBytes?: number) {
+    this._$dataView = ArrayBuffer.isView(b)
+      ? new DataView(b.buffer, b.byteOffset, b.byteLength)
+      : new DataView(b);
+
+    this.i = headerBytes ?? 0; // internal offset (header)
   }
 
   /** Read the next byte, without moving the read head pointer. */
-  public $peekUInt8(): number {
+  public $peek(): number {
     return this._$dataView.getUint8(this.i);
   }
 
-  /** used to skip bytes for reading type headers. */
-  public $skipByte(): void {
+  /** Skip the next byte without reading it. */
+  public $skip(): void {
     this.i++;
   }
 
@@ -47,42 +48,36 @@ export class BufferReader {
   }
 
   public $readInt16(): number {
-    const r = this._$dataView.getInt16(this.i, true);
+    const r = this._$dataView.getInt16(this.i, true); // little-endian
     this.i += 2;
     return r;
   }
 
   public $readInt32(): number {
-    const r = this._$dataView.getInt32(this.i, true);
+    const r = this._$dataView.getInt32(this.i, true); // little-endian
     this.i += 4;
     return r;
   }
 
-  public $readFloat16(): number {
-    const r = this._$dataView.getUint16(this.i);
-    this.i += 2;
-    return $fromf16(r);
-  }
-
   public $readFloat32(): number {
-    const r = this._$dataView.getFloat32(this.i, true);
+    const r = this._$dataView.getFloat32(this.i, true); // little-endian
     this.i += 4;
     return r;
   }
 
   public $readFloat64(): number {
-    const r = this._$dataView.getFloat64(this.i, true);
+    const r = this._$dataView.getFloat64(this.i, true); // little-endian
     this.i += 8;
     return r;
   }
 
   /** @throws RangeError if exceeds length */
-  public $readBuffer(bytes: number): Uint8Array {
-    if (this.i + bytes > this._$dataView.byteLength) {
-      throw new RangeError();
+  public $readBytes(bytes: number): Uint8Array {
+    if (this._$dataView.byteOffset + this.i + bytes > this._$dataView.byteLength) {
+      throw new RangeError('exceeded bytes');
     }
 
-    const view = new Uint8Array(this._$dataView.buffer, this.i, bytes);
+    const view = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + this.i, bytes);
     this.i += bytes;
 
     return view;

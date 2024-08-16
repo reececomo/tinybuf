@@ -1,6 +1,6 @@
 import { BufferFormat } from "./BufferFormat";
 import { EncoderDefinition, InferredDecodedType } from "./Type";
-import { DecodeError, TinybufError } from "./lib/errors";
+import { TinybufError } from "./lib/errors";
 import { $hashCodeToStr, $strToHashCode } from "./lib/hashCode";
 import { peekHeader } from "./lib/peek";
 
@@ -44,7 +44,10 @@ export class BufferParser {
       data = f.decode(b);
     }
     catch (e) {
-      throw new DecodeError('Failed to decode', e);
+      const err = new TinybufError(`Failed to decode: ${e}`);
+      err.stack = e.stack;
+
+      throw err;
     }
 
     cb(data);

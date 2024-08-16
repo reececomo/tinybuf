@@ -30,7 +30,15 @@ export default [
             regex: /^_?\$/, // starts with $ or _$
             keep_quoted: true,
           },
-        }
+        },
+        compress: {
+          module: true,
+          toplevel: true,
+          drop_console: false,
+        },
+        format: {
+          comments: false,
+        },
       }),
     ],
   }

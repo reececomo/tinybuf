@@ -1,13 +1,13 @@
+export const $floor = Math.floor,
+  $ceil = Math.ceil;
+
 /** Clamp a number to a range. */
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
+export const $clamp = (value: number, min: number, max: number): number =>
+  value > max ? max : value < min ? min : value;
 
 /** Round toward zero */
-export function r2z(x: number): number {
-  return x < 0 ? Math.ceil(x) : Math.floor(x);
-}
+export const $roundTowardZero = (x: number): number => x < 0 ? $ceil(x) : $floor(x);
+
 /** Round away zero */
-export function raz(x: number): number {
-  return x < 0 ? Math.floor(x) : Math.ceil(x);
-}
+export const $roundAwayFromZero = (x: number): number =>
+  x < 0 ? $floor(x) : $ceil(x);

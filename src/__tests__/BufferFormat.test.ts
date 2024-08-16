@@ -36,8 +36,8 @@ describe('BufferFormat', () => {
       myBuffer: Type.Buffer,
       myBoolean: Type.Bool,
       myBools: Type.Bools,
-      myUScalar: Type.UScalar,
-      myScalar: Type.Scalar,
+      myUScalar: Type.UScalar8,
+      myScalar: Type.Scalar8,
       myInt: Type.Int,
       myInt16: Type.Int16,
       myInt32: Type.Int32,
@@ -59,9 +59,7 @@ describe('BufferFormat', () => {
       },
       myOptionalObject: optional({
         myDate: Type.Date,
-        myBools16: Type.Bools16,
-        myBools32: Type.Bools32,
-        myBools8: Type.Bools8,
+        value2: Type.Float32,
       })
     });
 
@@ -101,19 +99,7 @@ describe('BufferFormat', () => {
       },
       myOptionalObject: {
         myDate: new Date(),
-        myBools8: [
-          true, false, true, false, true, false, true, false
-        ],
-        myBools16: [
-          true, false, true, false, true, false, true, false,
-          true, false, true, false, true, false, true, false
-        ],
-        myBools32: [
-          true, false, true, false, true, false, true, false,
-          true, false, true, false, true, false, true, false,
-          true, false, true, false, true, false, true, false,
-          true, false, true, false, true, false, true, false
-        ],
+        value2: 10.5,
       }
     };
 
@@ -121,6 +107,7 @@ describe('BufferFormat', () => {
     const after = MyCoder.decode(encoded);
 
     expect(after).toStrictEqual(before);
+    expect(after.myOptionalObject?.value2).toBeCloseTo(10.5);
 
     // eslint-disable-next-line max-len
     // expect((MyCoder as any)._$formatStr).toEqual('{20,14,15,13,12,5,7,8,6,21,22,19,19[]?,{1,3,4,2,{11,10,9}[]},{23,17,18,16}?}');
@@ -244,7 +231,6 @@ describe('BufferFormat', () => {
       }],
       optionalArray: optional([Type.String]),
       booleanTuple: Type.Bools,
-      bools8: Type.Bools8,
     });
 
     const binary = Example.encode({
@@ -261,10 +247,9 @@ describe('BufferFormat', () => {
         }
       ],
       booleanTuple: [true, false, true],
-      bools8: [false, false, true, false, false, false, false, true],
     });
 
-    expect(binary.byteLength).toBe(23);
+    expect(binary.byteLength).toBe(22);
 
     const decoded = Example.decode(binary);
     const binary2 = Example.encode(decoded);
@@ -483,7 +468,7 @@ describe('transforms and validation', () => {
 });
 
 
-describe('BOOLEAN_ARRAY', () => {
+describe('Bools', () => {
   const MyCoder = defineFormat({
     name: Type.String,
     coolBools: Type.Bools,
@@ -513,8 +498,6 @@ describe('BOOLEAN_ARRAY', () => {
         false, false, true, false, true, false, true, false, true,
         false, false, true, false, true, false, true, false, true,
         false, false, true, false, true, false, true, false, true,
-        false, false, true, false, true, false, true, false, true,
-        false, false, true, false, true, false, true, false, true,
       ],
     };
 
@@ -527,162 +510,10 @@ describe('BOOLEAN_ARRAY', () => {
         false, false, true, false, true, false, true, false, true,
         false, false, true, false, true, false, true, false, true,
         false, false, true, false, true, false, true, false, true,
-        false, false, true, false, true, false, true, false, true,
-        false, false, true, false, true, false, true, false, true,
       ],
     });
 
-    expect(before.coolBools.length).toBe(45);
-    expect(after.coolBools.length).toBe(45);
-  });
-});
-
-describe('BITMASK_8', () => {
-  const MyCoder = defineFormat({
-    name: Type.String,
-    coolBools: Type.Bools8,
-  });
-
-  it('should encode all booleans below the minimum allowed', () => {
-    const before = {
-      name: 'my awesome example string',
-      coolBools: [false, true, false, true],
-    };
-
-    const encoded = MyCoder.encode(before);
-
-    const after = MyCoder.decode(encoded);
-    expect(after).toStrictEqual({
-      name: 'my awesome example string',
-      coolBools: [false, true, false, true, false, false, false, false],
-    });
-
-    expect(after.coolBools.length).toBe(8);
-  });
-
-  it('should encode up to the maximum boolean array', () => {
-    const before = {
-      name: 'my awesome example string',
-      coolBools: [false, false, true, false, true, false, true, false, true],
-    };
-
-    const encoded = MyCoder.encode(before);
-
-    const after = MyCoder.decode(encoded);
-    expect(after).toStrictEqual({
-      name: 'my awesome example string',
-      coolBools: [false, false, true, false, true, false, true, false],
-    });
-
-    expect(before.coolBools.length).toBe(9);
-    expect(after.coolBools.length).toBe(8);
-  });
-});
-
-describe('header', () => {
-  it('matches expected shapes', () => {
-    const format = {
-      name: Type.String,
-    };
-    const MyNakedCoder = defineFormat(null, format as any);
-    const MyClothedCoder = defineFormat(format as any);
-
-    expect(MyNakedCoder.header).toBe(undefined);
-    expect(MyClothedCoder.header).not.toBe(undefined);
-
-    const binary1 = MyNakedCoder.encode({ name: 'Example' });
-    const binary2 = MyClothedCoder.encode({ name: 'Example' });
-
-    expect(binary1.byteLength).toEqual(binary2.byteLength - 2);
-  });
-});
-
-describe('Bools16', () => {
-  const MyCoder = defineFormat({
-    name: Type.String,
-    coolBools: Type.Bools16,
-  });
-
-  it('should encode all booleans below the minimum allowed', () => {
-    const before = {
-      name: 'my awesome example string',
-      coolBools: [false, true, true, false, false,],
-    };
-
-    const encoded = MyCoder.encode(before);
-
-    const after = MyCoder.decode(encoded);
-    expect(after).toStrictEqual({
-      name: 'my awesome example string',
-      coolBools: [
-        false, true, true, false, false, false, false, false,
-        false, false, false, false, false, false, false, false,
-      ],
-    });
-
-    expect(after.coolBools.length).toBe(16);
-  });
-});
-
-describe('Bools32', () => {
-  const MyCoder = defineFormat({
-    name: Type.String,
-    coolBools: Type.Bools32,
-    other: optional(Type.String),
-  });
-
-  it('should encode all booleans below the minimum allowed', () => {
-    const before = {
-      name: 'my awesome example string',
-      coolBools: [false, true, true, false, false,],
-      other: 'hmm',
-    };
-
-    const encoded = MyCoder.encode(before);
-
-    const after = MyCoder.decode(encoded);
-    expect(after).toStrictEqual({
-      name: 'my awesome example string',
-      coolBools: [
-        false, true, true, false, false, false, false, false,
-        false, false, false, false, false, false, false, false,
-        false, false, false, false, false, false, false, false,
-        false, false, false, false, false, false, false, false
-      ],
-      other: 'hmm',
-    });
-
-    expect(after.coolBools.length).toBe(32);
-  });
-
-  it('should encode up to the maximum boolean array', () => {
-    const before = {
-      name: 'my awesome example string',
-      coolBools: [
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-        true, true, true,
-      ],
-      other: 'hmm',
-    };
-
-    const encoded = MyCoder.encode(before);
-
-    const after = MyCoder.decode(encoded);
-    expect(after).toStrictEqual({
-      name: 'my awesome example string',
-      coolBools: [
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-        true, false, true, false, true, false, true, false,
-      ],
-      other: 'hmm',
-    });
-
-    expect(before.coolBools.length).toBe(35);
-    expect(after.coolBools.length).toBe(32);
+    expect(before.coolBools.length).toBe(27);
+    expect(after.coolBools.length).toBe(27);
   });
 });

@@ -1,13 +1,14 @@
-import { uScalarRound, scalarRound } from "../core/lib/scalar";
+import { scalround, uscalround } from "../core/lib/scalar";
 
-describe('uScalarRound', () => {
-  it('should quantize numbers to the nearest 8-bit unsigned scalar', () => {
-    expect(uScalarRound(0.555)).toBe(0.56);
+describe('scalround', () => {
+  it('should quantize numbers to the nearest 8-bit scalar', () => {
+    expect(scalround(-0.555)).toBe(-0.56);
+    expect(scalround(0.555)).toBe(0.56);
   });
 });
 
-describe('scalarRound', () => {
-  it('should quantize numbers to the nearest 8-bit signed scalar', () => {
-    expect(scalarRound(-0.555)).toBe(-0.56);
+describe('uscalround', () => {
+  it('should quantize numbers to the nearest 8-bit unsigned scalar', () => {
+    expect(uscalround(0.555)).toBe(0.56);
   });
 });

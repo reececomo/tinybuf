@@ -76,10 +76,7 @@ export const MyFormat2 = defineFormat({ /*…*/ });
 | `Type.Float32` `Type.Single` | `number` | 4 | A 32-bit "single" precision floating point number. |
 | `Type.Float16` `Type.Half` | `number` | 2 | A 16-bit "half" precision floating point number.<br/>**Important Note:** Low decimal precision. Max. large values ±65,500. |
 | `Type.Bool` | `boolean` | 1 | A single boolean. |
-| `Type.Bools` | `boolean[]` | 1<sup>¶</sup> | Variable-length array of boolean values packed into 1<sup>¶</sup> byte. |
-| `Type.Bools8` | `boolean[]` | 1 | Array of 1 - 8 booleans. |
-| `Type.Bools16` | `boolean[]` | 2 | Array of 1 - 16 booleans. |
-| `Type.Bools32` | `boolean[]` | 4 | Array of 1 - 32 booleans. |
+| `Type.Bools` | `boolean[]` | 1<sup>¶</sup> | Variable-length array of boolean values (1 - 28). |
 | `Type.Buffer` | `Uint8Array \| ArrayBufferView \| ArrayBuffer` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any buffer / binary data. |
 | `Type.String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A UTF-8 string. |
 | `Type.JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any JSON encodable object, encoded as a UTF-8 string. |
@@ -95,7 +92,7 @@ export const MyFormat2 = defineFormat({ /*…*/ });
 
 <sup>†</sup>Length of payload bytes as a `UInt`. Typically 1 byte, but could be 2-8 bytes for very large payloads.
 
-<sup>¶</sup>2-bit overhead: 6 booleans per byte (i.e. 9 booleans would require 2 bytes).
+<sup>¶</sup>`Bools` converts 1 - 28 booleans to a single `UInt` and back.
 
 > {!TIP]
 > Read more about the [encoding formats here](https://github.com/reececomo/tinybuf/blob/main/docs/encodings.md) (e.g. varint / varuint)

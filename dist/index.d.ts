@@ -54,31 +54,25 @@ export declare const enum Type {
 	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
 	Float16 = 10,
-	/** A signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar = 11,
-	/** An unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar = 12,
+	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
+	Scalar8 = 11,
+	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
+	UScalar8 = 12,
 	/**
 	 * Boolean value (1 byte).
-	 * @see {Bools8} for packing multiple booleans into a single byte.
+	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
 	Bool = 13,
-	/** Any array of booleans (0¶ byte / 2-bit header). */
+	/** Any array of booleans (1 bit overhead, encoded as UInt). */
 	Bools = 14,
-	/** Up to 8 booleans (1 byte). */
-	Bools8 = 15,
-	/** Up to 16 booleans (2 bytes). */
-	Bools16 = 16,
-	/** Up to 32 booleans (4 bytes). */
-	Bools32 = 17,
-	/** A string (1† byte header + string bytes). */
-	String = 18,
-	/** Any Uint8Array, ArrayBuffer or ArrayBufferLike value (1† byte header + buffer bytes). */
-	Buffer = 19,
+	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
+	Buffer = 15,
+	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
+	String = 16,
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = 20,
+	JSON = 17,
 	/** JavaScript regular expression. */
-	RegExp = 21,
+	RegExp = 18,
 	/**
 	 * JavaScript date object.
 	 *
@@ -87,15 +81,12 @@ export declare const enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = 22
+	Date = 19
 }
 /**
  * Mappings for the value types.
  */
 export type ValueTypes = {
-	[Type.Float16]: number;
-	[Type.Float32]: number;
-	[Type.Float64]: number;
 	[Type.Int]: number;
 	[Type.Int8]: number;
 	[Type.Int16]: number;
@@ -104,18 +95,18 @@ export type ValueTypes = {
 	[Type.UInt8]: number;
 	[Type.UInt16]: number;
 	[Type.UInt32]: number;
-	[Type.UScalar]: number;
-	[Type.Scalar]: number;
+	[Type.Float64]: number;
+	[Type.Float32]: number;
+	[Type.Float16]: number;
+	[Type.Scalar8]: number;
+	[Type.UScalar8]: number;
 	[Type.Bool]: boolean;
 	[Type.Bools]: boolean[];
-	[Type.Bools8]: boolean[];
-	[Type.Bools16]: boolean[];
-	[Type.Bools32]: boolean[];
-	[Type.String]: string;
-	[Type.Date]: Date;
-	[Type.RegExp]: RegExp;
-	[Type.JSON]: any;
 	[Type.Buffer]: Uint8Array | ArrayBuffer | ArrayBufferView;
+	[Type.String]: string;
+	[Type.JSON]: any;
+	[Type.RegExp]: RegExp;
+	[Type.Date]: Date;
 };
 /** @throws any error too */
 export type ValidationFn<T> = (x: T) => undefined | boolean | Error;
@@ -126,19 +117,22 @@ export type Transforms<T> = TransformFn<T> | [
 	preEncode: TransformFn<T> | undefined,
 	postDecode: TransformFn<T> | undefined
 ];
-declare class OptionalType<T extends FieldDefinition> {
+/**
+ * A wrapper around any Type definition that declares it as optional.
+ */
+export declare class MaybeType<T extends FieldDefinition> {
 	type: T;
 	constructor(type: T);
 }
 /**
  * Wrap any definition as optional.
  */
-export declare function optional<T extends FieldDefinition>(t: T): OptionalType<T>;
+export declare function optional<T extends FieldDefinition>(t: T): MaybeType<T>;
 /**
  * A definition for an object binary encoder.
  */
 export type EncoderDefinition = {
-	[key: string]: FieldDefinition | OptionalType<FieldDefinition>;
+	[key: string]: FieldDefinition | MaybeType<FieldDefinition>;
 };
 /**
  * Definition for an object-field binary encoder.
@@ -147,38 +141,38 @@ export type FieldDefinition = keyof ValueTypes | [
 	keyof ValueTypes
 ] | EncoderDefinition | [
 	EncoderDefinition
-] | OptionalType<FieldDefinition>;
+] | MaybeType<FieldDefinition>;
 /**
  * The resulting type of the decoded data, based on the encoder definition.
  */
 export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
-	[EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends [
+	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? Array<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredDecodedType<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
 	] ? Array<InferredDecodedType<EncoderType[EKey][number]>> : never;
 } & {
-	[EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? EKey : never]?: EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? EKey : never]?: EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
+	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
 };
 export type InferredTransformConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? Transforms<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? Transforms<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredTransformConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredTransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	] ? InferredTransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredTransformConfig<OptionalValue> | undefined : never;
+	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredTransformConfig<OptionalValue> | undefined : never;
 };
 export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? ValidationFn<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? ValidationFn<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredValidationConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	] ? InferredValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredValidationConfig<OptionalValue> | undefined : never;
+	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredValidationConfig<OptionalValue> | undefined : never;
 };
 export type FormatHeader = string | number;
 /**
@@ -225,7 +219,8 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {peekHeader(...)}
 	 * @see {peekHeaderStr(...)}
 	 */
-	readonly header: HeaderType;
+	header: HeaderType;
+	get encodingBuffer(): DataView | undefined;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
 	 * Read the header of a buffer as a number.
@@ -248,12 +243,14 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * performance, and to minimize memory allocation and fragmentation.
 	 *
 	 * @param data - data to encode
-	 * @param safe - (default: `setTinybufConfig().safe`) safely copy bytes, instead of returning a pointer to the encoded buffer
+	 * @param preserveBytes - (default: `setTinybufConfig().safe`) When set to true, copies encoded
+	 * bytes to a new buffer. When set to false, returns an unsafe view of bytes but prevents
+	 * unnnecessary memory allocation and fragmentation.
 	 *
-	 * @returns An Uint8Array view of the encoded bytes
+	 * @returns a copy of encoded bytes
 	 * @throws if fails to encode value to schema
 	 */
-	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, safe?: boolean): Uint8Array;
+	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, preserveBytes?: boolean): Uint8Array;
 	/**
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
@@ -270,6 +267,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * - Anything else is treated as successfully passing validation.
 	 */
 	setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
+	private _$processValidation;
 }
 export type AnyFormat = BufferFormat<any, any>;
 /**
@@ -309,40 +307,50 @@ export declare function f16round(x: number): number;
 /**
  * Quantize a number to an 8-bit scalar between 0.0 and 1.0.
  *
- * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function uScalarRound(doubleFloat: number): number;
+export declare function uscalround(x: number): number;
 /**
  * Quantize a number to an 8-bit signed scalar between -1.0 and 1.0.
  *
- * @param doubleFloat A number.
  * @returns A number (double) in its closest signed scalar representation.
  */
-export declare function scalarRound(doubleFloat: number): number;
+export declare function scalround(x: number): number;
+/**
+ * Mask booleans to a uint32.
+ *
+ * @param x - A boolean array.
+ * @param padBit - A bit to pad the mask (for variable length data).
+ */
+export declare const mask: (x: boolean[], padBit?: 0 | 1) => number;
+/**
+ * Unmask booleans from a uint32.
+ *
+ * @param x - A uint32 number.
+ * @param len - number of booleans to expect (default: infer lenth from x where x is encoded with a pad bit)
+ */
+export declare const unmask: (x: number, len?: number) => boolean[];
 export declare class TinybufError extends Error {
-}
-export declare class EncodeError extends TinybufError {
-	constructor(message: string);
-	constructor(expectedType: string, value: any, path: string);
-}
-export declare class DecodeError extends TinybufError {
-	readonly cause: Error;
-	constructor(summary: string, cause: Error);
 }
 /** Set Tinybuf global config */
 export declare const setTinybufConfig: (c: Partial<TinybufConfig>) => void;
 export type TinybufConfig = {
 	/**
 	 * (default: false)
-	 * By default `BufferFormat.encode(…)` optimizes performance and memory by
-	 * encoding data to a shared buffer, and returning a `Uint8Array` pointer
-	 * to the encoded bytes.
 	 *
-	 * Subsequent calls to `encode(…)` are destructive, so this would be
-	 * unsuitable for asyncronous usage (e.g. Promises, Web Workers).
+	 * This sets the default value for `preserveBytes` on
+	 * `encode(data, preserveBytes?)`.
 	 *
-	 * Set `safe` to true to copy bytes to a new buffer and return that.
+	 * By default, `encode()` returns its encoded bytes as a `Uint8Array`
+	 * view of the bytes in the shared encoding buffer.
+	 *
+	 * This is suitable for synchronous use (e.g. high-performance applications)
+	 * as it avoids slow and expensive memory allocation and fragmentation on
+	 * each call to `encode()`.
+	 *
+	 * However, susbsequent calls are destructive to the underlying bytes, so
+	 * for asynchronous uses (e.g. Promises, Workers, long-lived storage), set
+	 * `preserveBytes` to `true`.
 	 */
 	safe: boolean;
 	/**
@@ -350,8 +358,7 @@ export type TinybufConfig = {
 	 * By default, format encoders share a global encoding buffer for performance
 	 * and memory management reasons.
 	 *
-	 * When set to false, each format will be allocated its own resizable
-	 * encoding buffer.
+	 * When set to false, each format is allocated an individual encoding buffer.
 	 *
 	 * Enable to maximise performance and memory re-use, just be cautious of
 	 * possible race conditions.
@@ -359,22 +366,21 @@ export type TinybufConfig = {
 	useGlobalEncodingBuffer: boolean;
 	/**
 	 * (default: 1500)
-	 * The maximum bytes to allocate to an encoding buffer. If using the global
-	 * encoding buffer, this is the size it is initialized to.
+	 * The maximum bytes that can be allocated to an encoding buffer.
+	 *
+	 * Default is 1500 bytes, the standard "Maximum Transmission Unit".
 	 */
 	encodingBufferMaxSize: number;
 	/**
 	 * (default: 256)
-	 * Initial bytes to allocate to individual format encoding buffers, if used.
+	 * Initial bytes to allocate for an encoding buffer.
 	 */
 	encodingBufferInitialSize: number;
 	/**
 	 * (default: 256)
-	 * Additional bytes when resizing individual format encoding buffers, if used.
+	 * Additional bytes to allocated when dynamically increasing the size of an encoding buffer.
 	 */
 	encodingBufferIncrement: number;
 };
-/** @deprecated renamed to @see {f16round} */
-export declare const fround16: typeof f16round;
 
 export {};
