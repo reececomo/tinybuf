@@ -58,6 +58,7 @@ export class BufferWriter {
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
     // allocate bytes first
+    const lol = this.i;
     const j = this._$alloc(b.byteLength);
 
     console.log(`buffer: allocating ${j} for a total of ${this._$dataView.byteLength}`);
@@ -78,7 +79,7 @@ export class BufferWriter {
       newView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength);
     }
     catch (error) {
-      throw new Error(`failed to copy bytes reason 61 - for ${b.byteLength} we're allocating ${j} for a total of ${this._$dataView.byteLength}`); // FIXME: remove
+      throw new Error(`failed to copy bytes reason 61 - from ${lol} for ${b.byteLength} we're allocating ${j} for a total of ${this._$dataView.byteLength}`); // FIXME: remove
     }
     try {
       newView.set(bBytes);
@@ -117,7 +118,7 @@ export class BufferWriter {
     const oldView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this._$dataView.byteLength);
     new Uint8Array(newBuf).set(oldView);
 
-    // update view
+    // update ref
     this._$dataView = new DataView(newBuf);
   }
 }
