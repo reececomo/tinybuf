@@ -5,7 +5,7 @@ import { peekHeader, peekHeaderStr } from './core/lib/peek';
 import { scalround, uscalround } from './core/lib/scalar';
 import { mask, unmask } from './core/lib/bitmask';
 import { TinybufError } from './core/lib/errors';
-import { Type, optional } from './core/Type';
+import { Type, optional, MaybeType } from './core/Type';
 
 
 export { setTinybufConfig } from './core/config';
@@ -35,4 +35,5 @@ export type {
   Decoded,
   BufferFormat,
   BufferParser,
+  MaybeType,
 };

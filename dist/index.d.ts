@@ -15,7 +15,7 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
  *
  * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
-export declare const enum Type {
+export declare enum Type {
 	/**
 	 * Unsigned integer (1 - 8 bytes).
 	 * - 0 → 127 = 1 byte
@@ -117,19 +117,22 @@ export type Transforms<T> = TransformFn<T> | [
 	preEncode: TransformFn<T> | undefined,
 	postDecode: TransformFn<T> | undefined
 ];
-declare class OptionalType<T extends FieldDefinition> {
+/**
+ * A wrapper around any Type definition that declares it as optional.
+ */
+export declare class MaybeType<T extends FieldDefinition> {
 	type: T;
 	constructor(type: T);
 }
 /**
  * Wrap any definition as optional.
  */
-export declare function optional<T extends FieldDefinition>(t: T): OptionalType<T>;
+export declare function optional<T extends FieldDefinition>(t: T): MaybeType<T>;
 /**
  * A definition for an object binary encoder.
  */
 export type EncoderDefinition = {
-	[key: string]: FieldDefinition | OptionalType<FieldDefinition>;
+	[key: string]: FieldDefinition | MaybeType<FieldDefinition>;
 };
 /**
  * Definition for an object-field binary encoder.
@@ -138,38 +141,38 @@ export type FieldDefinition = keyof ValueTypes | [
 	keyof ValueTypes
 ] | EncoderDefinition | [
 	EncoderDefinition
-] | OptionalType<FieldDefinition>;
+] | MaybeType<FieldDefinition>;
 /**
  * The resulting type of the decoded data, based on the encoder definition.
  */
 export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
-	[EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends [
+	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? Array<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredDecodedType<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
 	] ? Array<InferredDecodedType<EncoderType[EKey][number]>> : never;
 } & {
-	[EKey in keyof EncoderType as EncoderType[EKey] extends OptionalType<any> ? EKey : never]?: EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? EKey : never]?: EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
+	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
 };
 export type InferredTransformConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? Transforms<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? Transforms<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredTransformConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredTransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	] ? InferredTransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredTransformConfig<OptionalValue> | undefined : never;
+	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredTransformConfig<OptionalValue> | undefined : never;
 };
 export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? ValidationFn<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
 	] ? ValidationFn<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredValidationConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends [
+	] ? InferredValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends OptionalType<infer OptionalValue extends EncoderDefinition> ? InferredValidationConfig<OptionalValue> | undefined : never;
+	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredValidationConfig<OptionalValue> | undefined : never;
 };
 export type FormatHeader = string | number;
 /**
@@ -216,7 +219,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {peekHeader(...)}
 	 * @see {peekHeaderStr(...)}
 	 */
-	readonly header: HeaderType;
+	header: HeaderType;
 	get encodingBuffer(): DataView | undefined;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
@@ -264,6 +267,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * - Anything else is treated as successfully passing validation.
 	 */
 	setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
+	private _$processValidation;
 }
 export type AnyFormat = BufferFormat<any, any>;
 /**

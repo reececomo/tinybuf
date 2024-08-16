@@ -11,7 +11,6 @@ export class BufferWriter {
   public _$dataView: DataView;
 
   public constructor(initialSize: number) {
-    console.debug(`initializing buffer to ${initialSize}`);
     this._$dataView = new DataView(new ArrayBuffer(initialSize));
   }
 
@@ -58,7 +57,6 @@ export class BufferWriter {
   }
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
-    console.debug(`writeBytes: buf size ${b.byteLength}`);
     // allocate bytes first
     const j = this._$alloc(b.byteLength);
 
@@ -67,7 +65,6 @@ export class BufferWriter {
       : new Uint8Array(b);
 
     // copy bytes
-    console.warn(`writing bytes from buffer with length: ${bBytes.byteLength} and ${bBytes.byteOffset} into local buffer with length: ${this._$dataView.byteLength} and offset: ${this._$dataView.byteOffset} with head pointer at: ${j}`);
     new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength).set(bBytes);
   }
 
@@ -75,23 +72,11 @@ export class BufferWriter {
 
   /** @returns writer head (byteOffset) */
   private _$alloc(bytes: number): number {
-
-function hexBytes(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-    console.log(`bytes: ${hexBytes(new Uint8Array(this._$dataView.buffer,this._$dataView.byteOffset,this._$dataView.byteLength))}`);
-    
     if (this.i + bytes > this._$dataView.byteLength) {
       const minBytesNeeded = this.i + bytes - this._$dataView.byteLength;
       const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;
       this._$resizeBuffer(this._$dataView.byteLength + requestedNewBytes);
     }
-
-    if (bytes === undefined) throw new Error(`bytes undefined`);
-    if (isNaN(this.i)) throw new Error(`i is NaN`);
 
     const j = this.i;
     this.i += bytes;
@@ -105,7 +90,6 @@ function hexBytes(bytes: Uint8Array): string {
       throw new TinybufError(`exceeded encodingBufferMaxSize: ${cfg.encodingBufferMaxSize}`);
     }
 
-    console.debug(`resized buffer from ${this._$dataView.byteLength} to ${newSize}`);
     const newBuf = new ArrayBuffer(newSize);
 
     // copy bytes

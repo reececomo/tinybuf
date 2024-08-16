@@ -26,10 +26,10 @@ export default [
         keep_classnames: true,
         keep_fnames: true,
         mangle: {
-          properties: {
-            regex: /^_?\$/, // starts with $ or _$
-            keep_quoted: true,
-          },
+          // properties: {
+          //   regex: /^_?\$/, // starts with $ or _$
+          //   keep_quoted: true,
+          // },
         },
         compress: {
           module: true,
