@@ -1,4 +1,5 @@
 import { BufferWriter } from "../core/lib/BufferWriter";
+import { $utf8encode } from "../core/lib/utf8";
 
 describe('BufferWriter', () => {
   it('sanity check: should dynamically resize underlying array buffer', () => {
@@ -11,7 +12,7 @@ describe('BufferWriter', () => {
     expect((writer as any)._$dataView.byteOffset).toBe(0);
     expect((writer as any)._$dataView.byteLength).toBe(32);
 
-    const textBuffer = new TextEncoder().encode(input);
+    const textBuffer = $utf8encode(input);
     writer.$writeBytes(textBuffer);
 
     expect((writer as any)._$dataView.byteOffset).toBe(0);

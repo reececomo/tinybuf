@@ -192,6 +192,8 @@ export const stringCoder: BinaryTypeCoder<string> = {
 
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
   $write: (value, writer) => {
+    if (value.byteLength == null) throw new Error(`not a buffer (reason 2:  ${value} ${value.constructor})`);
+    if (!(value instanceof ArrayBuffer) && !ArrayBuffer.isView(value)) throw new Error(`not a buffer (reason 1) ${value} ${(value as any).constructor}`);
     uintCoder.$write(value.byteLength, writer); // header byte (length)
     writer.$writeBytes(value);
   },
