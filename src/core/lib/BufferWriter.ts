@@ -78,7 +78,7 @@ export class BufferWriter {
       newView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength);
     }
     catch (error) {
-      throw new Error('failed to copy bytes reason 61'); // FIXME: remove
+      throw new Error(`failed to copy bytes reason 61 - allocating ${j} for a total of ${this._$dataView.byteLength}`); // FIXME: remove
     }
     try {
       newView.set(bBytes);
