@@ -110,7 +110,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     header?: HeaderType | null,
   ) {
     // set definition
-    if (typeof def === 'number') {
+    if (typeof def === 'string') {
       this._$type = def;
     }
     else if (def instanceof MaybeType) {

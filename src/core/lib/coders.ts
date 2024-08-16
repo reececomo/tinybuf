@@ -233,49 +233,49 @@ export const regexCoder: BinaryTypeCoder<RegExp> = {
 };
 
 /** @see {Type} indices must match */
-export const writers: Record<Type, WriterFn<any>> = [
-  uintCoder.$write, // Type.UInt
-  uint8Coder.$write, // Type.UInt8
-  uint16Coder.$write, // Type.UInt16
-  uint32Coder.$write, // Type.UInt32
-  intCoder.$write, // Type.Int
-  int8Coder.$write, // Type.Int8
-  int16Coder.$write, // Type.Int16
-  int32Coder.$write, // Type.Int32
-  float64Coder.$write, // Type.Float64
-  float32Coder.$write, // Type.Float32
-  float16Coder.$write, // Type.Float16
-  scalar8Coder.$write, // Type.Scalar
-  uscalar8Coder.$write, // Type.UScalar
-  boolCoder.$write, // Type.Bool
-  boolsCoder.$write, // Type.Bools
-  bufferCoder.$write, // Type.Buffer
-  stringCoder.$write, // Type.String
-  jsonCoder.$write, // Type.JSON
-  regexCoder.$write, // Type.RegExp
-  dateCoder.$write, // Type.Date
-];
+export const writers: Record<Type, WriterFn<any>> = {
+  [Type.UInt]: uintCoder.$write,
+  [Type.UInt8]: uint8Coder.$write,
+  [Type.UInt16]: uint16Coder.$write,
+  [Type.UInt32]: uint32Coder.$write,
+  [Type.Int]: intCoder.$write,
+  [Type.Int8]: int8Coder.$write,
+  [Type.Int16]: int16Coder.$write,
+  [Type.Int32]: int32Coder.$write,
+  [Type.Float64]: float64Coder.$write,
+  [Type.Float32]: float32Coder.$write,
+  [Type.Float16]: float16Coder.$write,
+  [Type.Scalar8]: scalar8Coder.$write,
+  [Type.UScalar8]: uscalar8Coder.$write,
+  [Type.Bool]: boolCoder.$write,
+  [Type.Bools]: boolsCoder.$write,
+  [Type.Buffer]: bufferCoder.$write,
+  [Type.String]: stringCoder.$write,
+  [Type.JSON]: jsonCoder.$write,
+  [Type.RegExp]: regexCoder.$write,
+  [Type.Date]: dateCoder.$write,
+};
 
 /** @see {Type} indices must match */
-export const readers: Record<Type, ReaderFn<any>> = [
-  uintCoder.$read, // Type.UInt
-  uint8Coder.$read, // Type.UInt8
-  uint16Coder.$read, // Type.UInt16
-  uint32Coder.$read, // Type.UInt32
-  intCoder.$read, // Type.Int
-  int8Coder.$read, // Type.Int8
-  int16Coder.$read, // Type.Int16
-  int32Coder.$read, // Type.Int32
-  float64Coder.$read, // Type.Float64
-  float32Coder.$read, // Type.Float32
-  float16Coder.$read, // Type.Float16
-  scalar8Coder.$read, // Type.Scalar
-  uscalar8Coder.$read, // Type.UScalar
-  boolCoder.$read, // Type.Bool
-  boolsCoder.$read, // Type.Bools
-  bufferCoder.$read, // Type.Buffer
-  stringCoder.$read, // Type.String
-  jsonCoder.$read, // Type.JSON
-  regexCoder.$read, // Type.RegExp
-  dateCoder.$read, // Type.Date
-];
+export const readers: Record<Type, ReaderFn<any>> = {
+  [Type.UInt]: uintCoder.$read,
+  [Type.UInt8]: uint8Coder.$read,
+  [Type.UInt16]: uint16Coder.$read,
+  [Type.UInt32]: uint32Coder.$read,
+  [Type.Int]: intCoder.$read,
+  [Type.Int8]: int8Coder.$read,
+  [Type.Int16]: int16Coder.$read,
+  [Type.Int32]: int32Coder.$read,
+  [Type.Float64]: float64Coder.$read,
+  [Type.Float32]: float32Coder.$read,
+  [Type.Float16]: float16Coder.$read,
+  [Type.Scalar8]: scalar8Coder.$read,
+  [Type.UScalar8]: uscalar8Coder.$read,
+  [Type.Bool]: boolCoder.$read,
+  [Type.Bools]: boolsCoder.$read,
+  [Type.Buffer]: bufferCoder.$read,
+  [Type.String]: stringCoder.$read,
+  [Type.JSON]: jsonCoder.$read,
+  [Type.RegExp]: regexCoder.$read,
+  [Type.Date]: dateCoder.$read,
+};

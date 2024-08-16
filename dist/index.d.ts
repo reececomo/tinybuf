@@ -15,7 +15,7 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
  *
  * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
-export declare enum Type {
+export declare const enum Type {
 	/**
 	 * Unsigned integer (1 - 8 bytes).
 	 * - 0 → 127 = 1 byte
@@ -23,13 +23,13 @@ export declare enum Type {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	UInt = 0,
+	UInt = "uint",
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-	UInt8 = 1,
+	UInt8 = "uint8",
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-	UInt16 = 2,
+	UInt16 = "uint16",
 	/** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-	UInt32 = 3,
+	UInt32 = "uint32",
 	/**
 	 * Signed integer (1 - 8 bytes).
 	 * - 0 → ±64 = 1 byte
@@ -37,42 +37,42 @@ export declare enum Type {
 	 * - ±8,193 → ±268,435,456 = 4 bytes
 	 * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	Int = 4,
+	Int = "int",
 	/** Signed 1 byte integer (between -127 and 127). */
-	Int8 = 5,
+	Int8 = "int8",
 	/** Signed 2 byte integer (between -32,767 and 32,767). */
-	Int16 = 6,
+	Int16 = "int16",
 	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-	Int32 = 7,
+	Int32 = "int32",
 	/** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
-	Float64 = 8,
+	Float64 = "f64",
 	/** Floating-point number (32-bit, single precision, 4 bytes). */
-	Float32 = 9,
+	Float32 = "f32",
 	/**
 	 * Floating-point number (16-bit, half precision, 2 bytes).
 	 *
 	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
-	Float16 = 10,
+	Float16 = "f16",
 	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar8 = 11,
+	Scalar8 = "scal8",
 	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar8 = 12,
+	UScalar8 = "uscal8",
 	/**
 	 * Boolean value (1 byte).
 	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
-	Bool = 13,
+	Bool = "bool",
 	/** Any array of booleans (1 bit overhead, encoded as UInt). */
-	Bools = 14,
+	Bools = "bools",
 	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-	Buffer = 15,
+	Buffer = "bytes",
 	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
-	String = 16,
+	String = "str",
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = 17,
+	JSON = "json",
 	/** JavaScript regular expression. */
-	RegExp = 18,
+	RegExp = "regex",
 	/**
 	 * JavaScript date object.
 	 *
@@ -81,7 +81,7 @@ export declare enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = 19
+	Date = "date"
 }
 /**
  * Mappings for the value types.
