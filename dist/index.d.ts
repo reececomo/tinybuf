@@ -23,13 +23,13 @@ export declare const enum Type {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	UInt = "uint",
+	UInt = "ui",
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-	UInt8 = "uint8",
+	UInt8 = "ui8",
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-	UInt16 = "uint16",
+	UInt16 = "ui16",
 	/** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-	UInt32 = "uint32",
+	UInt32 = "ui32",
 	/**
 	 * Signed integer (1 - 8 bytes).
 	 * - 0 → ±64 = 1 byte
@@ -37,13 +37,13 @@ export declare const enum Type {
 	 * - ±8,193 → ±268,435,456 = 4 bytes
 	 * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	Int = "int",
+	Int = "i",
 	/** Signed 1 byte integer (between -127 and 127). */
-	Int8 = "int8",
+	Int8 = "i8",
 	/** Signed 2 byte integer (between -32,767 and 32,767). */
-	Int16 = "int16",
+	Int16 = "i16",
 	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-	Int32 = "int32",
+	Int32 = "i32",
 	/** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
 	Float64 = "f64",
 	/** Floating-point number (32-bit, single precision, 4 bytes). */
@@ -55,24 +55,24 @@ export declare const enum Type {
 	 */
 	Float16 = "f16",
 	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar8 = "scal8",
+	Scalar8 = "s8",
 	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar8 = "uscal8",
+	UScalar8 = "us8",
 	/**
 	 * Boolean value (1 byte).
 	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
-	Bool = "bool",
+	Bool = "bl",
 	/** Any array of booleans (1 bit overhead, encoded as UInt). */
-	Bools = "bools",
+	Bools = "bls",
 	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-	Buffer = "bytes",
+	Buffer = "buf",
 	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
 	String = "str",
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = "json",
+	JSON = "jsn",
 	/** JavaScript regular expression. */
-	RegExp = "regex",
+	RegExp = "reg",
 	/**
 	 * JavaScript date object.
 	 *
@@ -81,7 +81,7 @@ export declare const enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = "date"
+	Date = "dt"
 }
 /**
  * Mappings for the value types.
