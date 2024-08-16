@@ -179,28 +179,17 @@ export const dateCoder: BinaryTypeCoder<Date> = {
   $read: (reader) => new Date(intCoder.$read(reader)),
 };
 
-export const stringCoder: BinaryTypeCoder<string> = {
-  $write: (value, writer) => {
-    const bytes = $utf8encode(value ?? '');
-    bufferCoder.$write(bytes, writer);
-  },
-  $read: (reader) => {
-    const bytes = bufferCoder.$read(reader);
-    return $utf8decode(bytes);
-  },
-};
-
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
   $write: (value, writer) => {
-    if (value.byteLength == null) throw new Error(`not a buffer (reason 2:  ${value} ${value.constructor})`);
-    if (!(value instanceof ArrayBuffer) && !ArrayBuffer.isView(value)) throw new Error(`not a buffer (reason 1) ${value} ${(value as any).constructor}`);
-    uintCoder.$write(value.byteLength, writer); // header byte (length)
+    uintCoder.$write(value.byteLength, writer); // prefix length
     writer.$writeBytes(value);
   },
-  $read: (reader) => {
-    const bytes = uintCoder.$read(reader);
-    return reader.$readBytes(bytes);
-  },
+  $read: (reader) => reader.$readBytes(uintCoder.$read(reader)),
+};
+
+export const stringCoder: BinaryTypeCoder<string> = {
+  $write: (value, writer) => bufferCoder.$write($utf8encode(value), writer),
+  $read: (reader) => $utf8decode(bufferCoder.$read(reader)),
 };
 
 export const boolCoder: BinaryTypeCoder<boolean> = {
@@ -210,7 +199,7 @@ export const boolCoder: BinaryTypeCoder<boolean> = {
 
 export const boolsCoder: BinaryTypeCoder<boolean[]> = {
   $write: (value, writer) => {
-    if (value.length > 28) value = value.slice(0, 28); // stored as UInt
+    if (value.length > 28) value = value.slice(0, 28); // drop additional
     uintCoder.$write(mask(value), writer);
   },
   $read: (reader) => unmask(uintCoder.$read(reader)),

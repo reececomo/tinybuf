@@ -15,7 +15,7 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
  *
  * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
-export declare enum Type {
+export declare const enum Type {
 	/**
 	 * Unsigned integer (1 - 8 bytes).
 	 * - 0 → 127 = 1 byte

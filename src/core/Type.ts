@@ -3,7 +3,7 @@
  *
  * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
  */
-export enum Type {
+export const enum Type {
   /**
    * Unsigned integer (1 - 8 bytes).
    * - 0 → 127 = 1 byte
