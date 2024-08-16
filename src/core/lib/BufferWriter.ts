@@ -58,7 +58,7 @@ export class BufferWriter {
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
     if (b.byteLength == null) {
-      throw new Error(`buffer had null byteLength: ${b.byteLength} - (buffer is null: ${b == null}) (stringified: ${JSON.stringify(b)})`)
+      throw new Error(`buffer had null byteLength: ${b.byteLength} - (buffer is null: ${b == null}) (stringified: ${JSON.stringify(b)}) (b instanceof string: ${typeof b === 'string'} (ab: ${b instanceof ArrayBuffer}) (abv: ${ArrayBuffer.isView(b)})`)
     }
     // allocate bytes first
     const lol = this.i;
