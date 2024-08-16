@@ -38,18 +38,18 @@ export interface BinaryTypeCoder<T, R = T> {
  */
 export const uintCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
-    if (value < MAX_VARUINT8) {
-      writer.$writeUint8(value);
-    }
-    else if (value < MAX_VARUINT16) {
-      writer.$writeUint16(value + 0x8000);
-    }
-    else if (value < MAX_VARUINT32) {
-      writer.$writeUint32(value + 0xc0000000);
-    }
-    else {
+    if (typeof value !== 'number') value = Number(value);
+    if (value < 0) value = 0;
+    if (value < MAX_VARUINT8) writer.$writeUint8(value);
+    else if (value < MAX_VARUINT16) writer.$writeUint16(value + 0x8000);
+    else if (value < MAX_VARUINT32) writer.$writeUint32(value + 0xc0000000);
+    else if (value >= MAX_VARUINT32) {
       writer.$writeUint32($floor(value / POW_32) + 0xe0000000);
       writer.$writeUint32(value >>> 0);
+    }
+    else {
+      // coercion case
+      writer.$writeUint8(value as any === true ? 1 : 0);
     }
   },
   $read: (reader) => {
@@ -95,20 +95,18 @@ export const uint32Coder: BinaryTypeCoder<number> = {
  */
 export const intCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
-    if (value >= -MAX_VARINT8 && value < MAX_VARINT8) {
-      writer.$writeUint8(value & 0x7f);
-    }
-    else if (value >= -MAX_VARINT16 && value < MAX_VARINT16) {
-      writer.$writeUint16((value & 0x3fff) + 0x8000);
-    }
-    else if (value >= -MAX_VARINT32 && value < MAX_VARINT32) {
-      writer.$writeUint32((value & 0x1fffffff) + 0xc0000000);
+    if (typeof value !== 'number') value = Number(value);
+    if (value >= -MAX_VARINT8 && value < MAX_VARINT8) writer.$writeUint8(value & 0x7f);
+    else if (value >= -MAX_VARINT16 && value < MAX_VARINT16) writer.$writeUint16((value & 0x3fff) + 0x8000);
+    else if (value >= -MAX_VARINT32 && value < MAX_VARINT32) writer.$writeUint32((value & 0x1fffffff) + 0xc0000000);
+    else if (value < -MAX_VARINT32 || value >= MAX_VARINT32) {
+      // Split in two 32b uints
+      writer.$writeUint32(($floor(value / POW_32) & 0x1fffffff) + 0xe0000000);
+      writer.$writeUint32(value >>> 0);
     }
     else {
-      const intValue = value;
-      // Split in two 32b uints
-      writer.$writeUint32(($floor(intValue / POW_32) & 0x1fffffff) + 0xe0000000);
-      writer.$writeUint32(intValue >>> 0);
+      // coercion case
+      writer.$writeUint8(value as any === true ? 0x7f : 0);
     }
   },
   $read: (reader) => {

@@ -23,6 +23,23 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
+
+    it('coerces to positive integers', () => {
+      check(coder, NaN, 0);
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, 23.5, 23);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, 0); // no wraparound
+      check(coder, -2323, 0); // no wraparound
+    });
+
+    it('floors negatives and invalid to zero', () => {
+      check(coder, NaN, 0);
+      check(coder, '-2323' as any, 0); // no wraparound
+      check(coder, -2323, 0); // no wraparound
+    });
   });
 
   describe('intCoder', () => {
@@ -41,6 +58,22 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
+
+    it('coerces to integers', () => {
+      check(coder, NaN, 0);
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, 23.5, 23);
+      check(coder, -23.5, -23);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, -2323);
+      check(coder, -2323, -2323);
+    });
+
+    it('floors invalid to zero', () => {
+      check(coder, NaN, 0);
+    });
   });
 
   describe('int8Coder', () => {
@@ -53,6 +86,15 @@ describe('coders', () => {
         const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
+    });
+
+    it('defaults to Int8Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, -19); // wraparound
+      check(coder, -2323, -19); // wraparound
     });
   });
 
@@ -67,6 +109,15 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
+
+    it('defaults to Int16Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, -2323); // wraparound
+      check(coder, -2323, -2323); // wraparound
+    });
   });
 
   describe('int32Coder', () => {
@@ -79,6 +130,15 @@ describe('coders', () => {
         const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
+    });
+
+    it('defaults to Int32Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, -2323); // wraparound
+      check(coder, -2323, -2323); // wraparound
     });
   });
 
@@ -93,6 +153,15 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
+
+    it('defaults to Uint8Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, 237); // wraparound
+      check(coder, -2323, 237); // wraparound
+    });
   });
 
   describe('uint16Coder', () => {
@@ -106,6 +175,15 @@ describe('coders', () => {
         expect(decoded).toEqual(value);
       });
     });
+
+    it('defaults to Uint16Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, 63213); // wraparound
+      check(coder, -2323, 63213); // wraparound
+    });
   });
 
   describe('uint32Coder', () => {
@@ -118,6 +196,15 @@ describe('coders', () => {
         const decoded: number = read(coder, encoded);
         expect(decoded).toEqual(value);
       });
+    });
+
+    it('defaults to Uint32Array coercion', () => {
+      check(coder, '23' as any, 23);
+      check(coder, { x: 23 } as any, 0);
+      check(coder, false as any, 0);
+      check(coder, true as any, 1);
+      check(coder, '-2323' as any, 4294964973); // wraparound
+      check(coder, -2323, 4294964973); // wraparound
     });
   });
 
@@ -353,7 +440,7 @@ function check<T, R = T>(type: BinaryTypeCoder<T>, inputValue: T, expectedDecode
   const encodedBytes = write(type, inputValue);
   const decodedValue = read(type, encodedBytes);
 
-  expect(decodedValue).toEqual(expectedDecodedValue ?? inputValue);
+  expect(decodedValue).toStrictEqual(expectedDecodedValue ?? inputValue);
 }
 
 function write<T>(coder: any, value: T): Uint8Array {
