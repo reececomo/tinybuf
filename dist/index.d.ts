@@ -23,13 +23,13 @@ export declare enum Type {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	UInt = "u",
+	UInt = 0,
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-	UInt8 = "u8",
+	UInt8 = 1,
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-	UInt16 = "u16",
+	UInt16 = 2,
 	/** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-	UInt32 = "u32",
+	UInt32 = 3,
 	/**
 	 * Signed integer (1 - 8 bytes).
 	 * - 0 → ±64 = 1 byte
@@ -37,42 +37,42 @@ export declare enum Type {
 	 * - ±8,193 → ±268,435,456 = 4 bytes
 	 * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	Int = "i",
+	Int = 4,
 	/** Signed 1 byte integer (between -127 and 127). */
-	Int8 = "i8",
+	Int8 = 5,
 	/** Signed 2 byte integer (between -32,767 and 32,767). */
-	Int16 = "i16",
+	Int16 = 6,
 	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-	Int32 = "i32",
+	Int32 = 7,
 	/** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
-	Float64 = "f64",
+	Float64 = 8,
 	/** Floating-point number (32-bit, single precision, 4 bytes). */
-	Float32 = "f32",
+	Float32 = 9,
 	/**
 	 * Floating-point number (16-bit, half precision, 2 bytes).
 	 *
 	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
-	Float16 = "f16",
+	Float16 = 10,
 	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar8 = "s8",
+	Scalar8 = 11,
 	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar8 = "us8",
+	UScalar8 = 12,
 	/**
 	 * Boolean value (1 byte).
 	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
-	Bool = "bl",
+	Bool = 13,
 	/** Any array of booleans (1 bit overhead, encoded as UInt). */
-	Bools = "bls",
+	Bools = 14,
 	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-	Buffer = "buf",
+	Buffer = 15,
 	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
-	String = "str",
+	String = 16,
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = "jsn",
+	JSON = 17,
 	/** JavaScript regular expression. */
-	RegExp = "reg",
+	RegExp = 18,
 	/**
 	 * JavaScript date object.
 	 *
@@ -81,7 +81,7 @@ export declare enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = "dt"
+	Date = 19
 }
 /**
  * Mappings for the value types.

@@ -58,7 +58,7 @@ export class BufferWriter {
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
     if (b.byteLength == null) {
-      throw new Error(`buffer had null byteLength: ${b.byteLength} - (buffer is null: ${b == null}) (stringified: ${JSON.stringify(b)}) (b instanceof string: ${typeof b === 'string'} (ab: ${b instanceof ArrayBuffer}) (abv: ${ArrayBuffer.isView(b)})`)
+      throw new Error(`buffer had null byteLength: ${b.byteLength} - (buffer is null: ${b == null}) (stringified: ${JSON.stringify(b)}) (b instanceof string: ${typeof b === 'string'} (ab: ${b instanceof ArrayBuffer}) (abv: ${ArrayBuffer.isView(b)})`);
     }
     // allocate bytes first
     const lol = this.i;
@@ -67,14 +67,14 @@ export class BufferWriter {
     console.log(`buffer: allocating ${j} for a total of ${this._$dataView.byteLength}`);
 
     let bBytes: Uint8Array;
-      try {
-       bBytes = ArrayBuffer.isView(b)
-       ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
-       : new Uint8Array(b);
-      }
-      catch (error) {
-        throw new Error('failed to copy bytes reason 11'); // FIXME: remove
-      }
+    try {
+      bBytes = ArrayBuffer.isView(b)
+        ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+        : new Uint8Array(b);
+    }
+    catch (error) {
+      throw new Error('failed to copy bytes reason 11'); // FIXME: remove
+    }
 
     // copy bytes
     let newView: Uint8Array;
@@ -90,7 +90,7 @@ export class BufferWriter {
     catch (error) {
       throw new Error('failed to copy bytes reason 33'); // FIXME: remove
     }
-    
+
   }
 
   // ----- Private methods: -----
