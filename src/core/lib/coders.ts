@@ -180,8 +180,14 @@ export const dateCoder: BinaryTypeCoder<Date> = {
 };
 
 export const stringCoder: BinaryTypeCoder<string> = {
-  $write: (value, writer) => bufferCoder.$write($utf8encode(value ?? ''), writer),
-  $read: (reader) => $utf8decode(bufferCoder.$read(reader)),
+  $write: (value, writer) => {
+    const bytes = $utf8encode(value ?? '');
+    bufferCoder.$write(bytes, writer);
+  },
+  $read: (reader) => {
+    const bytes = bufferCoder.$read(reader);
+    return $utf8decode(bytes);
+  },
 };
 
 export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Array> = {
@@ -189,7 +195,10 @@ export const bufferCoder: BinaryTypeCoder<ArrayBuffer | ArrayBufferView, Uint8Ar
     uintCoder.$write(value.byteLength, writer); // header byte (length)
     writer.$writeBytes(value);
   },
-  $read: (reader) => reader.$readBytes(uintCoder.$read(reader)),
+  $read: (reader) => {
+    const bytes = uintCoder.$read(reader);
+    return reader.$readBytes(bytes);
+  },
 };
 
 export const boolCoder: BinaryTypeCoder<boolean> = {

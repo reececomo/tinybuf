@@ -60,12 +60,33 @@ export class BufferWriter {
     // allocate bytes first
     const j = this._$alloc(b.byteLength);
 
-    const bBytes: Uint8Array = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
-      : new Uint8Array(b);
+    console.log(`buffer: allocating ${j} for a total of ${this._$dataView.byteLength}`);
+
+    let bBytes: Uint8Array
+      try {
+       bBytes = ArrayBuffer.isView(b)
+       ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+       : new Uint8Array(b);
+      }
+      catch (error) {
+        throw new Error('failed to copy bytes reason 11'); // FIXME: remove
+      }
 
     // copy bytes
-    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength).set(bBytes);
+    let newView: Uint8Array;
+    try {
+      newView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength);
+    }
+    catch (error) {
+      throw new Error('failed to copy bytes reason 61'); // FIXME: remove
+    }
+    try {
+      newView.set(bBytes);
+    }
+    catch (error) {
+      throw new Error('failed to copy bytes reason 33'); // FIXME: remove
+    }
+    
   }
 
   // ----- Private methods: -----
