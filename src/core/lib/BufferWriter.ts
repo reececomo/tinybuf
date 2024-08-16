@@ -57,13 +57,16 @@ export class BufferWriter {
   }
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
+    if (b.byteLength == null) {
+      throw new Error(`buffer had null byteLength: ${b.byteLength} - (buffer is null: ${b == null}) (stringified: ${JSON.stringify(b)})`)
+    }
     // allocate bytes first
     const lol = this.i;
     const j = this._$alloc(b.byteLength);
 
     console.log(`buffer: allocating ${j} for a total of ${this._$dataView.byteLength}`);
 
-    let bBytes: Uint8Array
+    let bBytes: Uint8Array;
       try {
        bBytes = ArrayBuffer.isView(b)
        ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
