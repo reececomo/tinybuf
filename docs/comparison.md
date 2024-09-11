@@ -1,32 +1,37 @@
 ## 🏓 Comparison Table
 
-> {!TIP]
-> Looking for [Types?](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
+> [!TIP]
+> Looking for [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)?
 
 
-Here are some use cases stacked uup.
+Here are some use cases stacked up.
 
 | | **tinybuf** | **FlatBuffers** | **Protocol&nbsp;Buffers** | **Raw&nbsp;JSON** |
 | --------------------------------------------- | :------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: | :----------------------------: |
-| **Serialization format** | Binary | Binary | Binary | String |
-| **Schema definition** | Native | [.fbs files](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [.proto files](https://protobuf.dev/programming-guides/proto3/) | Native |
-| **TypeScript Types** | Native | Code generation | Code generation | Native |
-| **External tooling dependencies** | None | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) | None<sup>*</sup> | N/A |
-| **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes&nbsp;(minified) |
-| **Fast & efficient** | 🟢 | 🟢 | 🟢 | 🔴 |
-| **16-bit floats** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Boolean arrays** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Scalar types** | 🟢 | 🔴 | 🔴 | 🔴 |
-| **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
-| **Property mangling** | 🟢 | 🟡 | 🔴 | 🔴 |
-| **Suitable for real-time data** | 🟢 | 🟢 | 🟡 | 🔴 |
-| **Suitable for web APIs** | 🔴 | 🔴 | 🟢 | 🟢 |
+| **Serialization format** | `Uint8Array` | `Uint8Array` | `Uint8Array \| JSON` | `JSON` |
+| **Schema definition** | inline | [.fbs](https://flatbuffers.dev/flatbuffers_guide_writing_schema.html) | [.proto](https://protobuf.dev/programming-guides/proto3/) | manual |
+| **External compiler deps** | none | [cmake](https://cmake.org/download/) and [flatc](https://github.com/google/flatbuffers/releases) | none<sup>*</sup> | none |
+| **TypeScript types** | automatic | generated | generated | manual |
+| **Reference data size<sup>†</sup>** | 34 bytes | 68 bytes | 72 bytes | 175&nbsp;bytes |
+| **Ease-of-use** | 🟢 | 🔴 |🟢 | 🟢 |
+| **Serialization speed** | 🟢 | 🟢 | 🟡 | 🔴 |
+| **Memory use** | 🟢<sup>#</sup> | 🟢 | 🔴 | 🔴 |
+| **Property mangling support** | 🟢 | 🟡 | 🔴 | 🔴 |
+| **Suitability for web APIs** | 🔴 | 🔴 | 🟢 | 🟢 |
+| **Suitability for games<br/>/ real-time applications** | 🟢 | 🟢 | 🟡 | 🔴 |
 | **Supports HTML5 / Node.js** | 🟢 | 🟢 | 🟢 | 🟢 |
-| **Cross-language (Java, C++, Python, etc.)** | 🔴 | 🟢 | 🟢 | 🟢 |
+| **Supports other languages<br/>(e.g. C, C++, Java, Python)** | 🔴 | 🟢 | 🟢 | 🟢 |
+| **float16 / bfloat16 encoding** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **scalar encoding** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **boolarray encoding** | 🟢 | 🔴 | 🔴 | 🔴 |
+| **Arbitrary JSON** | 🟢 | 🔴 | 🔴 | 🟢 |
+| **Arbitrary buffer-like data** | 🟢 | 🔴 | 🔴 | 🟢 |
 
 <sup>†</sup>Based on the <i>Reference data</i> formats and schemas
 
 <sup>\*</sup>When using `protobufjs`
+
+<sup>\#</sup>When decoding in-place, and encoding with shared buffer.
 
 <details>
 <summary>See <i>Reference data</i></summary>

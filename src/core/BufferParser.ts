@@ -21,7 +21,8 @@ export const bufferParser = (): BufferParser => new BufferParser();
 
 export class BufferParser {
   /** @internal */
-  private _$formats = new Map<Uint16FormatHeader, [AnyFormat, (data: any) => any]>();
+  private _$formats = new Map<Uint16FormatHeader, [format: AnyFormat, handler: (data: any) => any, decodeInPlace: boolean]>();
+  private _$data = new Map<Uint16FormatHeader, any>(); // used when decoding in-place
 
   /**
    * Decode an array buffer and trigger the relevant data handler.
@@ -31,7 +32,7 @@ export class BufferParser {
    * @throws {TinybufError} if fails to decode, or no handler is registered
    */
   public processBuffer(b: ArrayBuffer | ArrayBufferView): void {
-    let f: any, data: any, cb: (data: any) => any;
+    let f: any, data: any, cb: (data: any) => any, r: boolean;
 
     try {
       const header = peekHeader(b);
@@ -40,8 +41,10 @@ export class BufferParser {
         throw new TinybufError(`Unknown format: ${header} '${$hashCodeToStr(header)}')`);
       }
 
-      [f, cb] = this._$formats.get(header);
-      data = f.decode(b);
+      [f, cb, r] = this._$formats.get(header);
+      if (r) data = this._$data.get(header) ?? {};
+      data = f.decode(b, data);
+      if (r) this._$data.set(header, data);
     }
     catch (e) {
       const err = new TinybufError(`Failed to decode: ${e}`);
@@ -59,7 +62,9 @@ export class BufferParser {
   public on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(
     format: BufferFormat<EncoderType, string | number>,
     callback: (data: DecodedType) => any,
-    overwritePrevious: boolean = false,
+    {
+      decodeInPlace = false,
+    } = {},
   ): this {
     if (format.header == null) {
       throw new TinybufError('Format requires header');
@@ -67,23 +72,24 @@ export class BufferParser {
 
     const header = typeof format.header === 'string' ? $strToHashCode(format.header) : format.header;
 
-    if (this._$formats.has(header) && !overwritePrevious) {
+    if (this._$formats.has(header) && this._$formats.get(header)?.[0] !== format) {
       throw new TinybufError(`Format header collision: ${format.header}`);
     }
 
-    this._$formats.set(header, [format, callback]);
+    this._$formats.set(header, [format, callback, decodeInPlace]);
 
     return this;
   }
 
   /** Register a format (or formats) that are recognized. */
   public ignore(...format: AnyFormat[]): this {
-    format.forEach(f => this.on(f, () => {}, true));
+    format.forEach(f => this.on(f, () => {}));
     return this;
   }
 
   /** Clears all registered formats and handlers. */
   public clear(): void {
     this._$formats.clear();
+    this._$data.clear();
   }
 }

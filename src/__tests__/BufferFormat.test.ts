@@ -31,6 +31,119 @@ describe('BufferFormat', () => {
     });
   });
 
+  it('can decode into an existing deep object to preserve memory', () => {
+    const input1 = MyBufferFormat.encode({
+      a: 1,
+      b: [1, 2, 3],
+      c: [
+        { d: "lorem" },
+        { d: "ipsum" },
+      ],
+    }, true);
+    const input2 = MyBufferFormat.encode({
+      a: 1,
+      b: [5, 6, 7],
+      c: [
+        { d: "dolor" },
+        { d: "sit" },
+      ],
+    }, true);
+    const input3WithShorterArrs = MyBufferFormat.encode({
+      a: 2,
+      b: [8, 9],
+      c: [
+        { d: "amet" },
+      ],
+    }, true);
+    const input4WithLongerArrs = MyBufferFormat.encode({
+      a: 2,
+      b: [1, 2, 3, 4],
+      c: [
+        { /* no d */ },
+        { d: "lorem" },
+        { d: "ipsum" },
+        { d: "dolor" },
+      ],
+    }, true);
+
+    // Create memory
+    const obj: Partial<Decoded<typeof MyBufferFormat>> = {};
+
+    MyBufferFormat.decode(input1, obj);
+    expect(obj).toStrictEqual({
+      a: 1,
+      b: [1, 2, 3],
+      c: [
+        { d: "lorem" },
+        { d: "ipsum" },
+      ],
+    });
+
+    const objB1 = obj.b;
+    const objC1D1 = obj.c![0];
+    const objC1D2 = obj.c![1];
+
+    // sanity check, props exist
+    expect(objC1D1).toStrictEqual({ d: "lorem" });
+
+    MyBufferFormat.decode(input2, obj);
+    expect(obj).toStrictEqual({
+      a: 1,
+      b: [5, 6, 7],
+      c: [
+        { d: "dolor" },
+        { d: "sit" },
+      ],
+    });
+
+    expect(objB1).toBe(obj.b); // same length arrays are re-used
+    expect(objC1D1).toBe(obj.c![0]); // object instances are re-used
+
+    MyBufferFormat.decode(input3WithShorterArrs, obj);
+    expect(obj).toStrictEqual({
+      a: 2,
+      b: [8, 9],
+      c: [
+        { d: "amet" },
+      ],
+    });
+
+    const objB2 = obj.b;
+    expect(objB1).not.toBe(objB2); // shorter arrays trigger new array instance
+    expect(objC1D1).toBe(obj.c![0]); // but underlying object instances ARE recycled
+
+    MyBufferFormat.decode(input4WithLongerArrs, obj);
+    expect(obj).toStrictEqual({
+      a: 2,
+      b: [1, 2, 3, 4],
+      c: [
+        { d: undefined },
+        { d: "lorem" },
+        { d: "ipsum" },
+        { d: "dolor" },
+      ],
+    });
+
+    expect(objB2).not.toBe(obj.b); // longer arrays trigger new array instance also
+    expect(objC1D1).toBe(obj.c![0]); // underlying object instances ARE recycled
+    expect(objC1D2).not.toBe(obj.c![1]); // ...but only when they existed in the previous instance
+  });
+
+  it('can decode a bools bitmask in-place', () => {
+    const MyBoolsFormat = defineFormat({
+      bools: Type.Bools,
+    });
+
+    const bytes1 = MyBoolsFormat.encode({ bools: [true, false, true]}, true);
+    const decoded1 = MyBoolsFormat.decode(bytes1);
+    expect(decoded1.bools).toStrictEqual([true, false, true]);
+
+    const bytes2 = MyBoolsFormat.encode({ bools: [false, false, true]}, true);
+    const decoded2 = MyBoolsFormat.decode(bytes2, decoded1);
+    expect(decoded2.bools).toStrictEqual([false, false, true]);
+    expect(decoded1.bools).toStrictEqual([false, false, true]); // should be over-written
+  });
+
   it('should encode all types', () => {
     const MyCoder = defineFormat({
       myBuffer: Type.Buffer,
@@ -52,6 +165,7 @@ describe('BufferFormat', () => {
         myUInt32: Type.UInt32,
         myUInt8: Type.UInt8,
         myNestedArray: [{
+          myBFloat16: Type.BFloat16,
           myFloat16: Type.Float16,
           myFloat32: Type.Float32,
           myFloat64: Type.Float64,
@@ -86,11 +200,13 @@ describe('BufferFormat', () => {
         myUInt8: 1,
         myNestedArray: [
           {
+            myBFloat16: 1.2265625,
             myFloat16: 1.23046875,
             myFloat32: 1.2300000190734863,
             myFloat64: 1.23,
           },
           {
+            myBFloat16: 1.2265625,
             myFloat16: 1.23046875,
             myFloat32: 1.2300000190734863,
             myFloat64: 1.23,
@@ -335,21 +451,6 @@ describe('transforms and validation', () => {
 
     expect(() => MyCoder.encode({ id: 21 })).not.toThrow();
     expect(() => MyCoder.encode({ id: 19 })).toThrow();
-  });
-
-  it('can use transforms to improve accuracy of lossy types', () => {
-    let MyCoder = defineFormat({ ball: { rotation: Type.Float16 } });
-
-    const input = { ball: { rotation: 3.1419 }};
-    expect(MyCoder.decode(MyCoder.encode(input)).ball.rotation).toBe(3.142578125);
-
-    MyCoder = defineFormat({ ball: { rotation: Type.Float16 } })
-      .setTransforms({
-        ball: { rotation: [ x => x * 1_000, x => x * 0.001 ] }
-      });
-
-    expect(input.ball.rotation).toBe(3.1419);
-    expect(MyCoder.decode(MyCoder.encode(input)).ball.rotation).toBe(3.142);
   });
 
   it('should handle advanced case', () => {

@@ -1,7 +1,7 @@
 /**
  * Field types for defining encoding formats.
  *
- * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
+ * @see [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)
  */
 export const enum Type {
   /**
@@ -47,11 +47,18 @@ export const enum Type {
   Float32,
 
   /**
-   * Floating-point number (16-bit, half precision, 2 bytes).
+   * Floating-point number (16-bit in FP16 format, half precision, 2 bytes).
    *
    * **Warning:** Low precision; maximum range: ±65,504.
    */
   Float16,
+
+  /**
+   * Floating-point number (16-bit in BF16 format, half precision, 2 bytes).
+   *
+   * **Warning:** Very low precision.
+   */
+  BFloat16,
 
   /** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
   Scalar8,
@@ -106,6 +113,7 @@ export type ValueTypes = {
   [Type.Float64]: number;
   [Type.Float32]: number;
   [Type.Float16]: number;
+  [Type.BFloat16]: number;
   [Type.Scalar8]: number;
   [Type.UScalar8]: number;
   [Type.Bool]: boolean;

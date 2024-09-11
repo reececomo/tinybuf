@@ -237,8 +237,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * Decode binary data to an object.
    * @throws if fails to decode bytes to schema.
    */
-  public decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType {
-    return this._$read(new BufferReader(b, this.header === undefined ? 0 : 2));
+  public decode<DecodedType = InferredDecodedType<EncoderType>>(
+    bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
+    decodeInto?: Partial<DecodedType>,
+  ): DecodedType {
+    return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), decodeInto);
   }
 
   /**
@@ -391,53 +394,51 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @internal
    */
-  private _$read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader): DecodedType {
+  private _$read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader, obj?: Partial<DecodedType>): DecodedType {
     // This function will be executed only the first time to compile the read routine.
     // After that, we'll compile the read routine and add it directly to the instance
 
     // Update the read method implementation.
     this._$read = this._$compileFormatReadFn();
 
-    return this._$read(state);
+    return this._$read(state, obj);
   }
 
   /**
    * Generate read function code for this coder.
    *
    * @example
-   * // new Type({a:'int', 'b?':['string']}) would emit:
-   *
-   * `return {
-   *   a: this._readField(0, state),
-   *   b: this._readField(1, state),
-   * }`
+   * let v=o??{};
+   * v.prop1=this._$readField(0,s,o);
+   * v.prop2=this._$readField(1,s,o);
+   * return v
    *
    * @internal
    */
-  private _$makeObjectReader(): string {
+  private _$makeObjectReadFnBody(): string {
     const fieldsStr: string = this._$fields
-      .map(({ $name: name }, i) => `${name}:this.${this._$readField.name}(${i},state)`)
-      .join(',');
+      .map(({ $name: n }, i) => `v.${n}=this.${this._$readField.name}(${i},s,v.${n})`)
+      .join(';');
 
-    return `return{${fieldsStr}}`;
+    return `let v=o??{};${fieldsStr};return v;`;
   }
 
   /**
    * Read an individual field.
    * @internal
    */
-  private _$readField(fieldId: number, state: BufferReader): any {
-    const field = this._$fields[fieldId];
+  private _$readField(fieldIndex: number, state: BufferReader, obj?: any): any {
+    const field = this._$fields[fieldIndex];
 
     if (field.$isOptional && !coders.boolCoder.$read(state)) {
       return undefined;
     }
 
     if (field.$isArray) {
-      return this._$readArray(field.$coder, state);
+      return this._$readArray(field.$coder, state, obj);
     }
 
-    return field.$coder._$read(state);
+    return field.$coder._$read(state, obj);
   }
 
   /**
@@ -445,16 +446,16 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @internal
    */
-  private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader) => DecodedType {
+  private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader, obj: Partial<DecodedType> | undefined) => DecodedType {
     if (this._$type !== undefined) {
-      // object type
+      // scalar type
       return this._$hasValidationOrTransforms
         ? (s) => this._$postprocess(readers[this._$type](s))
         : readers[this._$type];
     }
 
-    // scalar type
-    return new Function('state', this._$makeObjectReader()) as any;
+    // object type
+    return new Function('s', 'o',  this._$makeObjectReadFnBody()) as any;
   }
 
   /**
@@ -475,10 +476,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @throws if invalid data
    * @internal
    */
-  private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any): Array<T> {
-    const arr = new Array(/* length: */ coders.uintCoder.$read(state));
+  private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any, obj?: Array<T>): Array<T> {
+    const len = coders.uintCoder.$read(state);
+    const arr = obj?.length === len ? obj : new Array(len);
     for (let j = 0; j < arr.length; j++) {
-      arr[j] = type._$read(state);
+      arr[j] = type._$read(state, obj?.[j]);
     }
     return arr;
   }

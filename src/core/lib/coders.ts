@@ -11,6 +11,7 @@ import { mask, unmask } from './bitmask';
 import { $utf8decode, $utf8encode } from './utf8';
 import { $floor } from './math';
 import { $fromf16, $tof16 } from './float16';
+import { $frombf16, $tobf16 } from './bfloat16';
 
 // Pre-calculated constants
 const MAX_VARUINT8 = 128,
@@ -21,20 +22,20 @@ const MAX_VARUINT8 = 128,
   MAX_VARINT32 = 268_435_456,
   POW_32 = 0x100000000;
 
-type WriterFn<T> = (value: T, writer: BufferWriter) => void;
-type ReaderFn<T> = (reader: BufferReader) => T;
+type WriterFn<W> = (value: W, writer: BufferWriter) => void;
+type ReaderFn<R> = (reader: BufferReader, overwrite?: Partial<R>) => R;
 
-export interface BinaryTypeCoder<T, R = T> {
-  $write: WriterFn<T>;
+export interface BinaryTypeCoder<W, R = W> {
+  $write: WriterFn<W>;
   $read: ReaderFn<R>;
 }
 
 /**
  * Format (big-endian):
- * 7b   0xxx xxxx
- * 14b  10xx xxxx  xxxx xxxx
- * 29b  110x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
- * 61b  111x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
+ * 7b   0xxxxxxx
+ * 14b  10xxxxxx xxxxxxxx
+ * 29b  110xxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+ * 61b  111xxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
  */
 export const uintCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
@@ -88,10 +89,10 @@ export const uint32Coder: BinaryTypeCoder<number> = {
 
 /**
  * Format (big-endian):
- * 7b   0xxx xxxx
- * 14b  10xx xxxx  xxxx xxxx
- * 29b  110x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
- * 61b  111x xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx  xxxx xxxx
+ * 7b   0xxxxxxx
+ * 14b  10xxxxxx xxxxxxxx
+ * 29b  110xxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+ * 61b  111xxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
  */
 export const intCoder: BinaryTypeCoder<number> = {
   $write: (value, writer) => {
@@ -147,6 +148,11 @@ export const int32Coder: BinaryTypeCoder<number> = {
   $read: (reader) => reader.$readInt32(),
 };
 
+export const bfloat16Coder: BinaryTypeCoder<number> = {
+  $write: (value, writer) => writer.$writeUint16($tobf16(value)),
+  $read: (reader) => $frombf16(reader.$readUint16()),
+};
+
 export const float16Coder: BinaryTypeCoder<number> = {
   $write: (value, writer) => writer.$writeUint16($tof16(value)),
   $read: (reader) => $fromf16(reader.$readUint16()),
@@ -200,7 +206,7 @@ export const boolsCoder: BinaryTypeCoder<boolean[]> = {
     if (value.length > 28) value = value.slice(0, 28); // drop additional
     uintCoder.$write(mask(value), writer);
   },
-  $read: (reader) => unmask(uintCoder.$read(reader)),
+  $read: (reader, p) => unmask(uintCoder.$read(reader), p),
 };
 
 export const jsonCoder: BinaryTypeCoder<any> = {
@@ -220,49 +226,52 @@ export const regexCoder: BinaryTypeCoder<RegExp> = {
 };
 
 /** @see {Type} indices must match */
-export const writers: Record<Type, WriterFn<any>> = {
-  [Type.UInt]: uintCoder.$write,
-  [Type.UInt8]: uint8Coder.$write,
-  [Type.UInt16]: uint16Coder.$write,
-  [Type.UInt32]: uint32Coder.$write,
-  [Type.Int]: intCoder.$write,
-  [Type.Int8]: int8Coder.$write,
-  [Type.Int16]: int16Coder.$write,
-  [Type.Int32]: int32Coder.$write,
-  [Type.Float64]: float64Coder.$write,
-  [Type.Float32]: float32Coder.$write,
-  [Type.Float16]: float16Coder.$write,
-  [Type.Scalar8]: scalar8Coder.$write,
-  [Type.UScalar8]: uscalar8Coder.$write,
-  [Type.Bool]: boolCoder.$write,
-  [Type.Bools]: boolsCoder.$write,
-  [Type.Buffer]: bufferCoder.$write,
-  [Type.String]: stringCoder.$write,
-  [Type.JSON]: jsonCoder.$write,
-  [Type.RegExp]: regexCoder.$write,
-  [Type.Date]: dateCoder.$write,
-};
+export const writers: Record<Type, WriterFn<any>> = [
+  uintCoder.$write,
+  uint8Coder.$write,
+  uint16Coder.$write,
+  uint32Coder.$write,
+  intCoder.$write,
+  int8Coder.$write,
+  int16Coder.$write,
+  int32Coder.$write,
+  float64Coder.$write,
+  float32Coder.$write,
+  float16Coder.$write,
+  bfloat16Coder.$write,
+  scalar8Coder.$write,
+  uscalar8Coder.$write,
+  boolCoder.$write,
+  boolsCoder.$write,
+  bufferCoder.$write,
+  stringCoder.$write,
+  jsonCoder.$write,
+  regexCoder.$write,
+  dateCoder.$write,
+];
 
 /** @see {Type} indices must match */
-export const readers: Record<Type, ReaderFn<any>> = {
-  [Type.UInt]: uintCoder.$read,
-  [Type.UInt8]: uint8Coder.$read,
-  [Type.UInt16]: uint16Coder.$read,
-  [Type.UInt32]: uint32Coder.$read,
-  [Type.Int]: intCoder.$read,
-  [Type.Int8]: int8Coder.$read,
-  [Type.Int16]: int16Coder.$read,
-  [Type.Int32]: int32Coder.$read,
-  [Type.Float64]: float64Coder.$read,
-  [Type.Float32]: float32Coder.$read,
-  [Type.Float16]: float16Coder.$read,
-  [Type.Scalar8]: scalar8Coder.$read,
-  [Type.UScalar8]: uscalar8Coder.$read,
-  [Type.Bool]: boolCoder.$read,
-  [Type.Bools]: boolsCoder.$read,
-  [Type.Buffer]: bufferCoder.$read,
-  [Type.String]: stringCoder.$read,
-  [Type.JSON]: jsonCoder.$read,
-  [Type.RegExp]: regexCoder.$read,
-  [Type.Date]: dateCoder.$read,
-};
+
+export const readers: Record<Type, ReaderFn<any>> = [
+  uintCoder.$read,
+  uint8Coder.$read,
+  uint16Coder.$read,
+  uint32Coder.$read,
+  intCoder.$read,
+  int8Coder.$read,
+  int16Coder.$read,
+  int32Coder.$read,
+  float64Coder.$read,
+  float32Coder.$read,
+  float16Coder.$read,
+  bfloat16Coder.$read,
+  scalar8Coder.$read,
+  uscalar8Coder.$read,
+  boolCoder.$read,
+  boolsCoder.$read,
+  bufferCoder.$read,
+  stringCoder.$read,
+  jsonCoder.$read,
+  regexCoder.$read,
+  dateCoder.$read,
+];
