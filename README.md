@@ -10,7 +10,7 @@
 | 🗜️ Powerful [compression](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) | 💾 >50% smaller than [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
 | 🌐 Node / browser | 🛡️ Built-in validation/transforms |
-| 🤏 `~4.5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
+| 🤏 `~4.1kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
 ## 💿 Install
 
