@@ -1,15 +1,24 @@
 ## 🗜️ Compression and Serialization
-***tinybuf** comes with powerful encoding types & transforms to make data tiny*
+***tinybuf** comes with powerful encoding types & transforms to compress network data*
 
-You likely won't need to [optimize](https://xkcd.com/1691/) compression beyond the default types.
+For most cases [you won't want to optimize too soon](https://xkcd.com/1691/), but in a number of cases you can use smart types to reduce the amount 
 
-> It is highly recommended to read the materials by Glenn Fiedler on [Serialization Strategies: Serializing Floating Point Values](https://gafferongames.com/post/serialization_strategies/#serializing_floating_point_values) and [State Synchronization: Quantize Both Sides](https://gafferongames.com/post/state_synchronization/#quantize_both_sides).
+> [!TIP]
+> For game serialization strategies, check out Glenn Fiedler's materials on [Serialization Strategies: Serializing Floating Point Values](https://gafferongames.com/post/serialization_strategies/#serializing_floating_point_values) and [State Synchronization: Quantize Both Sides](https://gafferongames.com/post/state_synchronization/#quantize_both_sides).
 
 ### Serializing Floats
 
-In JavaScript, all numbers are stored as 64-bit (8-byte) floating-point numbers (or "floats"). These take up a whopping **8 bytes** each!
+The default `number` type in JavaScript is an IEEE double-precision floating-point number (AKA "float64" or "double"). Encoded in full, every one of these values is **8 bytes**, which can stack up quickly when serializing a large number of attributes and objects.
 
-Most of the meaningful gains will come out of compressing floats, including those in 2D or 3D vectors and quaternions. You can compress all visual-only quantities without issue - i.e. if you are using [Snapshot Compression Netcode](https://gafferongames.com/post/snapshot_compression/), or updating elements of a [HUD](https://en.wikipedia.org/wiki/Head-up_display).
+| **Type** | **Bytes** | **Quantization function** | **Usage** |
+| --- | :-: | --- | --- |
+| `Type.Float64` | **8** | - | Physics quantities. |
+| `Type.Float32` | **4** | `Math.fround(x)`| Visual quantities, physics quantities. |
+| `Type.Float16` | **2** | `fround16(x)` | Visual quantities, limited physics quantities - i.e. safe for numbers in the range ±65,504, with the smallest precision ±0.00011839976. |
+| `Type.BFloat16` | **2** | `bfround16(x)` | Visual quantities. Same range as float32, but much lower precision, particularly for larger numbers. |
+| `Type.Scalar` | **1** | `scalround(x)` | Visual quantities, vector normals, analog player inputs - e.g. _joystick axis_. Values from -1.00 to 1.00. |
+| `Type.UScalar` | **1** | `uscalround(x)` | Visual quantities - e.g. _healthbar_. Values from 0.00 to 1.00. |
+| `Type.Int` | **1-2**<sup>\*</sup> | `x \| 0` | Visual quantities. \*Up to 4-8 bytes for very large values (see [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)). |
 
 #### Quantizing Physics
 
@@ -27,17 +36,6 @@ updateLoop() {
   world.update(GameWorldFormat.decode(encoded))
 }
 ```
-
-For more manual approaches, here are the is a list of the various quantization (rounding) functions for each number type:
-
-| **Type** | **Bytes** | **Quantization function** | **Use Cases** |
-| --- | :-: | --- | --- |
-| `Type.Float64` | **8** | _n/a_ | Physics values. |
-| `Type.Float32` | **4** | `Math.fround(x)` (built-in) | Visual values, physics values. |
-| `Type.Float16` | **2** | `fround16(x)` | Limited visual values, limited physics values - i.e. safe for numbers in the range ±65,504, with the smallest precision ±0.00011839976. |
-| `Type.Scalar` | **1** | `scalarRound(x)` | Player inputs - e.g. _analog player input (joystick)_. Values from -1.00 to 1.00. |
-| `Type.UScalar` | **1** | `uScalarRound(x)` | Visual values - e.g. _a health bar_. Values from 0.00 to 1.00. |
-| `Type.Int` | **1-2**<sup>\*</sup> | `Math.round(x)` | Visual values. \*Up to 4-8 bytes for larger values (see [Types](#types)). |
 
 ### Custom Transforms
 

@@ -7,10 +7,10 @@
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
-| 🗜️ Powerful & performant compression | 💾 ^50% smaller vs. [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
+| 🗜️ Powerful [compression](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) | 💾 >50% smaller than [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
 | 🌐 Node / browser | 🛡️ Built-in validation/transforms |
-| 🤏 `~4kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
+| 🤏 `~4.5kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
 
 ## 💿 Install
 
@@ -56,30 +56,33 @@ bytes.byteLength
 ```ts
 import { bufferParser } from 'tinybuf'
 
-// register formats
+// register format handlers
 const parser = bufferParser()
-  .on(GameWorldData, (data) => myWorld.update(data))
-  .on(MyChatMessage, (chat) => myHud.showChat(chat));
+  .on(MyChatMessage, (chat) => myHud.showChat(chat))
+  .on(GameWorldData, (data) => myWorld.update(data), {
+    decodeInPlace: true, // recycle memory
+  })
 
 // process data
 parser.processBuffer(bytes)
 ```
 
-Or individual:
+Or manually:
 
 ```ts
-const data = GameWorldData.decode(bytes);
+// simple:
+let data = GameWorldData.decode(bytes);
+
+// in-place:
+let data = {};
+GameWorldData.decode(bytes, data);
 ```
 
 ## 📘 Documentation
-|                  |
-| ---------------- |
-| 🏁  [Quick start](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md) |
-| 🤔  [Types table](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types) |
-| 💀  [Async / safe mode](https://github.com/reececomo/tinybuf/blob/main/docs/safe_encode.md) |
-| 📑  [Custom headers](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md) |
-| 🗜️  [Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md) |
-| ✨  [Validation & transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
+|                  | |
+| ---------------- | :--- |
+| 🏁 **Quick start:** | [Quick start guide](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md),<br/>[Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) |
+| 📑 **Advanced:** | [Async safety mode](https://github.com/reececomo/tinybuf/blob/main/docs/safe_encode.md),<br/>[Format header collisions](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md),<br/>[Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md),<br/>[Validation/transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
 
 ## Credits
 

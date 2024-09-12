@@ -1,4 +1,5 @@
 import { f16round, $tof16, $fromf16 } from "../core/lib/float16";
+import * as util from "./helpers";
 
 describe('f16round', () => {
   it('rounds to the nearest float16 for a given native float', () => {
@@ -62,10 +63,10 @@ describe('$f16mask', () => {
     expect($tof16(-65_504)).toBe(0b00000000000000001111101111111111);
     expect($tof16(-65_504)).toBe(0b1111101111111111);
 
-    expect(asUint16Str($tof16(-65_504))).toBe('1111101111111111');
-    expect(asInt32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
-    expect(asUint32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
-    expect(asInt64Str(BigInt($tof16(-65_504)))).toBe('0000000000000000000000000000000000000000000000001111101111111111');
+    expect(util.asUint16Str($tof16(-65_504))).toBe('1111101111111111');
+    expect(util.asInt32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
+    expect(util.asUint32Str($tof16(-65_504))).toBe('00000000000000001111101111111111');
+    expect(util.asInt64Str(BigInt($tof16(-65_504)))).toBe('0000000000000000000000000000000000000000000000001111101111111111');
   });
 
   it('should NOT equal its own raw float64 representation', () => {
@@ -98,8 +99,8 @@ test('mask / unmask basic compatibility', () => {
 test('performance benchmark: f16round() faster than native Math.fround()', () => {
   const iterations = 1_000_000;
   const inputs = Array.from({ length: iterations }, () => Math.random() > 0.5
-    ? getRandomFloat(-1, 1) // mix small floats (e.g. vector normals)
-    : getRandomFloat(-70_000, 70_000) // and larger floats
+    ? util.getRandomFloat(-1, 1) // mix small floats (e.g. vector normals)
+    : util.getRandomFloat(-70_000, 70_000) // and larger floats
   );
 
   // native Math.fround() - float32s:
@@ -128,19 +129,3 @@ test('performance benchmark: f16round() faster than native Math.fround()', () =>
     console.warn(`f16round() (${f16duration.toFixed(3)}ms) vs Math.fround() (${f32duration.toFixed(3)}ms) for ${iterations} iterations`);
   }
 });
-
-function asUint16Str(val: number): string {
-  return new Uint16Array([val])[0].toString(2).padStart(16, '0');
-}
-function asUint32Str(val: number): string {
-  return new Uint32Array([val])[0].toString(2).padStart(32, '0');
-}
-function asInt32Str(val: number): string {
-  return new Int32Array([val])[0].toString(2).padStart(32, '0');
-}
-function asInt64Str(val: bigint): string {
-  return new BigInt64Array([val])[0].toString(2).padStart(64, '0');
-}
-function getRandomFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}

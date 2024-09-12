@@ -97,7 +97,7 @@ describe('buffer parser', () => {
       expect(() => binaryHandler.on(format, () => {})).toThrow(TinybufError);
     });
 
-    it('throws error if registering the same format twice', () => {
+    it('throws error if registering identical format header twice, and its a different instance', () => {
       const binaryHandler = bufferParser()
         .on(new BufferFormat({ a: [Type.String] }), () => {});
 
@@ -106,13 +106,51 @@ describe('buffer parser', () => {
       expect(() => binaryHandler.on(identicalFormat, () => {})).toThrow(TinybufError);
     });
 
-    it('does not error if registering the same format twice and `overwritePrevious` is set', () => {
+    it('does not error if registering the same instance twice', () => {
+      const formatA = new BufferFormat({ a: [Type.String] });
+
       const binaryHandler = bufferParser()
-        .on(new BufferFormat({ a: [Type.String] }), () => {});
+        .on(formatA, () => {});
 
-      const identicalFormat = new BufferFormat({ a: [Type.String] });
+      expect(() => binaryHandler.on(formatA, () => {})).not.toThrow(TinybufError);
+    });
 
-      expect(() => binaryHandler.on(identicalFormat, () => {}, true)).not.toThrow(TinybufError);
+    it('allocs new memory for decoded data by default', () => {
+      const formatA = new BufferFormat({ a: [Type.String] });
+
+      let aRefs: Array<any>[] = [];
+
+      const binaryHandler = bufferParser()
+        .on(formatA, (data) => aRefs.push(data.a));
+
+      const bytes1 = formatA.encode({ a: ["abc", "def"] }, true);
+      const bytes2 = formatA.encode({ a: ["def", "ghi"] }, true);
+
+      binaryHandler.processBuffer(bytes1);
+      expect(aRefs[0]).toStrictEqual(["abc", "def"]);
+
+      binaryHandler.processBuffer(bytes2);
+      expect(aRefs[0]).toStrictEqual(["abc", "def"]); // safe usage - new obj/arrays always allocated
+      expect(aRefs[1]).toStrictEqual(["def", "ghi"]);
+    });
+
+    it('recycles memory for formats created with decodeInPlace set to true ', () => {
+      const formatA = new BufferFormat({ a: [Type.String] });
+
+      let aRefs: Array<any>[] = [];
+
+      const binaryHandler = bufferParser()
+        .on(formatA, (data) => aRefs.push(data.a), { decodeInPlace: true });
+
+      const bytes1 = formatA.encode({ a: ["abc", "def"] }, true);
+      const bytes2 = formatA.encode({ a: ["def", "ghi"] }, true);
+
+      binaryHandler.processBuffer(bytes1);
+      expect(aRefs[0]).toStrictEqual(["abc", "def"]);
+
+      binaryHandler.processBuffer(bytes2);
+      expect(aRefs[0]).toStrictEqual(["def", "ghi"]); // unsafe usage - the underlying array was recycled from the previous decode.
+      expect(aRefs[1]).toStrictEqual(["def", "ghi"]);
     });
   });
 });

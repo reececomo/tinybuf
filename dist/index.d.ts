@@ -13,7 +13,7 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
 /**
  * Field types for defining encoding formats.
  *
- * @see [Get started: Types](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md#types)
+ * @see [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)
  */
 export declare const enum Type {
 	/**
@@ -49,30 +49,36 @@ export declare const enum Type {
 	/** Floating-point number (32-bit, single precision, 4 bytes). */
 	Float32 = 9,
 	/**
-	 * Floating-point number (16-bit, half precision, 2 bytes).
+	 * Floating-point number (16-bit in FP16 format, half precision, 2 bytes).
 	 *
 	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
 	Float16 = 10,
+	/**
+	 * Floating-point number (16-bit in BF16 format, half precision, 2 bytes).
+	 *
+	 * **Warning:** Very low precision.
+	 */
+	BFloat16 = 11,
 	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar8 = 11,
+	Scalar8 = 12,
 	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar8 = 12,
+	UScalar8 = 13,
 	/**
 	 * Boolean value (1 byte).
 	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
-	Bool = 13,
+	Bool = 14,
 	/** Any array of booleans (1 bit overhead, encoded as UInt). */
-	Bools = 14,
+	Bools = 15,
 	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-	Buffer = 15,
+	Buffer = 16,
 	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
-	String = 16,
+	String = 17,
 	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = 17,
+	JSON = 18,
 	/** JavaScript regular expression. */
-	RegExp = 18,
+	RegExp = 19,
 	/**
 	 * JavaScript date object.
 	 *
@@ -81,7 +87,7 @@ export declare const enum Type {
 	 *
 	 * @see {Date}
 	 */
-	Date = 19
+	Date = 20
 }
 /**
  * Mappings for the value types.
@@ -98,6 +104,7 @@ export type ValueTypes = {
 	[Type.Float64]: number;
 	[Type.Float32]: number;
 	[Type.Float16]: number;
+	[Type.BFloat16]: number;
 	[Type.Scalar8]: number;
 	[Type.UScalar8]: number;
 	[Type.Bool]: boolean;
@@ -255,7 +262,7 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
 	 */
-	decode<DecodedType = InferredDecodedType<EncoderType>>(b: Uint8Array | ArrayBufferView | ArrayBuffer): DecodedType;
+	decode<DecodedType = InferredDecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, decodeInto?: Partial<DecodedType>): DecodedType;
 	/**
 	 * Set additional transform functions to apply before encoding and after decoding.
 	 */
@@ -282,6 +289,7 @@ export type AnyFormat = BufferFormat<any, any>;
  */
 export declare const bufferParser: () => BufferParser;
 export declare class BufferParser {
+	private _$data;
 	/**
 	 * Decode an array buffer and trigger the relevant data handler.
 	 *
@@ -293,7 +301,9 @@ export declare class BufferParser {
 	/**
 	 * Register a format handler.
 	 */
-	on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(format: BufferFormat<EncoderType, string | number>, callback: (data: DecodedType) => any, overwritePrevious?: boolean): this;
+	on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(format: BufferFormat<EncoderType, string | number>, callback: (data: DecodedType) => any, { decodeInPlace, }?: {
+		decodeInPlace?: boolean;
+	}): this;
 	/** Register a format (or formats) that are recognized. */
 	ignore(...format: AnyFormat[]): this;
 	/** Clears all registered formats and handlers. */
@@ -304,6 +314,11 @@ export declare class BufferParser {
  * @param x A numeric expression.
  */
 export declare function f16round(x: number): number;
+/**
+ * Returns the nearest bfloat16 representation of a number.
+ * @param x A numeric expression.
+ */
+export declare function bf16round(x: number): number;
 /**
  * Quantize a number to an 8-bit scalar between 0.0 and 1.0.
  *
@@ -327,9 +342,10 @@ export declare const mask: (x: boolean[], padBit?: 0 | 1) => number;
  * Unmask booleans from a uint32.
  *
  * @param x - A uint32 number.
- * @param len - number of booleans to expect (default: infer lenth from x where x is encoded with a pad bit)
+ * @param l - number of booleans to expect (default: infer lenth from x where x is encoded with a pad bit)
+ * or pass an existing boolean array to decode in-place.
  */
-export declare const unmask: (x: number, len?: number) => boolean[];
+export declare const unmask: (x: number, l?: number | boolean[]) => boolean[];
 export declare class TinybufError extends Error {
 }
 /** Set Tinybuf global config */

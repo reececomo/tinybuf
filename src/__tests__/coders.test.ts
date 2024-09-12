@@ -436,20 +436,20 @@ describe('coders', () => {
 // ----- Helpers: -----
 //
 
-function check<T, R = T>(type: BinaryTypeCoder<T>, inputValue: T, expectedDecodedValue?: R): void {
+function check<W, R = W>(type: BinaryTypeCoder<W, R>, inputValue: W, expectedDecodedValue?: R): void {
   const encodedBytes = write(type, inputValue);
   const decodedValue = read(type, encodedBytes);
 
   expect(decodedValue).toStrictEqual(expectedDecodedValue ?? inputValue);
 }
 
-function write<T>(coder: any, value: T): Uint8Array {
+function write<W>(coder: any, value: W): Uint8Array {
   const  data = new BufferWriter(64);
   coder.$write(value, data);
   return data.$viewBytes();
 }
 
-function read<T>(type: BinaryTypeCoder<T>, bytes: Uint8Array, ): T {
+function read<W, R>(type: BinaryTypeCoder<W, R>, bytes: Uint8Array): R {
   const state = new BufferReader(bytes);
   const r = type.$read(state);
   expect(state.i).toBe(bytes.byteLength); // hasEnded
