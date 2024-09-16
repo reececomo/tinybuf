@@ -7,7 +7,7 @@
 | | |
 | --------------------------------- | ---------------------------------------- |
 | 🔮 Simple, declarative API | 🔥 Blazing fast serialization |
-| 🗜️ Powerful [compression](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) | 💾 >50% smaller than [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
+| 🗜️ Powerful [compression](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) | 💾 ^50% smaller than [FlatBuffers](https://github.com/reececomo/tinybuf/blob/main/docs/comparison.md) |
 | 🍃 Zero dependencies | 🙉 Strong, inferred types |
 | 🌐 Node / browser | 🛡️ Built-in validation/transforms |
 | 🤏 `~4.1kb` minzipped | ✅ Property mangling ([Terser](https://terser.org/)) |
@@ -24,63 +24,106 @@ npm install tinybuf
 import { defineFormat, Type } from 'tinybuf';
 
 export const GameWorldData = defineFormat({
-  world: {
-    seqNo: Type.UInt,
-    time: Type.Float16
-  },
-  players: [{
-    id: Type.UInt,
-    position: {
-      x: Type.Float32,
-      y: Type.Float32
-    },
-    input: {
-      xAnalog: Type.Scalar8,
-      buttons: Type.Bools,  // e.g. [jump, attack]
+  frameNo: Type.UInt,
+  timeRemaining: Type.Float16,
+  players: [
+    {
+      id: Type.UInt,
+      position: {
+        x: Type.Float32,
+        y: Type.Float32
+      },
+      joystick: {
+        x: Type.Scalar8,
+        y: Type.Scalar8
+      },
+      actions: Type.Bools // [ jump, attack ]
     }
-  }]
+  ]
 });
 ```
 
-#### Encode
+### Encode
+
+Formats can be encoded directly:
 
 ```ts
-const bytes = GameWorldData.encode({ /*…*/ });
+let bytes = GameWorldData.encode({
+  frameNo: 50,
+  timeRemaining: 59.334,
+  players: [
+    {
+      id: 1,
+      position: { x: 123.5, y: 456.75 },
+      joystick: { x: 0.75, y: -0.662 },
+      actions: [ /* jump: */ true,
+               /* attack: */ false ]
+    }
+  ]
+});
 
 bytes.byteLength
-// 15
+// 16
 ```
 
-#### Decode
+Or directly from objects:
 
 ```ts
-import { bufferParser } from 'tinybuf'
+let bytes = GameWorldData.encode( obj );
 
-// register format handlers
+bytes.byteLength
+// 16
+```
+
+### Decode
+
+Formats can be read in a number of ways:
+
+1. Simple &ndash; decode to object
+2. In-place &ndash; decode into an existing object
+3. Parser &ndash; register / decode many formats
+
+#### Simple
+
+Decode as a strongly-typed object.
+
+```ts
+let obj = GameWorldData.decode( bytes );
+// { frameNo: number; timeRemaining: number; … }
+```
+
+#### In-place
+
+Use for memory effiency - extract fields directly into an existing object instance. This prevents allocating new memory.
+
+```ts
+let obj: Decoded<typeof GameWorldData> = {} as any;
+
+GameWorldData.decode( bytes, obj );
+```
+
+#### Parser &ndash; Decoding registered formats
+
+- Register formats with `.on(format, handler, options?)`
+- Trigger format handlers with `.processBuffer(bytes)`
+
+```ts
+import { bufferParser } from 'tinybuf';
+
+// register
 const parser = bufferParser()
-  .on(MyChatMessage, (chat) => myHud.showChat(chat))
-  .on(GameWorldData, (data) => myWorld.update(data), {
-    decodeInPlace: true, // recycle memory
-  })
+  .on(MyChatMessage, msg => myHud.showChat(msg))
+  .on(GameWorldData, data => myWorld.update(data), {
+    decodeInPlace: true, // `data` gets recycled
+  });
 
-// process data
-parser.processBuffer(bytes)
-```
-
-Or manually:
-
-```ts
-// simple:
-let data = GameWorldData.decode(bytes);
-
-// in-place:
-let data = {};
-GameWorldData.decode(bytes, data);
+// parse
+parser.processBuffer( bytes );
 ```
 
 ## 📘 Documentation
-|                  | |
-| ---------------- | :--- |
+| | |
+| --- | :--- |
 | 🏁 **Quick start:** | [Quick start guide](https://github.com/reececomo/tinybuf/blob/main/docs/get_started.md),<br/>[Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md) |
 | 📑 **Advanced:** | [Async safety mode](https://github.com/reececomo/tinybuf/blob/main/docs/safe_encode.md),<br/>[Format header collisions](https://github.com/reececomo/tinybuf/blob/main/docs/format_headers.md),<br/>[Compression tips](https://github.com/reececomo/tinybuf/blob/main/docs/compression_tips.md),<br/>[Validation/transforms](https://github.com/reececomo/tinybuf/blob/main/docs/validation_and_transforms.md) |
 
