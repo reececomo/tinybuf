@@ -74,7 +74,7 @@ export class BufferReader {
   /** @throws RangeError if exceeds length */
   public $readBytes(bytes: number): Uint8Array {
     if (this._$dataView.byteOffset + this.i + bytes > this._$dataView.byteLength) {
-      throw new RangeError('exceeded bytes');
+      throw new RangeError("exceeded bytes");
     }
 
     const view = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + this.i, bytes);

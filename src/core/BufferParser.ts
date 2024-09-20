@@ -67,10 +67,10 @@ export class BufferParser {
     } = {},
   ): this {
     if (format.header == null) {
-      throw new TinybufError('Format requires header');
+      throw new TinybufError("Format requires header");
     }
 
-    const header = typeof format.header === 'string' ? $strToHashCode(format.header) : format.header;
+    const header = typeof format.header === "string" ? $strToHashCode(format.header) : format.header;
 
     if (this._$formats.has(header) && this._$formats.get(header)?.[0] !== format) {
       throw new TinybufError(`Format header collision: ${format.header}`);

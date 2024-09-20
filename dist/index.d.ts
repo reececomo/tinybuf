@@ -15,7 +15,7 @@ export declare function peekHeaderStr(b: ArrayBuffer | ArrayBufferView): string;
  *
  * @see [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)
  */
-export declare const enum Type {
+export declare const Type: {
 	/**
 	 * Unsigned integer (1 - 8 bytes).
 	 * - 0 → 127 = 1 byte
@@ -23,13 +23,13 @@ export declare const enum Type {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	UInt = 0,
+	readonly UInt: "uint";
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-	UInt8 = 1,
+	readonly UInt8: "u8";
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-	UInt16 = 2,
+	readonly UInt16: "u16";
 	/** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-	UInt32 = 3,
+	readonly UInt32: "u32";
 	/**
 	 * Signed integer (1 - 8 bytes).
 	 * - 0 → ±64 = 1 byte
@@ -37,58 +37,58 @@ export declare const enum Type {
 	 * - ±8,193 → ±268,435,456 = 4 bytes
 	 * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	Int = 4,
+	readonly Int: "int";
 	/** Signed 1 byte integer (between -127 and 127). */
-	Int8 = 5,
+	readonly Int8: "i8";
 	/** Signed 2 byte integer (between -32,767 and 32,767). */
-	Int16 = 6,
+	readonly Int16: "i16";
 	/** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-	Int32 = 7,
+	readonly Int32: "i32";
 	/** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
-	Float64 = 8,
+	readonly Float64: "f64";
 	/** Floating-point number (32-bit, single precision, 4 bytes). */
-	Float32 = 9,
+	readonly Float32: "f32";
 	/**
 	 * Floating-point number (16-bit in FP16 format, half precision, 2 bytes).
 	 *
 	 * **Warning:** Low precision; maximum range: ±65,504.
 	 */
-	Float16 = 10,
+	readonly Float16: "f16";
 	/**
 	 * Floating-point number (16-bit in BF16 format, half precision, 2 bytes).
 	 *
-	 * **Warning:** Very low precision.
+	 * **Warning:** Low precision.
 	 */
-	BFloat16 = 11,
-	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-	Scalar8 = 12,
-	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-	UScalar8 = 13,
+	readonly BFloat16: "b16";
+	/** A signed 2-decimal scalar between -1.00 and 1.00 (1 byte). */
+	readonly Scalar8: "sc";
+	/** An unsigned 2-decimal scalar between 0.00 and 1.00 (1 byte). */
+	readonly UScalar8: "usc";
 	/**
 	 * Boolean value (1 byte).
 	 * @see {Bools} for packing multiple booleans into a single byte.
 	 */
-	Bool = 14,
+	readonly Bool: "bl";
 	/** Any array of booleans (1 bit overhead, encoded as UInt). */
-	Bools = 15,
+	readonly Bools: "bls";
 	/** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-	Buffer = 16,
+	readonly Buffer: "buf";
 	/** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
-	String = 17,
-	/** Any JSON-serializable data. Encodes as a UTF-8 string. */
-	JSON = 18,
-	/** JavaScript regular expression. */
-	RegExp = 19,
+	readonly String: "str";
+	/** Any JSON data (encodes as UTF-8). */
+	readonly JSON: "jsn";
+	/** JavaScript RegExp object. */
+	readonly RegExp: "re";
 	/**
-	 * JavaScript date object.
+	 * JavaScript Date object.
 	 *
 	 * Encoded as an 8 byte (64-bit) integer UTC timestamp from as the number
 	 * of milliseconds since the Unix Epoch (January 1, 1970, 00:00:00 UTC).
 	 *
 	 * @see {Date}
 	 */
-	Date = 20
-}
+	readonly Date: "dt";
+};
 /**
  * Mappings for the value types.
  */

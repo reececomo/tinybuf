@@ -4,6 +4,7 @@
     "newline-before-return": 0,
     "prefer-const": 0,
     "no-fallthrough": 0,
+    "quotes": [1, "double"],
     "@typescript-eslint/no-duplicate-enum-values": 0,
     "@typescript-eslint/no-inferrable-types": 0,
     "@typescript-eslint/no-explicit-any": 0,

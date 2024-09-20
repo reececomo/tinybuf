@@ -12,6 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "stripInternal": true,
+    "preserveConstEnums": true,
     "types": []
   },
   "include": ["src"],

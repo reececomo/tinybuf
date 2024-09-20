@@ -1,7 +1,7 @@
 import { scalround, uscalround } from "../core/lib/scalar";
 
-describe('scalround', () => {
-  it('should quantize numbers to the nearest 8-bit scalar for positive values', () => {
+describe("scalround", () => {
+  it("should quantize numbers to the nearest 8-bit scalar for positive values", () => {
     expect(scalround(0.0)).toBeCloseTo(0);
 
     expect(scalround(0.01)).toBeCloseTo(0.01);
@@ -15,7 +15,7 @@ describe('scalround', () => {
     expect(scalround(0.57)).toBeCloseTo(0.57);
   });
 
-  it('should quantize numbers to the nearest 8-bit scalar for negative values', () => {
+  it("should quantize numbers to the nearest 8-bit scalar for negative values", () => {
     expect(scalround(-0.0)).toBeCloseTo(0);
 
     expect(scalround(-0.01)).toBeCloseTo(-0.01);
@@ -31,8 +31,8 @@ describe('scalround', () => {
   });
 });
 
-describe('uscalround', () => {
-  it('should quantize numbers to the nearest 8-bit unsigned scalar', () => {
+describe("uscalround", () => {
+  it("should quantize numbers to the nearest 8-bit unsigned scalar", () => {
     expect(uscalround(0.0)).toBeCloseTo(0);
 
     expect(uscalround(0.01)).toBeCloseTo(0.01);

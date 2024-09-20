@@ -1,8 +1,8 @@
 import { BufferWriter } from "../core/lib/BufferWriter";
 import { $utf8encode } from "../core/lib/utf8";
 
-describe('BufferWriter', () => {
-  it('sanity check: should dynamically resize underlying array buffer', () => {
+describe("BufferWriter", () => {
+  it("sanity check: should dynamically resize underlying array buffer", () => {
     // Outputs a string with 120 bytes
     const input = "🌍".repeat(48);
 
@@ -18,7 +18,7 @@ describe('BufferWriter', () => {
     expect((writer as any)._$dataView.byteOffset).toBe(0);
     expect((writer as any)._$dataView.byteLength).toBeGreaterThan(32);
 
-    const text = new TextDecoder('utf-8').decode(writer.$copyBytes());
+    const text = new TextDecoder("utf-8").decode(writer.$copyBytes());
     expect(text).toBe(input);
   });
 });
