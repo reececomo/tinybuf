@@ -23,7 +23,7 @@ export declare const Type: {
 	 * - 16,385 → 536,870,911 = 4 bytes
 	 * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	readonly UInt: "u";
+	readonly UInt: "uint";
 	/** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
 	readonly UInt8: "u8";
 	/** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
@@ -37,7 +37,7 @@ export declare const Type: {
 	 * - ±8,193 → ±268,435,456 = 4 bytes
 	 * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
 	 */
-	readonly Int: "i";
+	readonly Int: "int";
 	/** Signed 1 byte integer (between -127 and 127). */
 	readonly Int8: "i8";
 	/** Signed 2 byte integer (between -32,767 and 32,767). */
@@ -60,9 +60,9 @@ export declare const Type: {
 	 * **Warning:** Low precision.
 	 */
 	readonly BFloat16: "b16";
-	/** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
+	/** A signed 2-decimal scalar between -1.00 and 1.00 (1 byte). */
 	readonly Scalar8: "sc";
-	/** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
+	/** An unsigned 2-decimal scalar between 0.00 and 1.00 (1 byte). */
 	readonly UScalar8: "usc";
 	/**
 	 * Boolean value (1 byte).

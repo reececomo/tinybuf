@@ -11,7 +11,7 @@ export const Type = {
    * - 16,385 → 536,870,911 = 4 bytes
    * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  UInt: "u",
+  UInt: "uint",
 
   /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
   UInt8: "u8",
@@ -29,7 +29,7 @@ export const Type = {
    * - ±8,193 → ±268,435,456 = 4 bytes
    * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  Int: "i",
+  Int: "int",
 
   /** Signed 1 byte integer (between -127 and 127). */
   Int8: "i8",
@@ -60,10 +60,10 @@ export const Type = {
    */
   BFloat16: "b16",
 
-  /** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
+  /** A signed 2-decimal scalar between -1.00 and 1.00 (1 byte). */
   Scalar8: "sc",
 
-  /** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
+  /** An unsigned 2-decimal scalar between 0.00 and 1.00 (1 byte). */
   UScalar8: "usc",
 
   /**
