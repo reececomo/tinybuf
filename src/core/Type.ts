@@ -3,7 +3,7 @@
  *
  * @see [Types](https://github.com/reececomo/tinybuf/blob/main/docs/types.md)
  */
-export const enum Type {
+export const Type = {
   /**
    * Unsigned integer (1 - 8 bytes).
    * - 0 → 127 = 1 byte
@@ -11,16 +11,16 @@ export const enum Type {
    * - 16,385 → 536,870,911 = 4 bytes
    * - 536,870,912 → `Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  UInt,
+  UInt: "u",
 
   /** Unsigned 8-bit integer (between 0 and 255, 1 byte). */
-  UInt8,
+  UInt8: "u8",
 
   /** Unsigned 16-bit integer (between 0 and 65,535, 2 bytes). */
-  UInt16,
+  UInt16: "u16",
 
   /** Unsigned 32-bit integer (between 0 and 4,294,967,295, 4 bytes). */
-  UInt32,
+  UInt32: "u32",
 
   /**
    * Signed integer (1 - 8 bytes).
@@ -29,74 +29,77 @@ export const enum Type {
    * - ±8,193 → ±268,435,456 = 4 bytes
    * - ±268,435,457 → ±`Number.MAX_SAFE_INTEGER` = 8 bytes
    */
-  Int,
+  Int: "i",
 
   /** Signed 1 byte integer (between -127 and 127). */
-  Int8,
+  Int8: "i8",
 
   /** Signed 2 byte integer (between -32,767 and 32,767). */
-  Int16,
+  Int16: "i16",
 
   /** Signed 4 byte integer (between -2,147,483,647 and 2,147,483,647). */
-  Int32,
+  Int32: "i32",
 
   /** Default JavaScript `number` type. Floating-point number (64-bit, double precision, 8 bytes). */
-  Float64,
+  Float64: "f64",
 
   /** Floating-point number (32-bit, single precision, 4 bytes). */
-  Float32,
+  Float32: "f32",
 
   /**
    * Floating-point number (16-bit in FP16 format, half precision, 2 bytes).
    *
    * **Warning:** Low precision; maximum range: ±65,504.
    */
-  Float16,
+  Float16: "f16",
 
   /**
    * Floating-point number (16-bit in BF16 format, half precision, 2 bytes).
    *
-   * **Warning:** Very low precision.
+   * **Warning:** Low precision.
    */
-  BFloat16,
+  BFloat16: "b16",
 
   /** A cheap, low-resolution signed scalar between -1.00 and 1.00 (1 byte). */
-  Scalar8,
+  Scalar8: "sc",
 
   /** A cheap, low-resolution unsigned scalar between 0.00 and 1.00 (1 byte). */
-  UScalar8,
+  UScalar8: "usc",
 
   /**
    * Boolean value (1 byte).
    * @see {Bools} for packing multiple booleans into a single byte.
    */
-  Bool,
+  Bool: "bl",
 
   /** Any array of booleans (1 bit overhead, encoded as UInt). */
-  Bools,
+  Bools: "bls",
 
   /** Any ArrayBuffer or ArrayBufferView (e.g. Uint8Array) value (encoded as 1 x UInt for byte length + buffer bytes). */
-  Buffer,
+  Buffer: "buf",
 
   /** A UTF-8 string (encoded as 1 x UInt for UTF-8 byte length + UTF-8 bytes). */
-  String,
+  String: "str",
 
-  /** Any JSON-serializable data. Encodes as a UTF-8 string. */
-  JSON,
+  /** Any JSON data (encodes as UTF-8). */
+  JSON: "jsn",
 
-  /** JavaScript regular expression. */
-  RegExp,
+  /** JavaScript RegExp object. */
+  RegExp: "re",
 
   /**
-   * JavaScript date object.
+   * JavaScript Date object.
    *
    * Encoded as an 8 byte (64-bit) integer UTC timestamp from as the number
    * of milliseconds since the Unix Epoch (January 1, 1970, 00:00:00 UTC).
    *
    * @see {Date}
    */
-  Date,
-}
+  Date: "dt",
+} as const;
+
+export type TypeLiteral = typeof Type[keyof typeof Type];
+export const ValidTypes = Object.values(Type);
 
 /**
  * Mappings for the value types.

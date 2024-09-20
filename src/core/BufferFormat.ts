@@ -1,21 +1,22 @@
-import { writers, readers } from './lib/coders';
-import * as coders from './lib/coders';
-import { $hashCode, $strToHashCode } from './lib/hashCode';
-import { peekHeader, peekHeaderStr } from './lib/peek';
-import { BufferWriter } from './lib/BufferWriter';
-import { BufferReader } from './lib/BufferReader';
+import { writers, readers } from "./lib/coders";
+import * as coders from "./lib/coders";
+import { $hashCode, $strToHashCode } from "./lib/hashCode";
+import { peekHeader, peekHeaderStr } from "./lib/peek";
+import { BufferWriter } from "./lib/BufferWriter";
+import { BufferReader } from "./lib/BufferReader";
 import {
   InferredDecodedType,
   EncoderDefinition,
-  Type,
   MaybeType,
   InferredTransformConfig,
   InferredValidationConfig,
   ValidationFn,
   Transforms,
-  FieldDefinition
-} from './Type';
-import { cfg } from './config';
+  FieldDefinition,
+  TypeLiteral,
+  ValidTypes
+} from "./Type";
+import { cfg } from "./config";
 
 export type FormatHeader = string | number;
 
@@ -50,14 +51,14 @@ export function defineFormat<T extends EncoderDefinition, HeaderType extends str
  */
 export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
 export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(a?: HeaderType | T, b?: T): BufferFormat<T, HeaderType> {
-  return a !== null && typeof a === 'object'
+  return a !== null && typeof a === "object"
     ? new BufferFormat<T, HeaderType>(a as T)
     : new BufferFormat<T, HeaderType>(b as T, a as HeaderType);
 }
 
 function isValidHeader(h: FormatHeader): boolean {
-  if (typeof h === 'number') return Number.isInteger(h) && h >= 0 && h <= 65_535;
-  if (typeof h === 'string') return new TextEncoder().encode(h).byteLength === 2;
+  if (typeof h === "number") return Number.isInteger(h) && h >= 0 && h <= 65_535;
+  if (typeof h === "string") return new TextEncoder().encode(h).byteLength === 2;
   return false;
 }
 
@@ -84,7 +85,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /** @internal */
   private _$header!: number; // always uint16 vesion
   /** @internal */
-  private _$type!: Type;
+  private _$type!: TypeLiteral;
   /** @internal */
   private _$fields!: Field[];
   /** @internal */
@@ -110,11 +111,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     header?: HeaderType | null,
   ) {
     // set definition
-    if (typeof def === 'number' && def >= Type.UInt && def <= Type.Date) {
+    if (typeof def === "string" && ValidTypes.includes(def)) {
       this._$type = def;
     }
     else if (def instanceof MaybeType) {
-      throw new TypeError('Format cannot be optional');
+      throw new TypeError("Format cannot be optional");
     }
     else if (def instanceof Object) {
       this._$type = undefined; // object
@@ -136,14 +137,14 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       }
       else if (isValidHeader(header)) {
         this.header = header; // manual
-        this._$header = typeof header === 'number' ? header : $strToHashCode(header);
+        this._$header = typeof header === "number" ? header : $strToHashCode(header);
       }
       else {
         throw new TypeError(`Header must be uint16, 2 byte string, or null. Received: ${header}`);
       }
     }
     else {
-      throw new TypeError('Format must be object or Type');
+      throw new TypeError(`Format must be object or Type: ${JSON.stringify(def)} ${typeof def} ${ValidTypes[def]}`);
     }
   }
 
@@ -175,7 +176,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private get f(): string {
     if (this._$format === undefined) {
       this._$format = this._$fields !== undefined
-        ? `{${this._$fields.map(v => v.f).join(',')}}`
+        ? `{${this._$fields.map(v => v.f).join(",")}}`
         : `${this._$type}`;
     }
 
@@ -250,7 +251,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
     this._$hasValidationOrTransforms = true;
 
-    if (typeof transforms === 'function' || (Array.isArray(transforms) && typeof transforms[0]  === 'function')) {
+    if (typeof transforms === "function" || (Array.isArray(transforms) && typeof transforms[0]  === "function")) {
       this._$transforms = transforms;
     }
     else {
@@ -277,7 +278,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
     this._$hasValidationOrTransforms = true;
 
-    if (typeof validations === 'function') {
+    if (typeof validations === "function") {
       this._$validate = validations;
     }
     else {
@@ -315,8 +316,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // check for object type
-    if (typeof value !== 'object' || !value) {
-      throw new TypeError('expected object type');
+    if (typeof value !== "object" || !value) {
+      throw new TypeError("expected object type");
     }
 
     // write each field
@@ -354,10 +355,10 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private _$preprocess<T extends Record<string, any>>(data: T): T {
     if (this._$validate) this._$processValidation(data);
 
-    if (typeof this._$transforms === 'function') {
+    if (typeof this._$transforms === "function") {
       return this._$transforms(data);
     }
-    else if (Array.isArray(this._$transforms) && typeof this._$transforms[0] === 'function') {
+    else if (Array.isArray(this._$transforms) && typeof this._$transforms[0] === "function") {
       return this._$transforms[0](data);
     }
 
@@ -369,7 +370,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @internal
    */
   private _$postprocess<T extends Record<string, any>>(data: T): T {
-    if (Array.isArray(this._$transforms) && typeof this._$transforms[1] === 'function') {
+    if (Array.isArray(this._$transforms) && typeof this._$transforms[1] === "function") {
       data = this._$transforms[1](data);
     }
 
@@ -382,7 +383,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     if (!this._$validate) return;
     const res = this._$validate(data);
     if (res instanceof Error) throw res;
-    if (res === false) throw new Error('failed validation');
+    if (res === false) throw new Error("failed validation");
   }
 
   /**
@@ -418,7 +419,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private _$makeObjectReadFnBody(): string {
     const fieldsStr: string = this._$fields
       .map(({ $name: n }, i) => `v.${n}=this.${this._$readField.name}(${i},s,v.${n})`)
-      .join(';');
+      .join(";");
 
     return `let v=o??{};${fieldsStr};return v;`;
   }
@@ -455,7 +456,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // object type
-    return new Function('s', 'o',  this._$makeObjectReadFnBody()) as any;
+    return new Function("s", "o",  this._$makeObjectReadFnBody()) as any;
   }
 
   /**
@@ -507,7 +508,7 @@ class Field {
 
     if (Array.isArray(type)) {
       if (type.length !== 1) {
-        throw new TypeError('Array type must contain exactly one format');
+        throw new TypeError("Array type must contain exactly one format");
       }
 
       type = type[0];
@@ -523,7 +524,7 @@ class Field {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   public get f(): string {
     if (this._$formatString === undefined) {
-      this._$formatString = `${(this.$coder as any).f}${this.$isArray ? '[]' : ''}${this.$isOptional ? '?' : ''}`;
+      this._$formatString = `${(this.$coder as any).f}${this.$isArray ? "[]" : ""}${this.$isOptional ? "?" : ""}`;
     }
 
     return this._$formatString;
