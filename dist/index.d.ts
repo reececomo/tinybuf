@@ -115,6 +115,10 @@ export type ValueTypes = {
 	[Type.RegExp]: RegExp;
 	[Type.Date]: Date;
 };
+/** https://www.totaltypescript.com/concepts/the-prettify-helper */
+export type Pretty<T> = T extends ArrayBuffer | ArrayBufferView | Date | RegExp | Uint8Array ? T : T extends Array<infer U> ? Array<Pretty<U>> : T extends object ? {
+	[K in keyof T]: Pretty<T[K]>;
+} & unknown : T;
 /** @throws any error too */
 export type ValidationFn<T> = (x: T) => undefined | boolean | Error;
 export type TransformFn<T> = (x: T) => T;
@@ -152,41 +156,42 @@ export type FieldDefinition = keyof ValueTypes | [
 /**
  * The resulting type of the decoded data, based on the encoder definition.
  */
-export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
+export type RawDecodedType<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes ? ValueTypes[EncoderType[EKey]] : EncoderType[EKey] extends [
 		keyof ValueTypes
-	] ? Array<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredDecodedType<EncoderType[EKey]> : EncoderType[EKey] extends [
+	] ? Array<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? RawDecodedType<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? Array<InferredDecodedType<EncoderType[EKey][number]>> : never;
+	] ? Array<RawDecodedType<EncoderType[EKey][number]>> : never;
 } & {
 	[EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? EKey : never]?: EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValueTypes[OptionalValue] | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredDecodedType<OptionalValue> | undefined : never;
+	]> ? Array<ValueTypes[OptionalValue[0]]> | undefined : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? RawDecodedType<OptionalValue> | undefined : never;
 };
-export type InferredTransformConfig<EncoderType extends EncoderDefinition> = {
+export type DecodedType<EncoderType extends EncoderDefinition> = Pretty<RawDecodedType<EncoderType>>;
+export type TransformConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? Transforms<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
-	] ? Transforms<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredTransformConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
+	] ? Transforms<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? TransformConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredTransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
+	] ? TransformConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? Transforms<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredTransformConfig<OptionalValue> | undefined : never;
+	]> ? Transforms<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? TransformConfig<OptionalValue> | undefined : never;
 };
-export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
+export type ValidationConfig<EncoderType extends EncoderDefinition> = {
 	[EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes ? ValidationFn<ValueTypes[EncoderType[EKey]]> : EncoderType[EKey] extends [
 		keyof ValueTypes
-	] ? ValidationFn<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? InferredValidationConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
+	] ? ValidationFn<ValueTypes[EncoderType[EKey][0]]> : EncoderType[EKey] extends EncoderDefinition ? ValidationConfig<EncoderType[EKey]> : EncoderType[EKey] extends [
 		EncoderDefinition
-	] ? InferredValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
+	] ? ValidationConfig<EncoderType[EKey][number]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes> ? ValidationFn<ValueTypes[OptionalValue]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [
 		keyof ValueTypes
-	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? InferredValidationConfig<OptionalValue> | undefined : never;
+	]> ? ValidationFn<ValueTypes[OptionalValue[0]]> : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition> ? ValidationConfig<OptionalValue> | undefined : never;
 };
 export type FormatHeader = string | number;
 /**
- * Decoded object types for a given binary format.
- * @example let onData = (data: Decoded<typeof MyBufferFormat>) => {...};
+ * Utility to get the decoded type of a buffer format
+ * @example type Format = Decoded<typeof MyBufferFormat>
  */
-export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+export type Decoded<TBufferFormat> = TBufferFormat extends BufferFormat<infer Format, any> ? DecodedType<Format> : never;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
@@ -198,7 +203,7 @@ export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<in
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export declare function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(def: T): BufferFormat<T, HeaderType>;
+export declare function defineFormat<T extends EncoderDefinition, HeaderType extends FormatHeader = number>(def: T): BufferFormat<T, HeaderType>;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
@@ -210,7 +215,7 @@ export declare function defineFormat<T extends EncoderDefinition, HeaderType ext
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export declare function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
+export declare function defineFormat<T extends EncoderDefinition, HeaderType extends FormatHeader = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
 /**
  * BufferFormat is a utility class for encoding and decoding binary data based
  * on a provided encoding format.
@@ -257,23 +262,23 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @returns a copy of encoded bytes
 	 * @throws if fails to encode value to schema
 	 */
-	encode<DecodedType extends InferredDecodedType<EncoderType>>(data: DecodedType, preserveBytes?: boolean): Uint8Array;
+	encode<TDecodedType extends DecodedType<EncoderType>>(data: TDecodedType, preserveBytes?: boolean): Uint8Array;
 	/**
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
 	 */
-	decode<DecodedType = InferredDecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, decodeInto?: Partial<DecodedType>): DecodedType;
+	decode<TDecodedType = DecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, decodeInto?: Partial<TDecodedType>): TDecodedType;
 	/**
 	 * Set additional transform functions to apply before encoding and after decoding.
 	 */
-	setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this;
+	setTransforms(transforms: TransformConfig<EncoderType> | Transforms<any>): this;
 	/**
 	 * Set additional validation rules which are applied on encode() and decode().
 	 *
 	 * - Validation functions should throw an error, return an error, or return boolean false.
 	 * - Anything else is treated as successfully passing validation.
 	 */
-	setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this;
+	setValidation(validations: ValidationConfig<EncoderType> | ValidationFn<any>): this;
 	private _$processValidation;
 }
 export type AnyFormat = BufferFormat<any, any>;
@@ -301,7 +306,7 @@ export declare class BufferParser {
 	/**
 	 * Register a format handler.
 	 */
-	on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(format: BufferFormat<EncoderType, string | number>, callback: (data: DecodedType) => any, { decodeInPlace, }?: {
+	on<EncoderType extends EncoderDefinition, TDecodedType = DecodedType<EncoderType>>(format: BufferFormat<EncoderType, string | number>, callback: (data: TDecodedType) => any, { decodeInPlace, }?: {
 		decodeInPlace?: boolean;
 	}): this;
 	/** Register a format (or formats) that are recognized. */

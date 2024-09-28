@@ -128,6 +128,11 @@ export type ValueTypes = {
   [Type.Date]: Date;
 };
 
+/** https://www.totaltypescript.com/concepts/the-prettify-helper */
+type Pretty<T> = T extends ArrayBuffer | ArrayBufferView | Date | RegExp | Uint8Array ? T
+  : T extends Array<infer U> ? Array<Pretty<U>>
+  : T extends object ? {[K in keyof T]: Pretty<T[K]>} & unknown : T;
+
 /** @throws any error too */
 export type ValidationFn<T> = (x: T) => undefined | boolean | Error;
 export type TransformFn<T> = (x: T) => T;
@@ -162,15 +167,15 @@ export type FieldDefinition = keyof ValueTypes | [keyof ValueTypes] | EncoderDef
 /**
  * The resulting type of the decoded data, based on the encoder definition.
  */
-export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
+type RawDecodedType<EncoderType extends EncoderDefinition> = {
   [EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? never : EKey]: EncoderType[EKey] extends keyof ValueTypes
       ? ValueTypes[EncoderType[EKey]]
       : EncoderType[EKey] extends [keyof ValueTypes]
         ? Array<ValueTypes[EncoderType[EKey][0]]>
         : EncoderType[EKey] extends EncoderDefinition
-          ? InferredDecodedType<EncoderType[EKey]>
+          ? RawDecodedType<EncoderType[EKey]>
           : EncoderType[EKey] extends [EncoderDefinition]
-            ? Array<InferredDecodedType<EncoderType[EKey][number]>>
+            ? Array<RawDecodedType<EncoderType[EKey][number]>>
             : never;
 } & {
   [EKey in keyof EncoderType as EncoderType[EKey] extends MaybeType<any> ? EKey : never]?: EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
@@ -178,42 +183,44 @@ export type InferredDecodedType<EncoderType extends EncoderDefinition> = {
     : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
       ? Array<ValueTypes[OptionalValue[0]]> | undefined
       : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
-        ? InferredDecodedType<OptionalValue> | undefined
+        ? RawDecodedType<OptionalValue> | undefined
         : never;
 };
 
-export type InferredTransformConfig<EncoderType extends EncoderDefinition> = {
+export type DecodedType<EncoderType extends EncoderDefinition> = Pretty<RawDecodedType<EncoderType>>;
+
+export type TransformConfig<EncoderType extends EncoderDefinition> = {
  [EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes
      ? Transforms<ValueTypes[EncoderType[EKey]]>
      : EncoderType[EKey] extends [keyof ValueTypes]
        ? Transforms<ValueTypes[EncoderType[EKey][0]]>
        : EncoderType[EKey] extends EncoderDefinition
-         ? InferredTransformConfig<EncoderType[EKey]>
+         ? TransformConfig<EncoderType[EKey]>
          : EncoderType[EKey] extends [EncoderDefinition]
-           ? InferredTransformConfig<EncoderType[EKey][number]>
+           ? TransformConfig<EncoderType[EKey][number]>
            : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
             ? Transforms<ValueTypes[OptionalValue]>
             : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
               ? Transforms<ValueTypes[OptionalValue[0]]>
               : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
-                ? InferredTransformConfig<OptionalValue> | undefined
+                ? TransformConfig<OptionalValue> | undefined
                 : never;
 };
 
-export type InferredValidationConfig<EncoderType extends EncoderDefinition> = {
+export type ValidationConfig<EncoderType extends EncoderDefinition> = {
  [EKey in keyof EncoderType]?: EncoderType[EKey] extends keyof ValueTypes
      ? ValidationFn<ValueTypes[EncoderType[EKey]]>
      : EncoderType[EKey] extends [keyof ValueTypes]
        ? ValidationFn<ValueTypes[EncoderType[EKey][0]]>
        : EncoderType[EKey] extends EncoderDefinition
-         ? InferredValidationConfig<EncoderType[EKey]>
+         ? ValidationConfig<EncoderType[EKey]>
          : EncoderType[EKey] extends [EncoderDefinition]
-           ? InferredValidationConfig<EncoderType[EKey][number]>
+           ? ValidationConfig<EncoderType[EKey][number]>
            : EncoderType[EKey] extends MaybeType<infer OptionalValue extends keyof ValueTypes>
             ? ValidationFn<ValueTypes[OptionalValue]>
             : EncoderType[EKey] extends MaybeType<infer OptionalValue extends [keyof ValueTypes]>
               ? ValidationFn<ValueTypes[OptionalValue[0]]>
               : EncoderType[EKey] extends MaybeType<infer OptionalValue extends EncoderDefinition>
-                ? InferredValidationConfig<OptionalValue> | undefined
+                ? ValidationConfig<OptionalValue> | undefined
                 : never;
 };
