@@ -5,26 +5,28 @@ import { peekHeader, peekHeaderStr } from "./lib/peek";
 import { BufferWriter } from "./lib/BufferWriter";
 import { BufferReader } from "./lib/BufferReader";
 import {
-  InferredDecodedType,
+  DecodedType,
   EncoderDefinition,
-  MaybeType,
-  InferredTransformConfig,
-  InferredValidationConfig,
-  ValidationFn,
-  Transforms,
   FieldDefinition,
+  TransformConfig,
+  ValidationConfig,
+  MaybeType,
+  Transforms,
   TypeLiteral,
-  ValidTypes
+  ValidationFn,
+  ValidTypes,
 } from "./Type";
 import { cfg } from "./config";
 
 export type FormatHeader = string | number;
 
 /**
- * Decoded object types for a given binary format.
- * @example let onData = (data: Decoded<typeof MyBufferFormat>) => {...};
+ * Utility to get the decoded type of a buffer format
+ * @example type Format = Decoded<typeof MyBufferFormat>
  */
-export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<infer EncoderType, any> ? InferredDecodedType<EncoderType> : never;
+export type Decoded<TBufferFormat> = TBufferFormat extends BufferFormat<infer Format, any>
+  ? DecodedType<Format>
+  : never;
 
 /**
  * Defines a format for encoding/decoding binary buffers.
@@ -37,7 +39,7 @@ export type Decoded<FromBufferFormat> = FromBufferFormat extends BufferFormat<in
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(def: T): BufferFormat<T, HeaderType>;
+export function defineFormat<T extends EncoderDefinition, HeaderType extends FormatHeader = number>(def: T): BufferFormat<T, HeaderType>;
 /**
  * Defines a format for encoding/decoding binary buffers.
  *
@@ -49,8 +51,8 @@ export function defineFormat<T extends EncoderDefinition, HeaderType extends str
  * const MyFormat = defineFormat(1234, { ... });
  * const MyFormat = defineFormat(null, { ... });
  */
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
-export function defineFormat<T extends EncoderDefinition, HeaderType extends string | number = number>(a?: HeaderType | T, b?: T): BufferFormat<T, HeaderType> {
+export function defineFormat<T extends EncoderDefinition, HeaderType extends FormatHeader = number>(h: HeaderType | null, def: T): BufferFormat<T, HeaderType>;
+export function defineFormat<T extends EncoderDefinition, HeaderType extends FormatHeader = number>(a?: HeaderType | T, b?: T): BufferFormat<T, HeaderType> {
   return a !== null && typeof a === "object"
     ? new BufferFormat<T, HeaderType>(a as T)
     : new BufferFormat<T, HeaderType>(b as T, a as HeaderType);
@@ -140,11 +142,11 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
         this._$header = typeof header === "number" ? header : $strToHashCode(header);
       }
       else {
-        throw new TypeError(`Header must be uint16, 2 byte string, or null. Received: ${header}`);
+        throw new TypeError("Header must be 2-byte string, uint16, or null.");
       }
     }
     else {
-      throw new TypeError(`Format must be object or Type: ${JSON.stringify(def)} ${typeof def} ${ValidTypes[def]}`);
+      throw new TypeError("Format must be object or Type");
     }
   }
 
@@ -211,8 +213,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * @returns a copy of encoded bytes
    * @throws if fails to encode value to schema
    */
-  public encode<DecodedType extends InferredDecodedType<EncoderType>>(
-    data: DecodedType,
+  public encode<TDecodedType extends DecodedType<EncoderType>>(
+    data: TDecodedType,
     preserveBytes?: boolean,
   ): Uint8Array {
     if (!this._$writer) {
@@ -221,7 +223,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // reset
-    this._$writer.i = 0;
+    this._$writer.$byteLength = 0;
 
     if (this._$hasValidationOrTransforms) {
       data = this._$preprocess(data);
@@ -238,17 +240,17 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * Decode binary data to an object.
    * @throws if fails to decode bytes to schema.
    */
-  public decode<DecodedType = InferredDecodedType<EncoderType>>(
+  public decode<TDecodedType = DecodedType<EncoderType>>(
     bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
-    decodeInto?: Partial<DecodedType>,
-  ): DecodedType {
+    decodeInto?: Partial<TDecodedType>,
+  ): TDecodedType {
     return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), decodeInto);
   }
 
   /**
    * Set additional transform functions to apply before encoding and after decoding.
    */
-  public setTransforms(transforms: InferredTransformConfig<EncoderType> | Transforms<any>): this {
+  public setTransforms(transforms: TransformConfig<EncoderType> | Transforms<any>): this {
     this._$hasValidationOrTransforms = true;
 
     if (typeof transforms === "function" || (Array.isArray(transforms) && typeof transforms[0]  === "function")) {
@@ -275,7 +277,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    * - Validation functions should throw an error, return an error, or return boolean false.
    * - Anything else is treated as successfully passing validation.
    */
-  public setValidation(validations: InferredValidationConfig<EncoderType> | ValidationFn<any>): this {
+  public setValidation(validations: ValidationConfig<EncoderType> | ValidationFn<any>): this {
     this._$hasValidationOrTransforms = true;
 
     if (typeof validations === "function") {
@@ -395,7 +397,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @internal
    */
-  private _$read<DecodedType = InferredDecodedType<EncoderType>>(state: BufferReader, obj?: Partial<DecodedType>): DecodedType {
+  private _$read<TDecodedType = DecodedType<EncoderType>>(state: BufferReader, obj?: Partial<TDecodedType>): TDecodedType {
     // This function will be executed only the first time to compile the read routine.
     // After that, we'll compile the read routine and add it directly to the instance
 
@@ -447,7 +449,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    *
    * @internal
    */
-  private _$compileFormatReadFn<DecodedType = InferredDecodedType<EncoderType>>(): (state: BufferReader, obj: Partial<DecodedType> | undefined) => DecodedType {
+  private _$compileFormatReadFn<TDecodedType = DecodedType<EncoderType>>(): (state: BufferReader, obj: Partial<TDecodedType> | undefined) => TDecodedType {
     if (this._$type !== undefined) {
       // scalar type
       return this._$hasValidationOrTransforms
