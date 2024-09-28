@@ -1,5 +1,5 @@
 import { BufferFormat } from "./BufferFormat";
-import { EncoderDefinition, InferredDecodedType } from "./Type";
+import { EncoderDefinition, DecodedType } from "./Type";
 import { TinybufError } from "./lib/errors";
 import { $hashCodeToStr, $strToHashCode } from "./lib/hashCode";
 import { peekHeader } from "./lib/peek";
@@ -59,9 +59,9 @@ export class BufferParser {
   /**
    * Register a format handler.
    */
-  public on<EncoderType extends EncoderDefinition, DecodedType = InferredDecodedType<EncoderType>>(
+  public on<EncoderType extends EncoderDefinition, TDecodedType = DecodedType<EncoderType>>(
     format: BufferFormat<EncoderType, string | number>,
-    callback: (data: DecodedType) => any,
+    callback: (data: TDecodedType) => any,
     {
       decodeInPlace = false,
     } = {},

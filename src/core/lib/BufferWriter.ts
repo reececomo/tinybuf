@@ -7,81 +7,87 @@ import { TinybufError } from "./errors";
  * @internal
  */
 export class BufferWriter {
-  public i: number = 0;
+  public $byteLength: number = 0;
   public _$dataView: DataView;
+  private _$writeHead: number = 0;
 
   public constructor(initialSize: number) {
     this._$dataView = new DataView(new ArrayBuffer(initialSize));
   }
 
   public $viewBytes(): Uint8Array {
-    return new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this.i);
+    return new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this.$byteLength);
   }
 
   public $copyBytes(): Uint8Array {
-    return new Uint8Array(this._$dataView.buffer.slice(0, this.i));
+    return new Uint8Array(this._$dataView.buffer.slice(0, this.$byteLength));
   }
 
   // ----- Writers: -----
 
   public $writeInt8(value: number): void {
-    this._$dataView.setInt8(this._$alloc(1), value);
+    this._$alloc(1).setInt8(this._$writeHead, value);
   }
 
   public $writeInt16(value: number): void {
-    this._$dataView.setInt16(this._$alloc(2), value, true);
+    this._$alloc(2).setInt16(this._$writeHead, value, true);
   }
 
   public $writeInt32(value: number): void {
-    this._$dataView.setInt32(this._$alloc(4), value, true);
+    this._$alloc(4).setInt32(this._$writeHead, value, true);
   }
 
   public $writeUint8(value: number): void {
-    this._$dataView.setUint8(this._$alloc(1), value);
+    this._$alloc(1).setUint8(this._$writeHead, value);
   }
 
   public $writeUint16(value: number): void {
-    this._$dataView.setUint16(this._$alloc(2), value, false); // big-endian for varint
+    this._$alloc(2).setUint16(this._$writeHead, value, false); // big-endian for varint
   }
 
   public $writeUint32(value: number): void {
-    this._$dataView.setUint32(this._$alloc(4), value, false); // big-endian for varint
+    this._$alloc(4).setUint32(this._$writeHead, value, false); // big-endian for varint
   }
 
   public $writeFloat32(value: number): void {
-    this._$dataView.setFloat32(this._$alloc(4), value, true);
+    this._$alloc(4).setFloat32(this._$writeHead, value, true);
   }
 
   public $writeFloat64(value: number): void {
-    this._$dataView.setFloat64(this._$alloc(8), value, true);
+    this._$alloc(8).setFloat64(this._$writeHead, value, true);
   }
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
     // allocate bytes first
-    const j = this._$alloc(b.byteLength);
+    this._$alloc(b.byteLength);
 
     let bBytes: Uint8Array = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array ? b : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+      ? b instanceof Uint8Array
+        ? b
+        : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
       : new Uint8Array(b);
 
     // copy bytes
-    new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset + j, b.byteLength).set(bBytes);
+    new Uint8Array(
+      this._$dataView.buffer,
+      this._$dataView.byteOffset + this._$writeHead,
+      b.byteLength
+    ).set(bBytes);
   }
 
   // ----- Private methods: -----
 
-  /** @returns writer head (byteOffset) */
-  private _$alloc(bytes: number): number {
-    if (this.i + bytes > this._$dataView.byteLength) {
-      const minBytesNeeded = this.i + bytes - this._$dataView.byteLength;
+  private _$alloc(bytes: number): DataView {
+    if (this.$byteLength + bytes > this._$dataView.byteLength) {
+      const minBytesNeeded = this.$byteLength + bytes - this._$dataView.byteLength;
       const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;
       this._$resizeBuffer(this._$dataView.byteLength + requestedNewBytes);
     }
 
-    const j = this.i;
-    this.i += bytes;
+    this._$writeHead = this.$byteLength;
+    this.$byteLength += bytes;
 
-    return j;
+    return this._$dataView;
   }
 
   private _$resizeBuffer(newSize: number): void {
