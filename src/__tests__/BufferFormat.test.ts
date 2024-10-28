@@ -333,6 +333,25 @@ describe("BufferFormat", () => {
     expect(() => defineFormat("bigint128" as any)).toThrow(TypeError);
   });
 
+  it("encodeInto()", () => {
+    const data = new Uint8Array(32);
+    const input = {
+      a: 100,
+      b: [100, 200],
+      c: [
+        { d: undefined },
+        { d: "lol" }
+      ]
+    };
+
+    expect(data.toString()).toBe("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0");
+    const result = MyBufferFormat.encodeInto(input, data);
+    expect(data.toString()).not.toBe("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0");
+
+    const reversed = MyBufferFormat.decode(result);
+    expect(reversed).toStrictEqual(input);
+  });
+
   it("decode() emits output that is valid input for encode()", () => {
     const Example = defineFormat({
       integer: Type.UInt16,

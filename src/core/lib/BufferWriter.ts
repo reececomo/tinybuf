@@ -8,19 +8,26 @@ import { TinybufError } from "./errors";
  */
 export class BufferWriter {
   public $byteLength: number = 0;
-  public _$dataView: DataView;
+  private _$dataView: DataView;
+  private _$bytes: Uint8Array;
   private _$writeHead: number = 0;
+  private _$resizable: boolean;
 
-  public constructor(initialSize: number) {
-    this._$dataView = new DataView(new ArrayBuffer(initialSize));
+  public constructor($0: number | Uint8Array) {
+    this._$resizable = typeof $0 === "number";
+    let b = $0 instanceof Uint8Array ? $0 : new Uint8Array($0);
+    this._$bytes = b;
+    this._$dataView = new DataView(b.buffer, b.byteOffset, b.byteLength);
   }
 
   public $viewBytes(): Uint8Array {
-    return new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this.$byteLength);
+    return this._$bytes.subarray(this._$bytes.byteOffset, this._$bytes.byteOffset + this.$byteLength);
   }
 
   public $copyBytes(): Uint8Array {
-    return new Uint8Array(this._$dataView.buffer.slice(0, this.$byteLength));
+    const buf = new Uint8Array(this.$byteLength);
+    buf.set(this.$viewBytes());
+    return buf;
   }
 
   // ----- Writers: -----
@@ -81,6 +88,7 @@ export class BufferWriter {
     if (this.$byteLength + bytes > this._$dataView.byteLength) {
       const minBytesNeeded = this.$byteLength + bytes - this._$dataView.byteLength;
       const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;
+      if (!this._$resizable) throw new TinybufError("exceeded buffer length: " + this._$dataView.byteLength);
       this._$resizeBuffer(this._$dataView.byteLength + requestedNewBytes);
     }
 
@@ -96,13 +104,11 @@ export class BufferWriter {
       throw new TinybufError(`exceeded encodingBufferMaxSize: ${cfg.encodingBufferMaxSize}`);
     }
 
-    const newBuf = new ArrayBuffer(newSize);
+    const buf = new Uint8Array(newSize);
+    buf.set(this._$bytes); // copy bytes
 
-    // copy bytes
-    const oldView = new Uint8Array(this._$dataView.buffer, this._$dataView.byteOffset, this._$dataView.byteLength);
-    new Uint8Array(newBuf).set(oldView);
-
-    // update ref
-    this._$dataView = new DataView(newBuf);
+    // update refs
+    this._$dataView = new DataView(buf.buffer);
+    this._$bytes = buf;
   }
 }

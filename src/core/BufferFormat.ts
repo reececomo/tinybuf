@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unified-signatures */
 import { writers, readers } from "./lib/coders";
 import * as coders from "./lib/coders";
 import { $hashCode, $strToHashCode } from "./lib/hashCode";
@@ -104,10 +105,6 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /** @internal */
   private _$writer?: BufferWriter;
 
-  public get encodingBuffer(): DataView | undefined {
-    return this._$writer?._$dataView;
-  }
-
   public constructor(
     def: EncoderType,
     header?: HeaderType | null,
@@ -200,6 +197,27 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   }
 
   /**
+   * Encode an object into an existing byte array.
+   *
+   * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
+   * performance, and to minimize memory allocation and fragmentation.
+   */
+  public encodeInto<TDecodedType extends DecodedType<EncoderType>>(
+    data: TDecodedType,
+    bytes: Uint8Array,
+  ): Uint8Array {
+    const writer = new BufferWriter(bytes);
+
+    if (this._$hasValidationOrTransforms) {
+      data = this._$preprocess(data);
+    }
+
+    this._$write(data, writer);
+
+    return writer.$viewBytes();
+  }
+
+  /**
    * Encode an object to bytes.
    *
    * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
@@ -237,12 +255,36 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   }
 
   /**
+   * Decode binary data into an existing object instance.
+   * @throws if fails to decode bytes to schema.
+   */
+  public decodeInto<TDecodedType = DecodedType<EncoderType>>(
+    bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
+    obj: Partial<TDecodedType>,
+  ): TDecodedType {
+    return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), obj);
+  }
+  /**
+   * Decode binary data to an object.
+   * @throws if fails to decode bytes to schema.
+   */
+  public decode<TDecodedType = DecodedType<EncoderType>>(
+    bytes: Uint8Array | ArrayBufferView | ArrayBuffer
+  ): TDecodedType;
+  /**
+   * @deprecated use decodeInto() instead
+   */
+  public decode<TDecodedType = DecodedType<EncoderType>>(
+    bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
+    decodeInto: Partial<TDecodedType>,
+  ): TDecodedType;
+  /**
    * Decode binary data to an object.
    * @throws if fails to decode bytes to schema.
    */
   public decode<TDecodedType = DecodedType<EncoderType>>(
     bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
-    decodeInto?: Partial<TDecodedType>,
+    decodeInto?: Partial<TDecodedType> | undefined,
   ): TDecodedType {
     return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), decodeInto);
   }

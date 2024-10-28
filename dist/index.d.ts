@@ -232,7 +232,6 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 * @see {peekHeaderStr(...)}
 	 */
 	header: HeaderType;
-	get encodingBuffer(): DataView | undefined;
 	constructor(def: EncoderType, header?: HeaderType | null);
 	/**
 	 * Read the header of a buffer as a number.
@@ -249,6 +248,13 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 */
 	static peekHeaderStr: typeof peekHeaderStr;
 	/**
+	 * Encode an object into an existing byte array.
+	 *
+	 * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
+	 * performance, and to minimize memory allocation and fragmentation.
+	 */
+	encodeInto<TDecodedType extends DecodedType<EncoderType>>(data: TDecodedType, bytes: Uint8Array): Uint8Array;
+	/**
 	 * Encode an object to bytes.
 	 *
 	 * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
@@ -264,10 +270,19 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 */
 	encode<TDecodedType extends DecodedType<EncoderType>>(data: TDecodedType, preserveBytes?: boolean): Uint8Array;
 	/**
+	 * Decode binary data into an existing object instance.
+	 * @throws if fails to decode bytes to schema.
+	 */
+	decodeInto<TDecodedType = DecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, obj: Partial<TDecodedType>): TDecodedType;
+	/**
 	 * Decode binary data to an object.
 	 * @throws if fails to decode bytes to schema.
 	 */
-	decode<TDecodedType = DecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, decodeInto?: Partial<TDecodedType>): TDecodedType;
+	decode<TDecodedType = DecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer): TDecodedType;
+	/**
+	 * @deprecated use decodeInto() instead
+	 */
+	decode<TDecodedType = DecodedType<EncoderType>>(bytes: Uint8Array | ArrayBufferView | ArrayBuffer, decodeInto: Partial<TDecodedType>): TDecodedType;
 	/**
 	 * Set additional transform functions to apply before encoding and after decoding.
 	 */
