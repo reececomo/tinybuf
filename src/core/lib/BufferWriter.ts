@@ -21,7 +21,7 @@ export class BufferWriter {
   }
 
   public $viewBytes(): Uint8Array {
-    return this._$bytes.subarray(this._$bytes.byteOffset, this._$bytes.byteOffset + this.$byteLength);
+    return this._$bytes.subarray(0, this.$byteLength);
   }
 
   public $copyBytes(): Uint8Array {
