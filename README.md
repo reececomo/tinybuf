@@ -18,12 +18,12 @@
 npm install tinybuf
 ```
 
-## 🕹 Example
+## Basic Usage
 
 ```ts
 import { defineFormat, Type } from 'tinybuf';
 
-export const GameWorldData = defineFormat({
+export const GameWorldState = defineFormat({
   frameNo: Type.UInt,
   timeRemaining: Type.Float16,
   players: [
@@ -48,7 +48,7 @@ export const GameWorldData = defineFormat({
 Formats can be encoded directly:
 
 ```ts
-let bytes = GameWorldData.encode({
+let bytes = GameWorldState.encode({
   frameNo: 50,
   timeRemaining: 59.334,
   players: [
@@ -69,7 +69,7 @@ bytes.byteLength
 Or directly from objects:
 
 ```ts
-let bytes = GameWorldData.encode( obj );
+let bytes = GameWorldState.encode( world );
 
 bytes.byteLength
 // 16
@@ -77,13 +77,7 @@ bytes.byteLength
 
 ### Decode
 
-Formats can be read in a number of ways:
-
-1. Simple &ndash; decode to object
-2. In-place &ndash; decode into an existing object
-3. Parser &ndash; register / decode many formats
-
-#### Simple
+#### To Object
 
 Decode as a strongly-typed object.
 
@@ -94,12 +88,12 @@ let obj = GameWorldData.decode( bytes );
 
 #### In-place
 
-Use for memory effiency - extract fields directly into an existing object instance. This prevents allocating new memory.
+Extract fields directly into an existing object (this minimizes memory footprint).
 
 ```ts
 let obj: Decoded<typeof GameWorldData> = {} as any;
 
-GameWorldData.decode( bytes, obj );
+GameWorldData.decodeInPlace( bytes, obj );
 ```
 
 #### Parser &ndash; Decoding registered formats
@@ -120,6 +114,32 @@ const parser = bufferParser()
 // parse
 parser.processBuffer( bytes );
 ```
+
+## Types
+
+| **Type** | **JavaScript Type** | **Bytes** | **Notes** |
+| :--- | :--- | :--- | :--- |
+| `Int` | `number` | 1-4<sup>\*</sup> | A signed integer from `-Number.MAX_SAFE_INTEGER` to `Number.MAX_SAFE_INTEGER`. |
+| `Int8` | `number` | 1 | A signed integer from -128 to 127. |
+| `Int16` | `number` | 2 | A signed integer from -32,768 to 32,767. |
+| `Int32` | `number` | 4 | A signed integer from -2,147,483,648 to 2,147,483,647. |
+| `UInt` | `number` | 1-4<sup>#</sup> | An unsigned integer from 0 to `Number.MAX_SAFE_INTEGER`. |
+| `UInt8` | `number` | 1 | An unsigned integerfrom 0 to 255. |
+| `UInt16` | `number` | 2 | An unsigned integer from 0 to 65,535. |
+| `UInt32` | `number` | 4 | An unsigned integer from 0 to 4,294,967,295. |
+| `Float64` | `number` | 8 | A 64-bit double-precision floating-point number. |
+| `Float32` | `number` | 4 | A 32-bit single-precision floating-point number. |
+| `Float16` | `number` | 2 | A 16-bit half-precision floating-point number.<br/>**Note:** Low precision. Maximum effective range ±65,504. |
+| `BFloat16` | `number` | 2 | A [bfloat16](https://en.wikipedia.org/wiki/Bfloat16_floating-point_format) format 16-bit half-precision floating-point number.<br/>**Note:** Lowest precision. Same effective range as `Float32`. |
+| `Scalar` | `number` | 1 | A signed scalar between -1.00 and 1.00 (two decimal precision). |
+| `UScalar` | `number` | 1 | A scalar between 0.00 and 1.00 (two decimal precision). |
+| `Bool` | `boolean` | 1 | A boolean value. |
+| `Bools` | `boolean[]` | 1<sup>¶</sup> | An array/tuple of boolean values (1 - 28) encoded as a single byte. |
+| `Buffer` | `Uint8Array` | 1<sup>†</sup>&nbsp;+&nbsp;n | An `ArrayBuffer` or `ArrayBufferLike`. |
+| `String` | `string` | 1<sup>†</sup>&nbsp;+&nbsp;n | A string (UTF-8 encoded). |
+| `JSON` | `any` | 1<sup>†</sup>&nbsp;+&nbsp;n | Any JSON encodable value (encoded as a string). |
+| `RegExp` | `RegExp` | 2<sup>†</sup>&nbsp;+&nbsp;n | JavaScript `RegExp` object. |
+| `Date` | `Date` | 8 | JavaScript `Date` object. |
 
 ## 📘 Documentation
 | | |
