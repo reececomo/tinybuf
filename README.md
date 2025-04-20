@@ -37,7 +37,7 @@ export const GameWorldState = defineFormat({
         x: Type.Scalar8,
         y: Type.Scalar8
       },
-      actions: Type.Bools // [ jump, attack ]
+      actions: Type.Bools // [jump, attack]
     }
   ]
 });
@@ -45,10 +45,10 @@ export const GameWorldState = defineFormat({
 
 ### Encode
 
-Formats can be encoded directly:
+Formats can then be encoded:
 
 ```ts
-let bytes = GameWorldState.encode({
+let bytes: Uint8Array = GameWorldState.encode({
   frameNo: 50,
   timeRemaining: 59.334,
   players: [
@@ -69,7 +69,7 @@ bytes.byteLength
 Or directly from objects:
 
 ```ts
-let bytes = GameWorldState.encode( world );
+let bytes: Uint8Array = GameWorldState.encode( world );
 
 bytes.byteLength
 // 16
