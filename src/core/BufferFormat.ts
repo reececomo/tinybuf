@@ -186,8 +186,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private static _$initWriter(): BufferWriter {
     if (cfg.useGlobalEncodingBuffer) {
       if (!BufferFormat._$globalWriter) {
-        // lazy init: global encoding buffer created at max size
-        this._$globalWriter = new BufferWriter(cfg.encodingBufferInitialSize);
+        this._$globalWriter = new BufferWriter(cfg.encodingBufferMaxSize);
       }
 
       return this._$globalWriter;

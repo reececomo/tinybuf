@@ -33,40 +33,40 @@ export class BufferWriter {
   // ----- Writers: -----
 
   public $writeInt8(value: number): void {
-    this._$alloc(1).setInt8(this._$writeHead, value);
+    this._$pre(1).setInt8(this._$writeHead, value);
   }
 
   public $writeInt16(value: number): void {
-    this._$alloc(2).setInt16(this._$writeHead, value, true);
+    this._$pre(2).setInt16(this._$writeHead, value, true);
   }
 
   public $writeInt32(value: number): void {
-    this._$alloc(4).setInt32(this._$writeHead, value, true);
+    this._$pre(4).setInt32(this._$writeHead, value, true);
   }
 
   public $writeUint8(value: number): void {
-    this._$alloc(1).setUint8(this._$writeHead, value);
+    this._$pre(1).setUint8(this._$writeHead, value);
   }
 
   public $writeUint16(value: number): void {
-    this._$alloc(2).setUint16(this._$writeHead, value, false); // big-endian for varint
+    this._$pre(2).setUint16(this._$writeHead, value, false); // big-endian for varint
   }
 
   public $writeUint32(value: number): void {
-    this._$alloc(4).setUint32(this._$writeHead, value, false); // big-endian for varint
+    this._$pre(4).setUint32(this._$writeHead, value, false); // big-endian for varint
   }
 
   public $writeFloat32(value: number): void {
-    this._$alloc(4).setFloat32(this._$writeHead, value, true);
+    this._$pre(4).setFloat32(this._$writeHead, value, true);
   }
 
   public $writeFloat64(value: number): void {
-    this._$alloc(8).setFloat64(this._$writeHead, value, true);
+    this._$pre(8).setFloat64(this._$writeHead, value, true);
   }
 
   public $writeBytes(b: Uint8Array | ArrayBuffer | ArrayBufferView): void {
     // allocate bytes first
-    this._$alloc(b.byteLength);
+    this._$pre(b.byteLength);
 
     let bBytes: Uint8Array = ArrayBuffer.isView(b)
       ? b instanceof Uint8Array
@@ -84,12 +84,15 @@ export class BufferWriter {
 
   // ----- Private methods: -----
 
-  private _$alloc(bytes: number): DataView {
+  /**
+   * Pre-allocate some bytes on the dataview, moving the write head into
+   * position.
+   *
+   * @throws TinybufError
+   */
+  private _$pre(bytes: number): DataView {
     if (this.$byteLength + bytes > this._$dataView.byteLength) {
-      const minBytesNeeded = this.$byteLength + bytes - this._$dataView.byteLength;
-      const requestedNewBytes = Math.ceil(minBytesNeeded / cfg.encodingBufferIncrement) * cfg.encodingBufferIncrement;
-      if (!this._$resizable) throw new TinybufError("exceeded buffer length: " + this._$dataView.byteLength);
-      this._$resizeBuffer(this._$dataView.byteLength + requestedNewBytes);
+      this._$malloc(bytes);
     }
 
     this._$writeHead = this.$byteLength;
@@ -98,14 +101,29 @@ export class BufferWriter {
     return this._$dataView;
   }
 
-  private _$resizeBuffer(newSize: number): void {
-    if (newSize > cfg.encodingBufferMaxSize) {
-      // safety check
-      throw new TinybufError(`exceeded encodingBufferMaxSize: ${cfg.encodingBufferMaxSize}`);
+  /**
+   * @throws TinybufError
+   */
+  private _$malloc(bytes: number): void {
+    if (!this._$resizable) {
+      throw new TinybufError("exceeded buffer length: " + this._$dataView.byteLength);
     }
 
+    const currentBytes = this._$dataView.byteLength;
+    const minNewBytes = this.$byteLength + bytes - currentBytes;
+    const availableBytes = cfg.encodingBufferMaxSize - currentBytes;
+
+    if (minNewBytes > availableBytes) {
+      throw new TinybufError("exceeded encodingBufferMaxSize: " + cfg.encodingBufferMaxSize);
+    }
+
+    const increment = cfg.encodingBufferIncrement;
+    const newBytes = Math.ceil(minNewBytes / increment) * increment;
+    const newSize = currentBytes + Math.min(newBytes, availableBytes);
     const buf = new Uint8Array(newSize);
-    buf.set(this._$bytes); // copy bytes
+
+    // copy bytes
+    buf.set(this._$bytes);
 
     // update refs
     this._$dataView = new DataView(buf.buffer);
