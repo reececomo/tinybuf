@@ -104,6 +104,14 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private _$hasValidationOrTransforms = false;
   /** @internal */
   private _$writer?: BufferWriter;
+  /** @internal */
+  private _$intoWriter?: BufferWriter;
+  /** @internal */
+  private _$intoWriterBusy = false;
+  /** @internal */
+  private _$reader?: BufferReader;
+  /** @internal */
+  private _$readerBusy = false;
 
   public constructor(
     def: EncoderType,
@@ -205,15 +213,44 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     data: TDecodedType,
     bytes: Uint8Array,
   ): Uint8Array {
-    const writer = new BufferWriter(bytes);
+    return bytes.subarray(0, this.encodeIntoLength(data, bytes));
+  }
 
+  /**
+   * Encode an object into an existing byte array, without allocating a view.
+   *
+   * @returns the number of bytes written to the start of `bytes`
+   * @throws if fails to encode value to schema, or `bytes` is too small
+   */
+  public encodeIntoLength<TDecodedType extends DecodedType<EncoderType>>(
+    data: TDecodedType,
+    bytes: Uint8Array,
+  ): number {
     if (this._$hasValidationOrTransforms) {
       data = this._$preprocess(data);
     }
 
-    this._$write(data, writer);
+    if (this._$intoWriterBusy) {
+      const writer = new BufferWriter(bytes);
+      this._$write(data, writer);
 
-    return writer.$viewBytes();
+      return writer.$byteLength;
+    }
+
+    const writer = this._$intoWriter
+      ? this._$intoWriter.$reset(bytes)
+      : (this._$intoWriter = new BufferWriter(bytes));
+
+    this._$intoWriterBusy = true;
+
+    try {
+      this._$write(data, writer);
+
+      return writer.$byteLength;
+    }
+    finally {
+      this._$intoWriterBusy = false;
+    }
   }
 
   /**
@@ -261,7 +298,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
     obj: Partial<TDecodedType>,
   ): TDecodedType {
-    return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), obj);
+    return this._$decode(bytes, obj);
   }
   /**
    * Decode binary data to an object.
@@ -285,7 +322,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
     decodeInto?: Partial<TDecodedType> | undefined,
   ): TDecodedType {
-    return this._$read(new BufferReader(bytes, this.header === undefined ? 0 : 2), decodeInto);
+    return this._$decode(bytes, decodeInto);
   }
 
   /**
@@ -339,6 +376,31 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   }
 
   // ----- Implementation: -----
+
+  /** @internal */
+  private _$decode<TDecodedType>(
+    bytes: Uint8Array | ArrayBufferView | ArrayBuffer,
+    obj: Partial<TDecodedType> | undefined,
+  ): TDecodedType {
+    const headerBytes = this.header === undefined ? 0 : 2;
+
+    if (this._$readerBusy) {
+      return this._$read(new BufferReader(bytes, headerBytes), obj);
+    }
+
+    const reader = this._$reader
+      ? this._$reader.$reset(bytes, headerBytes)
+      : (this._$reader = new BufferReader(bytes, headerBytes));
+
+    this._$readerBusy = true;
+
+    try {
+      return this._$read(reader, obj);
+    }
+    finally {
+      this._$readerBusy = false;
+    }
+  }
 
   /**
    * @param value
@@ -522,7 +584,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
    */
   private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any, obj?: Array<T>): Array<T> {
     const len = coders.uintCoder.$read(state);
-    const arr = obj?.length === len ? obj : new Array(len);
+    const arr = Array.isArray(obj) ? obj : new Array(len);
+    if (arr.length !== len) arr.length = len;
     for (let j = 0; j < arr.length; j++) {
       arr[j] = type._$read(state, obj?.[j]);
     }

@@ -20,6 +20,22 @@ export class BufferWriter {
     this._$dataView = new DataView(b.buffer, b.byteOffset, b.byteLength);
   }
 
+  /** Retarget the writer to a fixed-size byte array, reusing the existing DataView where possible. */
+  public $reset(b: Uint8Array): this {
+    const dv = this._$dataView;
+
+    if (dv.buffer !== b.buffer || dv.byteOffset !== b.byteOffset || dv.byteLength !== b.byteLength) {
+      this._$dataView = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    }
+
+    this._$bytes = b;
+    this._$resizable = false;
+    this._$writeHead = 0;
+    this.$byteLength = 0;
+
+    return this;
+  }
+
   public $viewBytes(): Uint8Array {
     return this._$bytes.subarray(0, this.$byteLength);
   }
@@ -68,18 +84,14 @@ export class BufferWriter {
     // allocate bytes first
     this._$pre(b.byteLength);
 
-    let bBytes: Uint8Array = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array
+    this._$bytes.set(
+      b instanceof Uint8Array
         ? b
-        : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
-      : new Uint8Array(b);
-
-    // copy bytes
-    new Uint8Array(
-      this._$dataView.buffer,
-      this._$dataView.byteOffset + this._$writeHead,
-      b.byteLength
-    ).set(bBytes);
+        : ArrayBuffer.isView(b)
+          ? new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+          : new Uint8Array(b),
+      this._$writeHead
+    );
   }
 
   // ----- Private methods: -----

@@ -109,7 +109,7 @@ describe("BufferFormat", () => {
     });
 
     const objB2 = obj.b;
-    expect(objB1).not.toBe(objB2); // shorter arrays trigger new array instance
+    expect(objB1).toBe(objB2); // shorter arrays are re-used
     expect(objC1D1).toBe(obj.c![0]); // but underlying object instances ARE recycled
 
     MyBufferFormat.decode(input4WithLongerArrs, obj);
@@ -124,7 +124,7 @@ describe("BufferFormat", () => {
       ],
     });
 
-    expect(objB2).not.toBe(obj.b); // longer arrays trigger new array instance also
+    expect(objB2).toBe(obj.b); // longer arrays are re-used
     expect(objC1D1).toBe(obj.c![0]); // underlying object instances ARE recycled
     expect(objC1D2).not.toBe(obj.c![1]); // ...but only when they existed in the previous instance
   });

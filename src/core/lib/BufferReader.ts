@@ -8,11 +8,34 @@ export class BufferReader {
   private _$dataView: DataView;
 
   public constructor(b: Uint8Array | ArrayBufferView | ArrayBuffer, headerBytes?: number) {
-    this._$dataView = ArrayBuffer.isView(b)
-      ? new DataView(b.buffer, b.byteOffset, b.byteLength)
-      : new DataView(b);
+    this._$dataView = b instanceof DataView
+      ? b
+      : ArrayBuffer.isView(b)
+        ? new DataView(b.buffer, b.byteOffset, b.byteLength)
+        : new DataView(b);
 
     this.i = headerBytes ?? 0; // internal offset (header)
+  }
+
+  /** Retarget the reader to a new buffer, reusing the existing DataView where possible. */
+  public $reset(b: Uint8Array | ArrayBufferView | ArrayBuffer, headerBytes?: number): this {
+    const dv = this._$dataView;
+
+    if (b instanceof DataView) {
+      this._$dataView = b;
+    }
+    else if (ArrayBuffer.isView(b)) {
+      if (dv.buffer !== b.buffer || dv.byteOffset !== b.byteOffset || dv.byteLength !== b.byteLength) {
+        this._$dataView = new DataView(b.buffer, b.byteOffset, b.byteLength);
+      }
+    }
+    else if (dv.buffer !== b || dv.byteOffset !== 0 || dv.byteLength !== b.byteLength) {
+      this._$dataView = new DataView(b);
+    }
+
+    this.i = headerBytes ?? 0;
+
+    return this;
   }
 
   /** Read the next byte, without moving the read head pointer. */

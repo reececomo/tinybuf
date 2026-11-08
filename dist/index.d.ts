@@ -255,6 +255,13 @@ export declare class BufferFormat<EncoderType extends EncoderDefinition, HeaderT
 	 */
 	encodeInto<TDecodedType extends DecodedType<EncoderType>>(data: TDecodedType, bytes: Uint8Array): Uint8Array;
 	/**
+	 * Encode an object into an existing byte array, without allocating a view.
+	 *
+	 * @returns the number of bytes written to the start of `bytes`
+	 * @throws if fails to encode value to schema, or `bytes` is too small
+	 */
+	encodeIntoLength<TDecodedType extends DecodedType<EncoderType>>(data: TDecodedType, bytes: Uint8Array): number;
+	/**
 	 * Encode an object to bytes.
 	 *
 	 * **Warning:** Returns an unsafe view into the encoding buffer. Pass this reference to preserve
