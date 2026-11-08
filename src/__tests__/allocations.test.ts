@@ -360,9 +360,11 @@ describe("allocation-free hot paths", () => {
 
     it("releases the shared reader after a decode error", () => {
       const bytes = Format.encode(input, true);
+      Format.decode(bytes);
+      const reader = (Format as any)._$reader;
 
       expect(() => Format.decode(bytes.subarray(0, 4))).toThrow();
-      expect((Format as any)._$readerBusy).toBe(false);
+      expect((Format as any)._$reader).toBe(reader);
       expect(Format.decode(bytes)).toEqual(input);
     });
   });
@@ -386,11 +388,15 @@ describe("allocation-free hot paths", () => {
       const data: any = { payload: { payload: new Uint8Array(0), id: 2 }, id: 1 };
       const target = new Uint8Array(64);
 
+      Node.decode(Node.encodeInto(data, target));
+      const writer = (Node as any)._$intoWriter;
+      const reader = (Node as any)._$reader;
+
       const length = Node.encodeIntoLength(data, target);
-      expect((Node as any)._$intoWriterBusy).toBe(false);
+      expect((Node as any)._$intoWriter).toBe(writer);
 
       const decoded: any = Node.decode(target.subarray(0, length));
-      expect((Node as any)._$readerBusy).toBe(false);
+      expect((Node as any)._$reader).toBe(reader);
 
       expect(decoded.id).toBe(1);
       expect(decoded.payload.id).toBe(2);

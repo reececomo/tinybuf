@@ -107,11 +107,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   /** @internal */
   private _$intoWriter?: BufferWriter;
   /** @internal */
-  private _$intoWriterBusy = false;
-  /** @internal */
   private _$reader?: BufferReader;
-  /** @internal */
-  private _$readerBusy = false;
 
   public constructor(
     def: EncoderType,
@@ -230,18 +226,8 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       data = this._$preprocess(data);
     }
 
-    if (this._$intoWriterBusy) {
-      const writer = new BufferWriter(bytes);
-      this._$write(data, writer);
-
-      return writer.$byteLength;
-    }
-
-    const writer = this._$intoWriter
-      ? this._$intoWriter.$reset(bytes)
-      : (this._$intoWriter = new BufferWriter(bytes));
-
-    this._$intoWriterBusy = true;
+    const writer = this._$intoWriter?.$reset(bytes) ?? new BufferWriter(bytes);
+    this._$intoWriter = undefined;
 
     try {
       this._$write(data, writer);
@@ -249,7 +235,7 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
       return writer.$byteLength;
     }
     finally {
-      this._$intoWriterBusy = false;
+      this._$intoWriter = writer;
     }
   }
 
@@ -384,21 +370,14 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   ): TDecodedType {
     const headerBytes = this.header === undefined ? 0 : 2;
 
-    if (this._$readerBusy) {
-      return this._$read(new BufferReader(bytes, headerBytes), obj);
-    }
-
-    const reader = this._$reader
-      ? this._$reader.$reset(bytes, headerBytes)
-      : (this._$reader = new BufferReader(bytes, headerBytes));
-
-    this._$readerBusy = true;
+    const reader = this._$reader?.$reset(bytes, headerBytes) ?? new BufferReader(bytes, headerBytes);
+    this._$reader = undefined;
 
     try {
       return this._$read(reader, obj);
     }
     finally {
-      this._$readerBusy = false;
+      this._$reader = reader;
     }
   }
 
