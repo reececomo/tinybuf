@@ -10,6 +10,7 @@ export class BufferWriter {
   public $byteLength: number = 0;
   private _$dataView: DataView;
   private _$bytes: Uint8Array;
+  private _$base: number;
   private _$writeHead: number = 0;
   private _$resizable: boolean;
 
@@ -17,7 +18,23 @@ export class BufferWriter {
     this._$resizable = typeof $0 === "number";
     let b = $0 instanceof Uint8Array ? $0 : new Uint8Array($0);
     this._$bytes = b;
-    this._$dataView = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    this._$base = b.byteOffset;
+    this._$dataView = new DataView(b.buffer);
+  }
+
+  /** Retarget the writer to a fixed-size byte array, reusing the existing DataView where possible. */
+  public $reset(b: Uint8Array): this {
+    if (this._$dataView.buffer !== b.buffer) {
+      this._$dataView = new DataView(b.buffer);
+    }
+
+    this._$bytes = b;
+    this._$base = b.byteOffset;
+    this._$resizable = false;
+    this._$writeHead = 0;
+    this.$byteLength = 0;
+
+    return this;
   }
 
   public $viewBytes(): Uint8Array {
@@ -68,18 +85,14 @@ export class BufferWriter {
     // allocate bytes first
     this._$pre(b.byteLength);
 
-    let bBytes: Uint8Array = ArrayBuffer.isView(b)
-      ? b instanceof Uint8Array
+    this._$bytes.set(
+      b instanceof Uint8Array
         ? b
-        : new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
-      : new Uint8Array(b);
-
-    // copy bytes
-    new Uint8Array(
-      this._$dataView.buffer,
-      this._$dataView.byteOffset + this._$writeHead,
-      b.byteLength
-    ).set(bBytes);
+        : ArrayBuffer.isView(b)
+          ? new Uint8Array(b.buffer, b.byteOffset, b.byteLength)
+          : new Uint8Array(b),
+      this._$writeHead - this._$base
+    );
   }
 
   // ----- Private methods: -----
@@ -91,11 +104,11 @@ export class BufferWriter {
    * @throws TinybufError
    */
   private _$pre(bytes: number): DataView {
-    if (this.$byteLength + bytes > this._$dataView.byteLength) {
+    if (this.$byteLength + bytes > this._$bytes.byteLength) {
       this._$malloc(bytes);
     }
 
-    this._$writeHead = this.$byteLength;
+    this._$writeHead = this._$base + this.$byteLength;
     this.$byteLength += bytes;
 
     return this._$dataView;
@@ -106,10 +119,10 @@ export class BufferWriter {
    */
   private _$malloc(bytes: number): void {
     if (!this._$resizable) {
-      throw new TinybufError("exceeded buffer length: " + this._$dataView.byteLength);
+      throw new TinybufError("exceeded buffer length: " + this._$bytes.byteLength);
     }
 
-    const currentBytes = this._$dataView.byteLength;
+    const currentBytes = this._$bytes.byteLength;
     const minNewBytes = this.$byteLength + bytes - currentBytes;
     const availableBytes = cfg.encodingBufferMaxSize - currentBytes;
 
@@ -128,5 +141,6 @@ export class BufferWriter {
     // update refs
     this._$dataView = new DataView(buf.buffer);
     this._$bytes = buf;
+    this._$base = 0;
   }
 }
