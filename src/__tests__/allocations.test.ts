@@ -53,31 +53,39 @@ describe("allocation-free hot paths", () => {
   };
 
   describe("BufferWriter.$reset()", () => {
-    it("reuses the DataView for the same target, and rebuilds it when the target changes", () => {
+    it("reuses the DataView for any view of the same buffer, and rebuilds it for a new buffer", () => {
       const buffer = new ArrayBuffer(32);
-      const a = new Uint8Array(buffer, 4, 16);
-      const writer = new BufferWriter(a);
+      const writer = new BufferWriter(new Uint8Array(buffer, 4, 16));
       const dv = (writer as any)._$dataView;
 
+      expect(dv.byteOffset).toBe(0);
+      expect(dv.byteLength).toBe(32);
+
       writer.$writeUint8(1);
-      writer.$reset(a);
+      writer.$reset(new Uint8Array(buffer, 5, 8));
       expect(writer.$byteLength).toBe(0);
       expect((writer as any)._$dataView).toBe(dv);
 
-      writer.$reset(new Uint8Array(buffer, 4, 16));
+      writer.$reset(new Uint8Array(buffer));
       expect((writer as any)._$dataView).toBe(dv);
 
-      writer.$reset(new Uint8Array(buffer, 5, 16));
-      expect((writer as any)._$dataView).not.toBe(dv);
-      expect((writer as any)._$dataView.byteOffset).toBe(5);
-
-      const dv2 = (writer as any)._$dataView;
-      writer.$reset(new Uint8Array(buffer, 5, 8));
-      expect((writer as any)._$dataView).not.toBe(dv2);
-      expect((writer as any)._$dataView.byteLength).toBe(8);
-
       writer.$reset(new Uint8Array(32));
+      expect((writer as any)._$dataView).not.toBe(dv);
       expect((writer as any)._$dataView.buffer).not.toBe(buffer);
+    });
+
+    it("writes only within the target view", () => {
+      const bytes = new Uint8Array(16);
+      const writer = new BufferWriter(bytes.subarray(4, 8));
+
+      writer.$writeUint16(0x0102);
+      writer.$writeUint16(0x0304);
+      expect(() => writer.$writeUint8(5)).toThrow(TinybufError);
+
+      expect(Array.from(writer.$viewBytes())).toEqual([1, 2, 3, 4]);
+      expect(Array.from(writer.$copyBytes())).toEqual([1, 2, 3, 4]);
+      expect(writer.$viewBytes().byteOffset).toBe(4);
+      expect(Array.from(bytes)).toEqual([0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0]);
     });
 
     it("does not resize after retargeting a resizable writer", () => {
@@ -127,36 +135,120 @@ describe("allocation-free hot paths", () => {
   });
 
   describe("BufferReader.$reset()", () => {
-    it("reuses the DataView for the same source, and rebuilds it when the source changes", () => {
+    it("reuses the DataView for any view of the same buffer, and rebuilds it for a new buffer", () => {
       const buffer = new ArrayBuffer(16);
       const view = new Uint8Array(buffer, 2, 8);
       const reader = new BufferReader(view, 2);
       const dv = (reader as any)._$dataView;
+
+      expect(dv.byteOffset).toBe(0);
+      expect(dv.byteLength).toBe(16);
 
       reader.$readUint8();
       reader.$reset(view, 2);
       expect(reader.i).toBe(2);
       expect((reader as any)._$dataView).toBe(dv);
 
-      reader.$reset(new Uint8Array(buffer, 2, 8));
+      reader.$reset(new Uint8Array(buffer, 3, 4));
       expect(reader.i).toBe(0);
       expect((reader as any)._$dataView).toBe(dv);
 
-      reader.$reset(new Uint8Array(buffer, 3, 8));
+      reader.$reset(buffer);
+      expect((reader as any)._$dataView).toBe(dv);
+
+      reader.$reset(new Uint8Array(16));
       expect((reader as any)._$dataView).not.toBe(dv);
-      expect((reader as any)._$dataView.byteOffset).toBe(3);
+    });
 
-      reader.$reset(buffer);
-      const dvBuffer = (reader as any)._$dataView;
-      expect(dvBuffer.byteOffset).toBe(0);
-      expect(dvBuffer.byteLength).toBe(16);
+    it("adopts a DataView input, and rebuilds only for views outside it", () => {
+      const buffer = new ArrayBuffer(16);
+      const external = new DataView(buffer, 4, 8);
+      const reader = new BufferReader(new Uint8Array(4));
 
-      reader.$reset(buffer);
-      expect((reader as any)._$dataView).toBe(dvBuffer);
-
-      const external = new DataView(buffer, 1, 4);
       reader.$reset(external);
       expect((reader as any)._$dataView).toBe(external);
+
+      reader.$reset(new Uint8Array(buffer, 6, 4));
+      expect((reader as any)._$dataView).toBe(external);
+
+      reader.$reset(new Uint8Array(buffer, 2, 4));
+      expect((reader as any)._$dataView).not.toBe(external);
+      expect((reader as any)._$dataView.byteLength).toBe(16);
+    });
+
+    it("reads only within the source view", () => {
+      const bytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      const reader = new BufferReader(bytes.subarray(2, 5));
+
+      expect(reader.$peek()).toBe(3);
+      expect(reader.$readUint16()).toBe(0x0304);
+      expect(() => reader.$readUint16()).toThrow(RangeError);
+      expect(reader.$readUint8()).toBe(5);
+      expect(() => reader.$peek()).toThrow(RangeError);
+      expect(() => reader.$readUint8()).toThrow(RangeError);
+
+      reader.$reset(bytes.subarray(4, 8));
+      expect(Array.from(reader.$readBytes(4))).toEqual([5, 6, 7, 8]);
+      expect(() => reader.$readBytes(1)).toThrow(RangeError);
+    });
+  });
+
+  describe("shared buffer slots", () => {
+    const Slot = defineFormat({ id: Type.UInt16, value: Type.Float32, name: Type.String });
+    const values = [0, 1, 2, 3].map(i => ({ id: i, value: i + 0.5, name: "slot" + i }));
+
+    it("encodes into consecutive slots of one ArrayBuffer without rebuilding the DataView", () => {
+      const slotSize = 16;
+      const pool = new ArrayBuffer(slotSize * values.length);
+      const slots = values.map((_, i) => new Uint8Array(pool, i * slotSize, slotSize));
+      const lengths = [];
+
+      lengths.push(Slot.encodeIntoLength(values[0], slots[0]));
+      const dv = (Slot as any)._$intoWriter._$dataView;
+
+      for (let i = 1; i < values.length; i++) {
+        lengths.push(Slot.encodeIntoLength(values[i], slots[i]));
+        expect((Slot as any)._$intoWriter._$dataView).toBe(dv);
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        expect(Slot.decode(slots[i].subarray(0, lengths[i]))).toEqual(values[i]);
+        expect(Array.from(slots[i].subarray(lengths[i]))).toEqual(new Array(slotSize - lengths[i]).fill(0));
+      }
+    });
+
+    it("decodes several subarray views of one buffer without rebuilding the DataView", () => {
+      const packet = new Uint8Array(128);
+      const views: Uint8Array[] = [];
+      let offset = 3;
+
+      for (const value of values) {
+        const view = Slot.encodeInto(value, packet.subarray(offset));
+        views.push(view);
+        offset += view.byteLength;
+      }
+
+      expect(Slot.decode(views[0])).toEqual(values[0]);
+      const dv = (Slot as any)._$reader._$dataView;
+      expect(dv.buffer).toBe(packet.buffer);
+
+      const counts = countConstructs(["DataView"], () => {
+        for (let pass = 0; pass < 2; pass++) {
+          for (let i = 0; i < views.length; i++) {
+            expect(Slot.decode(views[i])).toEqual(values[i]);
+          }
+        }
+      });
+
+      expect(counts.DataView).toBe(0);
+      expect((Slot as any)._$reader._$dataView).toBe(dv);
+    });
+
+    it("throws when decoding a view truncated within a larger buffer", () => {
+      const packet = new Uint8Array(64);
+      const view = Slot.encodeInto(values[1], packet.subarray(5));
+
+      expect(() => Slot.decode(view.subarray(0, view.byteLength - 1))).toThrow(RangeError);
     });
   });
 
