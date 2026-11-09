@@ -405,7 +405,9 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
     }
 
     // write each field
-    for (const field of this._$fields) {
+    const fields = this._$fields;
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i];
       const subValue = value[field.$name];
 
       if (field.$isOptional) {

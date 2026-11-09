@@ -259,6 +259,87 @@ describe("coders", () => {
       check(coder, -1 / Infinity);
       check(coder, NaN);
     });
+
+    it("writes little-endian IEEE 754 bytes for special values", () => {
+      [
+        0, -0, NaN, Infinity, -Infinity,
+        Number.MIN_VALUE, -Number.MIN_VALUE, 2.2250738585072009e-308, 2.2250738585072014e-308,
+        Number.MAX_VALUE, Number.EPSILON, Number.MAX_SAFE_INTEGER, Math.PI,
+      ].forEach(value => {
+        const expected = new Uint8Array(8);
+        new DataView(expected.buffer).setFloat64(0, value, true);
+
+        expect(hexBytes(write(coder, value))).toEqual(hexBytes(expected));
+        expect(Object.is(read(coder, write(coder, value)), value)).toBe(true);
+      });
+    });
+  });
+
+  describe("varint byte compatibility", () => {
+    const POW_32 = 0x100000000;
+
+    function legacyUint(value: number): Uint8Array {
+      const dv = new DataView(new ArrayBuffer(8));
+      if (value < 0) value = 0;
+      if (value < 128) dv.setUint8(0, value);
+      else if (value < 16_384) dv.setUint16(0, value + 0x8000);
+      else if (value < 536_870_912) dv.setUint32(0, value + 0xc0000000);
+      else if (value >= 536_870_912) {
+        dv.setUint32(0, Math.floor(value / POW_32) + 0xe0000000);
+        dv.setUint32(4, value >>> 0);
+      }
+      else return new Uint8Array([0]);
+      const len = value < 128 ? 1 : value < 16_384 ? 2 : value < 536_870_912 ? 4 : 8;
+      return new Uint8Array(dv.buffer, 0, len);
+    }
+
+    function legacyInt(value: number): Uint8Array {
+      const dv = new DataView(new ArrayBuffer(8));
+      let len: number;
+      if (value >= -64 && value < 64) {
+        dv.setUint8(0, value & 0x7f); len = 1;
+      }
+      else if (value >= -8_192 && value < 8_192) {
+        dv.setUint16(0, (value & 0x3fff) + 0x8000); len = 2;
+      }
+      else if (value >= -268_435_456 && value < 268_435_456) {
+        dv.setUint32(0, (value & 0x1fffffff) + 0xc0000000); len = 4;
+      }
+      else if (value < -268_435_456 || value >= 268_435_456) {
+        dv.setUint32(0, (Math.floor(value / POW_32) & 0x1fffffff) + 0xe0000000);
+        dv.setUint32(4, value >>> 0);
+        len = 8;
+      }
+      else return new Uint8Array([0]);
+      return new Uint8Array(dv.buffer, 0, len);
+    }
+
+    const values: number[] = [
+      Infinity, -Infinity, Number.MAX_VALUE, Number.MAX_SAFE_INTEGER, -Number.MAX_SAFE_INTEGER,
+      2 ** 61, 2 ** 62 + 12345, 2 ** 32, 2 ** 32 - 1, 2 ** 31, -(2 ** 31), 2 ** 30, -(2 ** 30),
+      Date.UTC(2026, 10, 9), -Date.UTC(2026, 10, 9), 16_384.5, 536_870_911.9, -268_435_456.5,
+    ];
+    for (let e = 0; e <= 62; e++) {
+      const p = 2 ** e;
+      values.push(p - 1, p, p + 1, -p - 1, -p, -p + 1);
+    }
+    for (let i = 0; i < 2000; i++) {
+      values.push(Math.floor((Math.random() - 0.5) * 2 ** (Math.random() * 63)));
+    }
+
+    it("uintCoder writes the same bytes as before", () => {
+      values.forEach(value => {
+        expect(`${value}: ${hexBytes(write(coders.uintCoder, value))}`)
+          .toEqual(`${value}: ${hexBytes(legacyUint(value))}`);
+      });
+    });
+
+    it("intCoder writes the same bytes as before", () => {
+      values.forEach(value => {
+        expect(`${value}: ${hexBytes(write(coders.intCoder, value))}`)
+          .toEqual(`${value}: ${hexBytes(legacyInt(value))}`);
+      });
+    });
   });
 
   describe("uscalar8Coder", () => {
