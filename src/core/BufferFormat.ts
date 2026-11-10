@@ -19,6 +19,8 @@ import {
 } from "./Type";
 import { cfg } from "./config";
 
+const spareArrayElements = new WeakMap<any[], any[]>();
+
 export type FormatHeader = string | number;
 
 /**
@@ -566,9 +568,23 @@ export class BufferFormat<EncoderType extends EncoderDefinition, HeaderType exte
   private _$readArray<T extends EncoderDefinition>(type: BufferFormat<T, any>, state: any, obj?: Array<T>): Array<T> {
     const len = coders.uintCoder.$read(state);
     const arr = Array.isArray(obj) ? obj : new Array(len);
+    const prevLen = Array.isArray(obj) ? arr.length : 0;
+    let spare: any[] | undefined;
+
+    if (prevLen !== len && type._$type === undefined) {
+      spare = spareArrayElements.get(arr);
+
+      if (len < prevLen) {
+        if (spare === undefined) spareArrayElements.set(arr, spare = []);
+        for (let j = len; j < prevLen; j++) {
+          if (arr[j] != null) spare.push(arr[j]);
+        }
+      }
+    }
+
     if (arr.length !== len) arr.length = len;
-    for (let j = 0; j < arr.length; j++) {
-      arr[j] = type._$read(state, obj?.[j]);
+    for (let j = 0; j < len; j++) {
+      arr[j] = type._$read(state, j < prevLen ? arr[j] : spare?.pop());
     }
     return arr;
   }
