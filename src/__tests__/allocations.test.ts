@@ -434,6 +434,49 @@ describe("allocation-free hot paths", () => {
       expect(obj).toEqual({ values: [], items: [] });
       expect(obj.values).toBe(values);
     });
+
+    it("reuses element objects dropped by a shrink when the array grows again", () => {
+      const obj: any = {};
+      ArrFormat.decodeInto(ArrFormat.encode({ values: [], items: [{ v: 1 }, { v: 2 }, { v: 3 }] }, true), obj);
+
+      const [item0, item1, item2] = obj.items;
+
+      ArrFormat.decodeInto(ArrFormat.encode({ values: [], items: [{ v: 4 }] }, true), obj);
+      expect(obj.items).toEqual([{ v: 4 }]);
+      expect(obj.items[0]).toBe(item0);
+
+      ArrFormat.decodeInto(ArrFormat.encode({ values: [], items: [{ v: 5 }, { v: 6 }, { v: 7 }] }, true), obj);
+      expect(obj.items).toEqual([{ v: 5 }, { v: 6 }, { v: 7 }]);
+      expect(new Set(obj.items)).toEqual(new Set([item0, item1, item2]));
+    });
+
+    it("creates no more element objects than the longest arrays need", () => {
+      const NestedFormat = defineFormat({
+        frames: [{ seq: Type.UInt, inputs: [{ x: Type.Scalar8, y: Type.Scalar8 }] }],
+      });
+      const make = (n: number): { frames: { seq: number; inputs: { x: number; y: number }[] }[] } => ({
+        frames: Array.from({ length: n }, (_, i) => ({ seq: i, inputs: Array.from({ length: (n + i) % 3 + 1 }, () => ({ x: 0.5, y: -0.5 })) })),
+      });
+      const encoded = [3, 9, 1, 12, 5, 0, 10, 7].map(n => NestedFormat.encode(make(n), true));
+      const obj: any = {};
+      const seen = new Set<object>();
+
+      for (let pass = 0; pass < 20; pass++) {
+        for (const bytes of encoded) {
+          NestedFormat.decodeInto(bytes, obj);
+
+          for (const frame of obj.frames) {
+            seen.add(frame);
+            seen.add(frame.inputs);
+            for (const input of frame.inputs) seen.add(input);
+          }
+        }
+      }
+
+      const maxFrames = 12;
+      const maxInputs = 3;
+      expect(seen.size).toBeLessThanOrEqual(maxFrames * (2 + maxInputs));
+    });
   });
 
   describe("peekHeader()", () => {

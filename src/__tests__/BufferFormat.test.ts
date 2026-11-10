@@ -126,7 +126,7 @@ describe("BufferFormat", () => {
 
     expect(objB2).toBe(obj.b); // longer arrays are re-used
     expect(objC1D1).toBe(obj.c![0]); // underlying object instances ARE recycled
-    expect(objC1D2).not.toBe(obj.c![1]); // ...but only when they existed in the previous instance
+    expect(objC1D2).toBe(obj.c![1]); // ...including instances dropped by a previous shrink
   });
 
   it("can decode a bools bitmask in-place", () => {
